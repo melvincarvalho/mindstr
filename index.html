@@ -316,7 +316,20 @@
         render(_, { nodes, newNodeName, editingNode }) {
           return html`
             <div>
-              <h3>Mindstr - INS (Insert Node) - Double Click (Edit)</h3>
+              <h3>
+                Mindstr - INS (Insert Node) - Double Click (Edit) - Ctrl+M Link
+                -
+                <button
+                  onClick=${() => {
+                    const dataIslandContent =
+                      document.getElementById('initialData').textContent
+                    const parsedData = JSON.parse(dataIslandContent)
+                    alert(JSON.stringify(parsedData, null, 2))
+                  }}
+                >
+                  Show Data Island
+                </button>
+              </h3>
               <div id="nodeCreation" style="display:none">
                 <input
                   ref=${el => (this.editInputRef = el)}
