@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Minimal Mind Mapping App</title>
+    <title>Mindstr</title>
     <style>
       /* Adjusted CSS */
       body {
@@ -52,6 +52,7 @@
       class MindMap extends Component {
         constructor() {
           super()
+          this.editInputRef = null
           const data = JSON.parse(
             document.querySelector('#initialData').textContent
           )
@@ -262,7 +263,12 @@
           )
 
           if (clickedNodeIndex > -1) {
-            this.setState({ editingNode: clickedNodeIndex })
+            this.setState({ editingNode: clickedNodeIndex }, () => {
+              if (this.editInputRef) {
+                this.editInputRef.focus()
+                this.editInputRef.select()
+              }
+            })
           }
         }
 
@@ -273,9 +279,10 @@
         render(_, { nodes, newNodeName, editingNode }) {
           return html`
             <div>
-              <h3>Mindstr</h3>
+              <h3>Mindstr - INS (Insert Node) - Double Click (Edit)</h3>
               <div id="nodeCreation" style="display:none">
                 <input
+                  ref=${el => (this.editInputRef = el)}
                   type="text"
                   value=${newNodeName}
                   onInput=${e => this.handleInputChange(e)}
@@ -294,6 +301,7 @@
               ${editingNode !== null
                 ? html`
                     <input
+                      ref=${el => (this.editInputRef = el)}
                       type="text"
                       style=${`position: absolute; top: ${nodes[editingNode].y}px; left: ${nodes[editingNode].x}px;`}
                       value=${nodes[editingNode].name}
