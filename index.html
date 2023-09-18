@@ -50,22 +50,21 @@
       } from 'https://cdn.jsdelivr.net/npm/preact-htm-signals-standalone@0.0.12/+esm'
 
       class MindMap extends Component {
-        constructor() {
+        constructor(props) {
           super()
-          const urlParams = new URLSearchParams(window.location.search)
-          const mapData = urlParams.get('map')
 
           this.editInputRef = null
-          const data = mapData
-            ? JSON.parse(mapData)
-            : JSON.parse(document.querySelector('#initialData').textContent)
+          const data = props.data
 
           this.state = {
             nodes: data.nodes,
             connections: data.connections,
             newNodeName: '',
             draggingNode: null,
-            canvasOffset: { x: 0, y: 0 },
+            canvasOffset: {
+              x: 0,
+              y: 0
+            },
             selectedNode: null,
             editingNode: null
           }
@@ -373,7 +372,37 @@
         }
       }
 
-      render(html`<${MindMap} />`, document.getElementById('app'))
+      const urlParams = new URLSearchParams(window.location.search)
+      const mapFile = urlParams.get('map')
+
+      if (mapFile) {
+        fetch(mapFile)
+          .then(response => response.json())
+          .then(data => {
+            initializeApp(data)
+          })
+          .catch(err => {
+            console.error('Error fetching map data:', err)
+            // Fallback to data island if fetch fails
+            const data = JSON.parse(
+              document.querySelector('#initialData').textContent
+            )
+            initializeApp(data)
+          })
+      } else {
+        // Default to data island if no map parameter is provided
+        const data = JSON.parse(
+          document.querySelector('#initialData').textContent
+        )
+        initializeApp(data)
+      }
+
+      function initializeApp(data) {
+        render(
+          html`<${MindMap} data=${data} />`,
+          document.getElementById('app')
+        )
+      }
     </script>
   </body>
 </html>
