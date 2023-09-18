@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mindstr</title>
+    <title>Minimal Mind Mapping App</title>
     <style>
       /* Adjusted CSS */
       body {
@@ -176,12 +176,15 @@
           })
 
           if (clickedNodeIndex > -1) {
-            this.setState({
-              draggingNode: clickedNodeIndex,
-              selectedNode: clickedNodeIndex
-            })
+            this.setState(
+              {
+                draggingNode: clickedNodeIndex,
+                selectedNode: clickedNodeIndex
+              },
+              () => this.redraw()
+            )
           } else {
-            this.setState({ selectedNode: null })
+            this.setState({ selectedNode: null }, () => this.redraw())
           }
 
           console.log('Detected node:', clickedNodeIndex)
