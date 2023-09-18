@@ -52,10 +52,14 @@
       class MindMap extends Component {
         constructor() {
           super()
+          const urlParams = new URLSearchParams(window.location.search)
+          const mapData = urlParams.get('map')
+
           this.editInputRef = null
-          const data = JSON.parse(
-            document.querySelector('#initialData').textContent
-          )
+          const data = mapData
+            ? JSON.parse(mapData)
+            : JSON.parse(document.querySelector('#initialData').textContent)
+
           this.state = {
             nodes: data.nodes,
             connections: data.connections,
@@ -325,6 +329,7 @@
                       document.getElementById('initialData').textContent
                     const parsedData = JSON.parse(dataIslandContent)
                     alert(JSON.stringify(parsedData, null, 2))
+                    console.log(JSON.stringify(parsedData, null, 2))
                   }}
                 >
                   Show Data Island
