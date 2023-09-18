@@ -87,6 +87,14 @@
           this.redraw()
         }
 
+        updateDataIsland() {
+          const dataElement = document.querySelector('#initialData')
+          dataElement.textContent = JSON.stringify({
+            nodes: this.state.nodes,
+            connections: this.state.connections
+          })
+        }
+
         redraw() {
           this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
 
@@ -127,9 +135,19 @@
             this.ctx.fill()
             this.ctx.stroke()
 
-            this.ctx.fillStyle = '#000'
+            // If the node has a link, change the text color to blue and underline it
+            this.ctx.fillStyle = node.link ? 'blue' : '#000'
             this.ctx.fillText(node.name, node.x - textWidth / 2, node.y + 5)
+            if (node.link) {
+              this.ctx.beginPath()
+              this.ctx.moveTo(node.x - textWidth / 2, node.y + 10)
+              this.ctx.lineTo(node.x + textWidth / 2, node.y + 10)
+              this.ctx.strokeStyle = 'blue'
+              this.ctx.stroke()
+            }
           })
+
+          this.updateDataIsland()
         }
 
         handleGlobalKeyDown = e => {
@@ -159,6 +177,15 @@
               () => this.redraw()
             )
           }
+
+          if (e.ctrlKey && e.key === 'm' && this.state.selectedNode !== null) {
+            const link = prompt('Enter a hyperlink for the selected node:')
+            if (link) {
+              const nodesCopy = [...this.state.nodes]
+              nodesCopy[this.state.selectedNode].link = link
+              this.setState({ nodes: nodesCopy })
+            }
+          }
         }
 
         handleCanvasMouseDown(e) {
@@ -166,13 +193,28 @@
           const mouseX = e.clientX - rect.left
           const mouseY = e.clientY - rect.top // Adjust the Y-coordinate for the offset
 
-          console.log('Mouse coordinates:', mouseX, mouseY)
-
           const clickedNodeIndex = this.state.nodes.findIndex(node => {
             const distance = Math.sqrt(
               (node.x - mouseX) ** 2 + (node.y - mouseY) ** 2
             )
-            console.log('Node:', node, 'Distance:', distance) // Logging node and distance
+
+            if (distance <= 20) {
+              // This checks if we're within the bubble.
+              const textWidth = this.ctx.measureText(node.name).width
+              // Check if click is within text bounding box
+              if (
+                mouseX >= node.x - textWidth / 2 &&
+                mouseX <= node.x + textWidth / 2 &&
+                mouseY >= node.y - 10 && // Assuming a fixed height for your text here. Adjust if needed.
+                mouseY <= node.y + 10
+              ) {
+                if (node.link) {
+                  window.open(node.link, '_blank')
+                  return false // Ensure this node doesn't get selected or dragged.
+                }
+              }
+            }
+
             return distance <= 20
           })
 
@@ -186,11 +228,6 @@
             )
           } else {
             this.setState({ selectedNode: null }, () => this.redraw())
-          }
-
-          console.log('Detected node:', clickedNodeIndex)
-          if (clickedNodeIndex > -1) {
-            this.setState({ draggingNode: clickedNodeIndex })
           }
         }
 
