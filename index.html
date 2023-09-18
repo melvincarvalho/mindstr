@@ -108,6 +108,7 @@
             this.ctx.beginPath()
             this.ctx.moveTo(startNode.x, startNode.y)
             this.ctx.lineTo(endNode.x, endNode.y)
+            this.ctx.strokeStyle = '#000' // Resetting stroke color
             this.ctx.stroke()
           })
 
@@ -136,6 +137,7 @@
               this.ctx.fillStyle = '#fff'
             }
             this.ctx.fill()
+            this.ctx.strokeStyle = '#000' // Resetting stroke color
             this.ctx.stroke()
 
             // If the node has a link, change the text color to blue and underline it
@@ -147,6 +149,7 @@
               this.ctx.lineTo(node.x + textWidth / 2, node.y + 10)
               this.ctx.strokeStyle = 'blue'
               this.ctx.stroke()
+              this.ctx.strokeStyle = '#000' // Resetting stroke color
             }
           })
 
