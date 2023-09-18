@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mindstr</title>
+    <style>
+      /* Adjusted CSS */
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        position: absolute;
+        top: 50px;
+        left: 0;
+      }
+      #nodeCreation {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 1;
+        background: #f9f9f9;
+        padding: 5px;
+        border: 1px solid #ccc;
+      }
+      button {
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Structured Data Island for initial data -->
+    <script type="application/json" id="initialData">
+      {
+        "nodes": [{ "name": "New", "x": 250, "y": 250 }],
+        "connections": []
+      }
+    </script>
+
+    <!-- App root -->
+    <div id="app"></div>
+
+    <script type="module">
+      import {
+        html,
+        render,
+        Component
+      } from 'https://cdn.jsdelivr.net/npm/preact-htm-signals-standalone@0.0.12/+esm'
+
+      class MindMap extends Component {
+        constructor() {
+          super()
+          const data = JSON.parse(
+            document.querySelector('#initialData').textContent
+          )
+          this.state = {
+            nodes: data.nodes,
+            connections: data.connections,
+            newNodeName: '',
+            draggingNode: null,
+            canvasOffset: { x: 0, y: 0 },
+            selectedNode: null,
+            editingNode: null
+          }
+        }
+
+        componentDidMount() {
+          this.canvas = this.base.querySelector('canvas')
+          this.ctx = this.canvas.getContext('2d')
+          this.updateCanvasSize()
+          window.addEventListener('resize', () => this.updateCanvasSize())
+          document.addEventListener('keydown', this.handleGlobalKeyDown)
+
+          this.redraw()
+        }
+
+        componentWillUnmount() {
+          document.removeEventListener('keydown', this.handleGlobalKeyDown)
+        }
+
+        updateCanvasSize() {
+          this.canvas.width = window.innerWidth
+          this.canvas.height = window.innerHeight
+          this.redraw()
+        }
+
+        redraw() {
+          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+
+          // Draw connections
+          this.state.connections.forEach(conn => {
+            const startNode = this.state.nodes[conn.start]
+            const endNode = this.state.nodes[conn.end]
+            this.ctx.beginPath()
+            this.ctx.moveTo(startNode.x, startNode.y)
+            this.ctx.lineTo(endNode.x, endNode.y)
+            this.ctx.stroke()
+          })
+
+          // Draw nodes
+          this.state.nodes.forEach((node, index) => {
+            const textWidth = this.ctx.measureText(node.name).width
+
+            // Calculate the width and height of the oval based on the text width
+            const ovalWidth = Math.max(textWidth + 10, 40) // 40 is the minimum width
+            const ovalHeight = 40 // fixed height
+
+            this.ctx.beginPath()
+            this.ctx.ellipse(
+              node.x,
+              node.y,
+              ovalWidth / 2,
+              ovalHeight / 2,
+              0,
+              0,
+              2 * Math.PI
+            )
+
+            if (this.state.selectedNode === index) {
+              this.ctx.fillStyle = 'lightblue'
+            } else {
+              this.ctx.fillStyle = '#fff'
+            }
+            this.ctx.fill()
+            this.ctx.stroke()
+
+            this.ctx.fillStyle = '#000'
+            this.ctx.fillText(node.name, node.x - textWidth / 2, node.y + 5)
+          })
+        }
+
+        handleGlobalKeyDown = e => {
+          if (e.key === 'Insert' && this.state.selectedNode !== null) {
+            const newNode = {
+              name: '',
+              x: this.state.nodes[this.state.selectedNode].x + 50, // Positioning the new node to the right of the selected node for clarity.
+              y: this.state.nodes[this.state.selectedNode].y + 50
+            }
+
+            this.setState(
+              prevState => {
+                const newNodes = [...prevState.nodes, newNode]
+                const newConnections = [
+                  ...prevState.connections,
+                  {
+                    start: prevState.selectedNode,
+                    end: newNodes.length - 1
+                  }
+                ]
+
+                return {
+                  nodes: newNodes,
+                  connections: newConnections
+                }
+              },
+              () => this.redraw()
+            )
+          }
+        }
+
+        handleCanvasMouseDown(e) {
+          const rect = e.target.getBoundingClientRect() // Get canvas position
+          const mouseX = e.clientX - rect.left
+          const mouseY = e.clientY - rect.top // Adjust the Y-coordinate for the offset
+
+          console.log('Mouse coordinates:', mouseX, mouseY)
+
+          const clickedNodeIndex = this.state.nodes.findIndex(node => {
+            const distance = Math.sqrt(
+              (node.x - mouseX) ** 2 + (node.y - mouseY) ** 2
+            )
+            console.log('Node:', node, 'Distance:', distance) // Logging node and distance
+            return distance <= 20
+          })
+
+          if (clickedNodeIndex > -1) {
+            this.setState({
+              draggingNode: clickedNodeIndex,
+              selectedNode: clickedNodeIndex
+            })
+          } else {
+            this.setState({ selectedNode: null })
+          }
+
+          console.log('Detected node:', clickedNodeIndex)
+          if (clickedNodeIndex > -1) {
+            this.setState({ draggingNode: clickedNodeIndex })
+          }
+        }
+
+        handleCanvasMouseMove(e) {
+          if (this.state.draggingNode !== null) {
+            const rect = e.target.getBoundingClientRect()
+            const mouseX = e.clientX - rect.left
+            const mouseY = e.clientY - rect.top // Adjusted for canvas offset
+
+            const nodesCopy = [...this.state.nodes]
+            nodesCopy[this.state.draggingNode].x = mouseX
+            nodesCopy[this.state.draggingNode].y = mouseY
+            this.setState({ nodes: nodesCopy }, () => this.redraw())
+          }
+        }
+        handleCanvasMouseUp(e) {
+          console.log('MouseUp event captured')
+          if (this.state.draggingNode !== null) {
+            this.setState({ draggingNode: null })
+          }
+        }
+
+        handleNodeCreation() {
+          if (this.state.newNodeName.trim()) {
+            const newNode = {
+              name: this.state.newNodeName.trim(),
+              x: 200 + Math.random() * 100, // Random position for demonstration
+              y: 200 + Math.random() * 100
+            }
+
+            this.setState(
+              prevState => {
+                const newNodes = [...prevState.nodes, newNode]
+                let newConnections = [...prevState.connections]
+
+                // Check if there's a selected node, if so, connect the new node to it
+                if (prevState.selectedNode !== null) {
+                  newConnections.push({
+                    start: prevState.selectedNode,
+                    end: newNodes.length - 1
+                  })
+                } else if (newNodes.length > 1) {
+                  // If no node is selected, but it's not the first node,
+                  // connect it to the first node (default behavior)
+                  newConnections.push({
+                    start: 0,
+                    end: newNodes.length - 1
+                  })
+                }
+
+                return {
+                  nodes: newNodes,
+                  connections: newConnections,
+                  newNodeName: ''
+                }
+              },
+              () => this.redraw()
+            )
+          }
+        }
+
+        handleCanvasDoubleClick(e) {
+          const rect = e.target.getBoundingClientRect()
+          const mouseX = e.clientX - rect.left
+          const mouseY = e.clientY - rect.top
+
+          const clickedNodeIndex = this.state.nodes.findIndex(
+            node =>
+              Math.sqrt((node.x - mouseX) ** 2 + (node.y - mouseY) ** 2) <= 20
+          )
+
+          if (clickedNodeIndex > -1) {
+            this.setState({ editingNode: clickedNodeIndex })
+          }
+        }
+
+        handleInputChange(e) {
+          this.setState({ newNodeName: e.target.value })
+        }
+
+        render(_, { nodes, newNodeName, editingNode }) {
+          return html`
+            <div>
+              <h3>Mindstr</h3>
+              <div id="nodeCreation" style="display:none">
+                <input
+                  type="text"
+                  value=${newNodeName}
+                  onInput=${e => this.handleInputChange(e)}
+                  placeholder="Node Name"
+                />
+                <button onclick=${() => this.handleNodeCreation()}>
+                  Add Node
+                </button>
+              </div>
+              <canvas
+                onmousedown=${e => this.handleCanvasMouseDown(e)}
+                onmousemove=${e => this.handleCanvasMouseMove(e)}
+                onmouseup=${e => this.handleCanvasMouseUp(e)}
+                ondblclick=${e => this.handleCanvasDoubleClick(e)}
+              ></canvas>
+              ${editingNode !== null
+                ? html`
+                    <input
+                      type="text"
+                      style=${`position: absolute; top: ${nodes[editingNode].y}px; left: ${nodes[editingNode].x}px;`}
+                      value=${nodes[editingNode].name}
+                      onblur=${e => {
+                        nodes[editingNode].name = e.target.value
+                        this.setState({ nodes, editingNode: null })
+                        this.redraw()
+                      }}
+                    />
+                  `
+                : null}
+            </div>
+          `
+        }
+      }
+
+      render(html`<${MindMap} />`, document.getElementById('app'))
+    </script>
+  </body>
+</html>
