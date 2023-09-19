@@ -211,6 +211,61 @@
             )
           }
 
+          if (
+            e.key === 'Enter' &&
+            this.state.selectedNode !== null &&
+            this.state.editingNode === null
+          ) {
+            // Identify the parent node of the currently selected node
+            const parentNodeConnection = this.state.connections.find(
+              conn => conn.end === this.state.selectedNode
+            )
+            let parentNodeIndex
+            if (parentNodeConnection) {
+              parentNodeIndex = parentNodeConnection.start
+            }
+
+            if (parentNodeIndex !== undefined) {
+              const newNode = {
+                name: '',
+                x:
+                  this.state.nodes[this.state.selectedNode].x +
+                  (Math.random() * 100 - 50), // Randomly position to the left or right
+                y: this.state.nodes[this.state.selectedNode].y + 50 // Below the current node
+              }
+
+              this.setState(
+                prevState => {
+                  const newNodes = [...prevState.nodes, newNode]
+                  const newConnections = [
+                    ...prevState.connections,
+                    {
+                      start: parentNodeIndex,
+                      end: newNodes.length - 1
+                    }
+                  ]
+
+                  return {
+                    nodes: newNodes,
+                    connections: newConnections
+                  }
+                },
+                () => {
+                  this.redraw()
+                  this.setState(
+                    { editingNode: this.state.nodes.length - 1 },
+                    () => {
+                      if (this.editInputRef) {
+                        this.editInputRef.focus()
+                        this.editInputRef.select()
+                      }
+                    }
+                  )
+                }
+              )
+            }
+          }
+
           if (e.ctrlKey && e.key === 'm' && this.state.selectedNode !== null) {
             const link = prompt('Enter a hyperlink for the selected node:')
             if (link) {
@@ -429,7 +484,7 @@
             <div>
               <h4>
                 Mindstr Actions:
-                <span title="Insert Node">📌 (INS)</span>
+                <span title="Insert Node">📌 (INS/Enter)</span>
                 <span title="Edit Node">✏️ (Double Click)</span>
                 <span title="Add Link">🔗 (Ctrl+M)</span>
                 <span title="Delete Node">🗑️ (Delete)</span> |
