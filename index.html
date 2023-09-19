@@ -68,7 +68,9 @@
             },
             selectedNode: null,
             editingNode: null,
-            points: 0
+            points: 0,
+            selectedNode:
+              props.selectedNode !== undefined ? props.selectedNode : null
           }
         }
 
@@ -96,7 +98,8 @@
           const dataElement = document.querySelector('#initialData')
           dataElement.textContent = JSON.stringify({
             nodes: this.state.nodes,
-            connections: this.state.connections
+            connections: this.state.connections,
+            selectedNode: this.state.selectedNode
           })
         }
 
@@ -535,10 +538,17 @@
       }
 
       function initializeApp(data) {
-        render(
-          html`<${MindMap} data=${data} />`,
-          document.getElementById('app')
-        )
+        if (data.selectedNode !== undefined) {
+          render(
+            html`<${MindMap} data=${data} selectedNode=${data.selectedNode} />`,
+            document.getElementById('app')
+          )
+        } else {
+          render(
+            html`<${MindMap} data=${data} />`,
+            document.getElementById('app')
+          )
+        }
       }
     </script>
   </body>
