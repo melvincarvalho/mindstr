@@ -189,7 +189,12 @@
             )
           }
 
-          if (e.ctrlKey && e.key === 'k' && this.state.selectedNode !== null) {
+          if (
+            e.shiftKey &&
+            e.ctrlKey &&
+            e.key === 'k' &&
+            this.state.selectedNode !== null
+          ) {
             const link = prompt('Enter a hyperlink for the selected node:')
             if (link) {
               const nodesCopy = [...this.state.nodes]
@@ -409,7 +414,7 @@
                 Mindstr Actions:
                 <span title="Insert Node">📌 (INS)</span>
                 <span title="Edit Node">✏️ (Double Click)</span>
-                <span title="Add Link">🔗 (Ctrl+K)</span>
+                <span title="Add Link">🔗 (Ctrl+Shift+K)</span>
                 <span title="Delete Node">🗑️ (Delete)</span> |
                 <button
                   onClick=${() => {
