@@ -67,7 +67,8 @@
               y: 0
             },
             selectedNode: null,
-            editingNode: null
+            editingNode: null,
+            points: 0
           }
         }
 
@@ -198,6 +199,37 @@
             e.preventDefault() // Prevent the browser's save dialog
             this.saveData()
           }
+
+          if (e.key === 'Delete' && this.state.selectedNode !== null) {
+            const nodeToDelete = this.state.selectedNode
+
+            // Filter out connections associated with the node
+            const updatedConnections = this.state.connections.filter(
+              conn => conn.start !== nodeToDelete && conn.end !== nodeToDelete
+            )
+
+            // Adjust connection indices greater than nodeToDelete
+            const adjustedConnections = updatedConnections.map(conn => {
+              if (conn.start > nodeToDelete) conn.start -= 1
+              if (conn.end > nodeToDelete) conn.end -= 1
+              return conn
+            })
+
+            // Remove the node from the nodes array
+            const updatedNodes = [
+              ...this.state.nodes.slice(0, nodeToDelete),
+              ...this.state.nodes.slice(nodeToDelete + 1)
+            ]
+
+            this.setState(
+              {
+                nodes: updatedNodes,
+                connections: adjustedConnections,
+                selectedNode: null
+              },
+              () => this.redraw()
+            )
+          }
         }
 
         async saveData() {
@@ -217,6 +249,8 @@
               })
               if (response.ok) {
                 console.log('Data saved successfully!')
+                new Audio('./audio/save.ogg').play()
+                this.setState({ points: this.state.points + 500 })
               } else {
                 alert('Error saving data.')
               }
@@ -360,7 +394,8 @@
                 Mindstr Actions:
                 <span title="Insert Node">📌 (INS)</span>
                 <span title="Edit Node">✏️ (Double Click)</span>
-                <span title="Add Link">🔗 (Ctrl+K)</span> |
+                <span title="Add Link">🔗 (Ctrl+K)</span>
+                <span title="Delete Node">🗑️ (Delete)</span> |
                 <button
                   onClick=${() => {
                     const dataIslandContent =
@@ -414,7 +449,7 @@
                   }}
                 >
                   Save Data</button
-                >|
+                >| Points: ${this.state.points}
               </h4>
 
               <div id="nodeCreation" style="display:none">
