@@ -176,7 +176,7 @@
           if (e.key === 'Insert' && this.state.selectedNode !== null) {
             const newNode = {
               name: '',
-              x: this.state.nodes[this.state.selectedNode].x + 50, // Positioning the new node to the right of the selected node for clarity.
+              x: this.state.nodes[this.state.selectedNode].x + 50,
               y: this.state.nodes[this.state.selectedNode].y + 50
             }
 
@@ -196,7 +196,18 @@
                   connections: newConnections
                 }
               },
-              () => this.redraw()
+              () => {
+                this.redraw()
+                this.setState(
+                  { editingNode: this.state.nodes.length - 1 },
+                  () => {
+                    if (this.editInputRef) {
+                      this.editInputRef.focus()
+                      this.editInputRef.select()
+                    }
+                  }
+                )
+              }
             )
           }
 
