@@ -38,6 +38,7 @@
         "connections": []
       }
     </script>
+    <script src="https://unpkg.com/nosdav-shim"></script>
 
     <!-- App root -->
     <div id="app"></div>
@@ -192,6 +193,39 @@
               this.setState({ nodes: nodesCopy })
             }
           }
+
+          if (e.ctrlKey && e.key === 's') {
+            e.preventDefault() // Prevent the browser's save dialog
+            this.saveData()
+          }
+        }
+
+        async saveData() {
+          const dataIslandContent =
+            document.getElementById('initialData').textContent
+          const data = JSON.parse(dataIslandContent)
+          const urlParams = new URLSearchParams(window.location.search)
+          const mapFile = urlParams.get('map')
+          if (mapFile) {
+            try {
+              const response = await fetch(mapFile, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+              })
+              if (response.ok) {
+                alert('Data saved successfully!')
+              } else {
+                alert('Error saving data.')
+              }
+            } catch (error) {
+              alert('Error saving data: ' + error.message)
+            }
+          } else {
+            alert('No map URL provided in query string.')
+          }
         }
 
         handleCanvasMouseDown(e) {
@@ -337,6 +371,49 @@
                   }}
                 >
                   Show Data</button
+                >|
+                <button
+                  onClick=${async () => {
+                    var currentUser = await window.nostr.getPublicKey()
+                    if (currentUser) {
+                      localStorage.setItem('currentUser', currentUser)
+                    }
+                  }}
+                >
+                  Login</button
+                >|
+                <button
+                  onClick=${async () => {
+                    const dataIslandContent =
+                      document.getElementById('initialData').textContent
+                    const data = JSON.parse(dataIslandContent)
+                    const urlParams = new URLSearchParams(
+                      window.location.search
+                    )
+                    const mapFile = urlParams.get('map')
+                    if (mapFile) {
+                      try {
+                        const response = await fetch(mapFile, {
+                          method: 'PUT',
+                          headers: {
+                            'Content-Type': 'application/json'
+                          },
+                          body: JSON.stringify(data)
+                        })
+                        if (response.ok) {
+                          alert('Data saved successfully!')
+                        } else {
+                          alert('Error saving data.')
+                        }
+                      } catch (error) {
+                        alert('Error saving data: ' + error.message)
+                      }
+                    } else {
+                      alert('No map URL provided in query string.')
+                    }
+                  }}
+                >
+                  Save Data</button
                 >|
               </h4>
 
