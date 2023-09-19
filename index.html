@@ -358,6 +358,7 @@
                 onmouseup=${e => this.handleCanvasMouseUp(e)}
                 ondblclick=${e => this.handleCanvasDoubleClick(e)}
               ></canvas>
+
               ${editingNode !== null
                 ? html`
                     <input
@@ -369,6 +370,12 @@
                         nodes[editingNode].name = e.target.value
                         this.setState({ nodes, editingNode: null })
                         this.redraw()
+                      }}
+                      onkeydown=${e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          e.target.blur()
+                        }
                       }}
                     />
                   `
