@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mindstr</title>
+    <title>Mindstr - NosDAV</title>
     <style>
       /* Adjusted CSS */
       body {
@@ -283,8 +283,20 @@
                 mouseY <= node.y + 10
               ) {
                 if (node.link) {
-                  window.open(node.link, '_blank')
-                  return false // Ensure this node doesn't get selected or dragged.
+                  let href = node.link
+                  if (href.startsWith('./') || href.startsWith('../')) {
+                    const currentURL = new URL(window.location.href)
+                    const oldMapValue = currentURL.searchParams.get('map')
+
+                    // Extract the origin from the oldMapValue
+                    const oldMapURL = new URL(oldMapValue)
+
+                    const combinedValue = new URL(href, oldMapURL).toString()
+                    currentURL.searchParams.set('map', combinedValue)
+                    href = currentURL.toString()
+                  }
+                  window.open(href, '_blank')
+                  return flase
                 }
               }
             }
