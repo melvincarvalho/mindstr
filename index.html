@@ -74,12 +74,23 @@
           }
         }
 
+        componentDidUpdate() {
+          this.updateDocumentTitle()
+        }
+
+        updateDocumentTitle() {
+          if (this.state.nodes[0]) {
+            document.title = 'Mindstr - ' + this.state.nodes[0].name
+          }
+        }
+
         componentDidMount() {
           this.canvas = this.base.querySelector('canvas')
           this.ctx = this.canvas.getContext('2d')
           this.updateCanvasSize()
           window.addEventListener('resize', () => this.updateCanvasSize())
           document.addEventListener('keydown', this.handleGlobalKeyDown)
+          this.updateDocumentTitle()
 
           this.redraw()
         }
