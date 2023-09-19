@@ -322,9 +322,11 @@
         render(_, { nodes, newNodeName, editingNode }) {
           return html`
             <div>
-              <h3>
-                Mindstr - INS (Insert Node) - Double Click (Edit) - Ctrl+M Link
-                -
+              <h4>
+                Mindstr Actions:
+                <span title="Insert Node">📌 (INS)</span>
+                <span title="Edit Node">✏️ (Double Click)</span>
+                <span title="Add Link">🔗 (Ctrl+M)</span> |
                 <button
                   onClick=${() => {
                     const dataIslandContent =
@@ -334,9 +336,10 @@
                     console.log(JSON.stringify(parsedData, null, 2))
                   }}
                 >
-                  Show Data Island
-                </button>
-              </h3>
+                  Show Data</button
+                >|
+              </h4>
+
               <div id="nodeCreation" style="display:none">
                 <input
                   ref=${el => (this.editInputRef = el)}
