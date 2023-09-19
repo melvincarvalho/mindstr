@@ -1,6 +1,6 @@
 {
   "name": "mindstr",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "mindstr",
   "main": "index.js",
   "scripts": {
