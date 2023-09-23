@@ -149,7 +149,7 @@
             if (this.state.selectedNode === index) {
               this.ctx.fillStyle = 'lightblue'
             } else {
-              this.ctx.fillStyle = '#fff'
+              this.ctx.fillStyle = node.bgColor || '#fff'
             }
             this.ctx.fill()
             this.ctx.strokeStyle = '#000' // Resetting stroke color
