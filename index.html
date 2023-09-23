@@ -80,6 +80,7 @@
     <!-- Structured Data Island for initial data -->
     <script type="application/json" id="initialData">
       {
+        "version": "0.1",
         "nodes": [{ "name": "New", "x": 250, "y": 250 }],
         "connections": []
       }
@@ -715,6 +716,11 @@
         if (!data.nodes || !data.connections) {
           console.error("Fetched data doesn't have the expected structure.")
           return
+        }
+
+        // Check for version and set it if not present
+        if (!data.version) {
+          data.version = '0.1'
         }
 
         if (data.selectedNode !== undefined) {
