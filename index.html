@@ -98,6 +98,19 @@
           document.removeEventListener('keydown', this.handleGlobalKeyDown)
         }
 
+        openInNewWindowWithMap() {
+          const urlParams = new URLSearchParams(window.location.search)
+          const mapValue = urlParams.get('map')
+          if (mapValue) {
+            window.open(
+              `https://nosdav.com/pastebin/?uri=${mapValue}`,
+              '_blank'
+            )
+          } else {
+            alert('No map URL provided in query string.')
+          }
+        }
+
         updateCanvasSize() {
           this.canvas.width = window.innerWidth
           this.canvas.height = window.innerHeight
@@ -263,6 +276,10 @@
                 }
               )
             }
+          }
+
+          if (e.ctrlKey && e.shiftKey && e.key === 'K') {
+            this.openInNewWindowWithMap()
           }
 
           if (e.ctrlKey && e.key === 'm' && this.state.selectedNode !== null) {
@@ -513,23 +530,23 @@
                       window.location.href = newUrl
 
                       /*
-                      window.history.pushState({}, null, newUrl)
+                            window.history.pushState({}, null, newUrl)
 
-                      // Fetch the data from the new URL
-                      fetch(`https://nosdav.net/${currentUser}/mm/index.json`)
-                        .then(response => response.json())
-                        .then(data => {
-                          initializeApp(data)
-                        })
-                        .catch(err => {
-                          console.error('Error fetching map data:', err)
-                          // Fallback to data island if fetch fails
-                          const data = JSON.parse(
-                            document.querySelector('#initialData').textContent
-                          )
-                          initializeApp(data)
-                        })
-                        */
+                            // Fetch the data from the new URL
+                            fetch(`https://nosdav.net/${currentUser}/mm/index.json`)
+                              .then(response => response.json())
+                              .then(data => {
+                                initializeApp(data)
+                              })
+                              .catch(err => {
+                                console.error('Error fetching map data:', err)
+                                // Fallback to data island if fetch fails
+                                const data = JSON.parse(
+                                  document.querySelector('#initialData').textContent
+                                )
+                                initializeApp(data)
+                              })
+                              */
                     }
                   }}
                 >
