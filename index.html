@@ -167,6 +167,7 @@
         updateDataIsland() {
           const dataElement = document.querySelector('#initialData')
           dataElement.textContent = JSON.stringify({
+            version: '0.1',
             nodes: this.state.nodes,
             connections: this.state.connections,
             selectedNode: this.state.selectedNode
