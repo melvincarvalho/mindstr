@@ -357,7 +357,9 @@
             if (link) {
               const nodesCopy = [...this.state.nodes]
               nodesCopy[this.state.selectedNode].link = link
-              this.setState({ nodes: nodesCopy })
+              this.setState({ nodes: nodesCopy }, () => {
+                this.updateDataIsland() // Update the data island after adding the link
+              })
             }
           }
 
