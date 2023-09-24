@@ -423,8 +423,8 @@
 
         handleCanvasMouseDown(e) {
           const rect = e.target.getBoundingClientRect() // Get canvas position
-          const mouseX = e.clientX - rect.left
-          const mouseY = e.clientY - rect.top // Adjust the Y-coordinate for the offset
+          const mouseX = e.clientX - rect.left - this.state.canvasOffset.x // Adjust for canvas offset
+          const mouseY = e.clientY - rect.top - this.state.canvasOffset.y // Adjust for canvas offset
 
           const clickedNodeIndex = this.state.nodes.findIndex(node => {
             const distance = Math.sqrt(
@@ -552,8 +552,8 @@
 
         handleCanvasDoubleClick(e) {
           const rect = e.target.getBoundingClientRect()
-          const mouseX = e.clientX - rect.left
-          const mouseY = e.clientY - rect.top
+          const mouseX = e.clientX - rect.left - this.state.canvasOffset.x // Adjust for canvas offset
+          const mouseY = e.clientY - rect.top - this.state.canvasOffset.y // Adjust for canvas offset
 
           const clickedNodeIndex = this.state.nodes.findIndex(
             node =>
