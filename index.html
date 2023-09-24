@@ -356,7 +356,11 @@
             const link = prompt('Enter a hyperlink for the selected node:')
             if (link) {
               const nodesCopy = [...this.state.nodes]
-              nodesCopy[this.state.selectedNode].link = link
+              const updatedNode = {
+                ...nodesCopy[this.state.selectedNode], // Spread the current properties of the node
+                link: link
+              }
+              nodesCopy[this.state.selectedNode] = updatedNode
               this.setState({ nodes: nodesCopy }, () => {
                 this.updateDataIsland() // Update the data island after adding the link
               })
