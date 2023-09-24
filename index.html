@@ -90,6 +90,7 @@
       }
     </script>
     <script src="https://unpkg.com/nosdav-shim"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cuid/dist/browser-cuid.js"></script>
 
     <!-- App root -->
     <div id="app"></div>
@@ -161,6 +162,10 @@
           } else {
             alert('No map URL provided in query string.')
           }
+        }
+
+        randomId() {
+          return Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000
         }
 
         updateCanvasSize() {
@@ -250,6 +255,7 @@
         handleGlobalKeyDown = e => {
           if (e.key === 'Insert' && this.state.selectedNode !== null) {
             const newNode = {
+              '@id': '#' + this.randomId(),
               name: '',
               x: this.state.nodes[this.state.selectedNode].x + 50,
               y: this.state.nodes[this.state.selectedNode].y + 50
@@ -302,6 +308,7 @@
 
             if (parentNodeIndex !== undefined) {
               const newNode = {
+                '@id': '#' + this.randomId(),
                 name: '',
                 x:
                   this.state.nodes[this.state.selectedNode].x +
@@ -514,6 +521,7 @@
         handleNodeCreation() {
           if (this.state.newNodeName.trim()) {
             const newNode = {
+              '@id': '#' + this.randomId(),
               name: this.state.newNodeName.trim(),
               x: 200 + Math.random() * 100, // Random position for demonstration
               y: 200 + Math.random() * 100
