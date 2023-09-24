@@ -117,6 +117,7 @@
               x: 0,
               y: 0
             },
+            panning: false,
             editingNode: null,
             points: 0,
             selectedNode:
@@ -182,6 +183,12 @@
           this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
           this.ctx.font = '20px Roboto'
 
+          // Adjust node positions based on canvasOffset
+          this.ctx.translate(
+            this.state.canvasOffset.x,
+            this.state.canvasOffset.y
+          )
+
           // Draw connections
           this.state.connections.forEach(conn => {
             const startNode = this.state.nodes[conn.start]
@@ -233,6 +240,9 @@
               this.ctx.strokeStyle = '#000' // Resetting stroke color
             }
           })
+
+          // Reset transformation after drawing
+          this.ctx.setTransform(1, 0, 0, 1, 0, 0)
 
           this.updateDataIsland()
         }
@@ -464,7 +474,8 @@
               () => this.redraw()
             )
           } else {
-            this.setState({ selectedNode: null }, () => this.redraw())
+            this.setState({ panning: true })
+            // this.setState({ selectedNode: null }, () => this.redraw())
           }
         }
 
@@ -478,10 +489,23 @@
             nodesCopy[this.state.draggingNode].x = mouseX
             nodesCopy[this.state.draggingNode].y = mouseY
             this.setState({ nodes: nodesCopy }, () => this.redraw())
+          } else if (this.state.panning) {
+            const deltaX = e.movementX
+            const deltaY = e.movementY
+            this.setState(
+              prevState => ({
+                canvasOffset: {
+                  x: prevState.canvasOffset.x + deltaX,
+                  y: prevState.canvasOffset.y + deltaY
+                }
+              }),
+              () => this.redraw()
+            )
           }
         }
         handleCanvasMouseUp(e) {
           console.log('MouseUp event captured')
+          this.setState({ panning: false })
           if (this.state.draggingNode !== null) {
             this.setState({ draggingNode: null })
           }
