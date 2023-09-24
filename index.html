@@ -670,6 +670,20 @@
                   }}
                 >
                   Save Data</button
+                >|
+                <button
+                  onClick=${() => {
+                    const currentUrl = new URL(window.location.href)
+                    const mapValue = currentUrl.searchParams.get('map')
+                    if (mapValue) {
+                      const shareUrl = `https://mindstr.org/?map=${mapValue}`
+                      window.open(shareUrl, '_blank')
+                    } else {
+                      alert('No map URL found.')
+                    }
+                  }}
+                >
+                  Share</button
                 >| Points: ${this.state.points}
               </h4>
 
