@@ -89,18 +89,14 @@
         "connections": []
       }
     </script>
-    <script src="https://unpkg.com/nosdav-shim"></script>
-    <script src="https://cdn.jsdelivr.net/npm/cuid/dist/browser-cuid.js"></script>
+    <script src="./js/nosdav-shim"></script>
+    <script src="./js/browser-cuid.js"></script>
 
     <!-- App root -->
     <div id="app"></div>
 
     <script type="module">
-      import {
-        html,
-        render,
-        Component
-      } from 'https://cdn.jsdelivr.net/npm/preact-htm-signals-standalone@0.0.12/+esm'
+      import { html, render, Component } from './js/standalone.module.js'
 
       class MindMap extends Component {
         constructor(props) {
