@@ -1,3 +1,6 @@
+![image](https://github.com/melvincarvalho/mindstr/assets/65864/3a656770-3c51-4ede-b59a-b09e8264f3c5)
+
+
 # Mindstr
 mindstr
 
