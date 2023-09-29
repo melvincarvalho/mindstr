@@ -777,6 +777,11 @@
           data.version = '0.1'
         }
 
+        // Set the ID of the main node to '#this'
+        if (data.nodes.length > 0) {
+          data.nodes[0]['@id'] = '#this'
+        }
+
         if (data.selectedNode !== undefined) {
           render(
             html`<${MindMap} data=${data} selectedNode=${data.selectedNode} />`,
