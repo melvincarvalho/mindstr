@@ -452,7 +452,25 @@
               ) {
                 if (node.link) {
                   let href = node.link
-                  if (href.startsWith('./') || href.startsWith('../')) {
+
+                  // Check if the link ends with .md
+                  if (href.endsWith('.md')) {
+                    // If the link is relative (starts with ./ or ../)
+                    if (href.startsWith('./') || href.startsWith('../')) {
+                      const currentURL = new URL(window.location.href)
+                      const oldMapValue = currentURL.searchParams.get('map')
+
+                      // Extract the origin from the oldMapValue
+                      const oldMapURL = new URL(oldMapValue)
+
+                      // Convert the relative URL to an absolute URL
+                      href = new URL(href, oldMapURL).toString()
+                    }
+
+                    // Now prefix the absolute .md link with https://nosdav.com/doc/?uri=
+                    href =
+                      'https://nosdav.com/doc/?uri=' + encodeURIComponent(href)
+                  } else if (href.startsWith('./') || href.startsWith('../')) {
                     const currentURL = new URL(window.location.href)
                     const oldMapValue = currentURL.searchParams.get('map')
 
@@ -466,7 +484,7 @@
 
                   window.open(href, node.name.replace(/\s+/g, '_')) // using node name as window name after removing spaces
 
-                  return flase
+                  return false
                 }
               }
             }
