@@ -647,16 +647,39 @@
           } else if (e.touches.length === 1) {
             const touch = e.touches[0]
             const rect = e.target.getBoundingClientRect()
-            const touchX = touch.clientX - rect.left - this.state.canvasOffset.x
-            const touchY = touch.clientY - rect.top - this.state.canvasOffset.y
+            // Adjust touch coordinates for current scale and offset
+            const touchX =
+              (touch.clientX - rect.left - this.state.canvasOffset.x) /
+              this.state.scale
+            const touchY =
+              (touch.clientY - rect.top - this.state.canvasOffset.y) /
+              this.state.scale
 
             // Try to handle link first
             if (!this.handleNodeLink(touchX, touchY)) {
-              this.setState({
-                panning: true,
-                lastTouchX: touch.clientX,
-                lastTouchY: touch.clientY
+              // Check if we're touching a node
+              const touchedNodeIndex = this.state.nodes.findIndex(node => {
+                const distance = Math.sqrt(
+                  (node.x - touchX) ** 2 + (node.y - touchY) ** 2
+                )
+                return distance <= 20
               })
+
+              if (touchedNodeIndex > -1) {
+                this.setState(
+                  {
+                    draggingNode: touchedNodeIndex,
+                    selectedNode: touchedNodeIndex
+                  },
+                  () => this.redraw()
+                )
+              } else {
+                this.setState({
+                  panning: true,
+                  lastTouchX: touch.clientX,
+                  lastTouchY: touch.clientY
+                })
+              }
             }
           }
         }
