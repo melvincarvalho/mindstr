@@ -870,23 +870,25 @@
                         }
                       }}
                     >
-                      💾 Save Data
+                      💾 Save
                     </button>
+                    <!-- Commenting out Share button
                     <button
                       class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                       onClick=${() => {
-                        const currentUrl = new URL(window.location.href)
-                        const mapValue = currentUrl.searchParams.get('map')
-                        if (mapValue) {
-                          const shareUrl = `https://mindstr.org/?map=${mapValue}`
-                          window.open(shareUrl, '_blank')
-                        } else {
-                          alert('No map URL found.')
-                        }
-                      }}
+                      const currentUrl = new URL(window.location.href)
+                      const mapValue = currentUrl.searchParams.get('map')
+                      if (mapValue) {
+                        const shareUrl = `https://mindstr.org/?map=${mapValue}`
+                        window.open(shareUrl, '_blank')
+                      } else {
+                        alert('No map URL found.')
+                      }
+                    }}
                     >
                       📤 Share
                     </button>
+                    -->
                   </div>
 
                   <div class="flex items-center space-x-4">
@@ -899,7 +901,7 @@
                       class="px-3 py-1 text-sm bg-gray-200 rounded-md hover:bg-gray-300"
                       onClick=${() => this.showShortcutsList()}
                     >
-                      ⌨️ Show Shortcuts
+                      ⌨️ Shortcuts
                     </button>
                   </div>
                 </div>
