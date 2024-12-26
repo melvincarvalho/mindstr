@@ -755,9 +755,7 @@
                   class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4"
                 >
                   <div class="flex items-center space-x-2">
-                    <h1 class="text-xl font-bold text-gray-800">
-                      Mindstr Actions
-                    </h1>
+                    <h1 class="text-xl font-bold text-gray-800">Mindstr</h1>
                     <div class="flex space-x-1">
                       <${ActionButton}
                         icon="📌"
@@ -773,18 +771,20 @@
                   </div>
 
                   <div class="flex items-center space-x-2">
+                    <!-- Commenting out Show Data button for now
                     <button
                       class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                       onClick=${() => {
-                        const dataIslandContent =
-                          document.getElementById('initialData').textContent
-                        const parsedData = JSON.parse(dataIslandContent)
-                        alert(JSON.stringify(parsedData, null, 2))
-                        console.log(JSON.stringify(parsedData, null, 2))
-                      }}
+                      const dataIslandContent =
+                        document.getElementById('initialData').textContent
+                      const parsedData = JSON.parse(dataIslandContent)
+                      alert(JSON.stringify(parsedData, null, 2))
+                      console.log(JSON.stringify(parsedData, null, 2))
+                    }}
                     >
                       👁️ Show Data
                     </button>
+                    -->
                     <button
                       class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                       onClick=${async () => {
