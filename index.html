@@ -87,7 +87,9 @@
             selectedNode:
               props.selectedNode !== undefined ? props.selectedNode : null,
             lastTouchX: null,
-            lastTouchY: null
+            lastTouchY: null,
+            scale: 1,
+            initialPinchDistance: null
           }
         }
 
@@ -183,8 +185,12 @@
           this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
           this.ctx.font = '20px Roboto'
 
-          // Adjust node positions based on canvasOffset
-          this.ctx.translate(
+          // Apply both translation and scaling
+          this.ctx.setTransform(
+            this.state.scale,
+            0,
+            0,
+            this.state.scale,
             this.state.canvasOffset.x,
             this.state.canvasOffset.y
           )
@@ -431,8 +437,12 @@
 
         handleCanvasMouseDown(e) {
           const rect = e.target.getBoundingClientRect() // Get canvas position
-          const mouseX = e.clientX - rect.left - this.state.canvasOffset.x
-          const mouseY = e.clientY - rect.top - this.state.canvasOffset.y
+          const mouseX =
+            (e.clientX - rect.left - this.state.canvasOffset.x) /
+            this.state.scale
+          const mouseY =
+            (e.clientY - rect.top - this.state.canvasOffset.y) /
+            this.state.scale
 
           // Extract the link handling logic into a separate method
           if (!this.handleNodeLink(mouseX, mouseY)) {
@@ -503,8 +513,12 @@
         handleCanvasMouseMove(e) {
           if (this.state.draggingNode !== null) {
             const rect = e.target.getBoundingClientRect()
-            const mouseX = e.clientX - rect.left - this.state.canvasOffset.x // Adjust for canvas offset
-            const mouseY = e.clientY - rect.top - this.state.canvasOffset.y // Adjust for canvas offset
+            const mouseX =
+              (e.clientX - rect.left - this.state.canvasOffset.x) /
+              this.state.scale
+            const mouseY =
+              (e.clientY - rect.top - this.state.canvasOffset.y) /
+              this.state.scale
 
             const nodesCopy = [...this.state.nodes]
             nodesCopy[this.state.draggingNode].x = mouseX
@@ -626,7 +640,11 @@
 
         handleTouchStart(e) {
           e.preventDefault()
-          if (e.touches.length === 1) {
+          if (e.touches.length === 2) {
+            // Initialize pinch-to-zoom
+            const distance = this.getTouchDistance(e.touches[0], e.touches[1])
+            this.setState({ initialPinchDistance: distance })
+          } else if (e.touches.length === 1) {
             const touch = e.touches[0]
             const rect = e.target.getBoundingClientRect()
             const touchX = touch.clientX - rect.left - this.state.canvasOffset.x
@@ -645,7 +663,32 @@
 
         handleTouchMove(e) {
           e.preventDefault() // Prevent scrolling
-          if (e.touches.length === 1 && this.state.panning) {
+          if (
+            e.touches.length === 2 &&
+            this.state.initialPinchDistance !== null
+          ) {
+            // Handle pinch-to-zoom
+            const currentDistance = this.getTouchDistance(
+              e.touches[0],
+              e.touches[1]
+            )
+            const scale = Math.max(
+              0.1,
+              Math.min(
+                5,
+                this.state.scale *
+                  (currentDistance / this.state.initialPinchDistance)
+              )
+            )
+
+            this.setState(
+              prevState => ({
+                scale: scale,
+                initialPinchDistance: currentDistance
+              }),
+              () => this.redraw()
+            )
+          } else if (e.touches.length === 1 && this.state.panning) {
             const touch = e.touches[0]
             const deltaX = touch.clientX - this.state.lastTouchX
             const deltaY = touch.clientY - this.state.lastTouchY
@@ -669,8 +712,16 @@
           this.setState({
             panning: false,
             lastTouchX: null,
-            lastTouchY: null
+            lastTouchY: null,
+            initialPinchDistance: null
           })
+        }
+
+        getTouchDistance(touch1, touch2) {
+          return Math.hypot(
+            touch2.clientX - touch1.clientX,
+            touch2.clientY - touch1.clientY
+          )
         }
 
         render(_, { nodes, newNodeName, editingNode }) {
