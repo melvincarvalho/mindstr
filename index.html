@@ -431,78 +431,73 @@
 
         handleCanvasMouseDown(e) {
           const rect = e.target.getBoundingClientRect() // Get canvas position
-          const mouseX = e.clientX - rect.left - this.state.canvasOffset.x // Adjust for canvas offset
-          const mouseY = e.clientY - rect.top - this.state.canvasOffset.y // Adjust for canvas offset
+          const mouseX = e.clientX - rect.left - this.state.canvasOffset.x
+          const mouseY = e.clientY - rect.top - this.state.canvasOffset.y
 
-          const clickedNodeIndex = this.state.nodes.findIndex(node => {
-            const distance = Math.sqrt(
-              (node.x - mouseX) ** 2 + (node.y - mouseY) ** 2
-            )
+          // Extract the link handling logic into a separate method
+          if (!this.handleNodeLink(mouseX, mouseY)) {
+            const clickedNodeIndex = this.state.nodes.findIndex(node => {
+              const distance = Math.sqrt(
+                (node.x - mouseX) ** 2 + (node.y - mouseY) ** 2
+              )
+              return distance <= 20
+            })
 
-            if (distance <= 20) {
-              // This checks if we're within the bubble.
-              const textWidth = this.ctx.measureText(node.name).width
-              // Check if click is within text bounding box
-              if (
-                mouseX >= node.x - textWidth / 2 &&
-                mouseX <= node.x + textWidth / 2 &&
-                mouseY >= node.y - 10 && // Assuming a fixed height for your text here. Adjust if needed.
-                mouseY <= node.y + 10
-              ) {
-                if (node.link) {
-                  let href = node.link
-
-                  // Check if the link ends with .md
-                  if (href.endsWith('.md')) {
-                    // If the link is relative (starts with ./ or ../)
-                    if (href.startsWith('./') || href.startsWith('../')) {
-                      const currentURL = new URL(window.location.href)
-                      const oldMapValue = currentURL.searchParams.get('map')
-
-                      // Extract the origin from the oldMapValue
-                      const oldMapURL = new URL(oldMapValue)
-
-                      // Convert the relative URL to an absolute URL
-                      href = new URL(href, oldMapURL).toString()
-                    }
-
-                    // Now prefix the absolute .md link with https://nosdav.com/doc/?uri=
-                    href =
-                      'https://nosdav.com/doc/?uri=' + encodeURIComponent(href)
-                  } else if (href.startsWith('./') || href.startsWith('../')) {
-                    const currentURL = new URL(window.location.href)
-                    const oldMapValue = currentURL.searchParams.get('map')
-
-                    // Extract the origin from the oldMapValue
-                    const oldMapURL = new URL(oldMapValue)
-
-                    const combinedValue = new URL(href, oldMapURL).toString()
-                    currentURL.searchParams.set('map', combinedValue)
-                    href = currentURL.toString()
-                  }
-
-                  window.open(href, node.name.replace(/\s+/g, '_')) // using node name as window name after removing spaces
-
-                  return false
-                }
-              }
+            if (clickedNodeIndex > -1) {
+              this.setState(
+                {
+                  draggingNode: clickedNodeIndex,
+                  selectedNode: clickedNodeIndex
+                },
+                () => this.redraw()
+              )
+            } else {
+              this.setState({ panning: true })
             }
+          }
+        }
 
-            return distance <= 20
+        // Add new method to handle node links
+        handleNodeLink(x, y) {
+          const clickedNode = this.state.nodes.find(node => {
+            const distance = Math.sqrt((node.x - x) ** 2 + (node.y - y) ** 2)
+            if (distance <= 20) {
+              const textWidth = this.ctx.measureText(node.name).width
+              return (
+                x >= node.x - textWidth / 2 &&
+                x <= node.x + textWidth / 2 &&
+                y >= node.y - 10 &&
+                y <= node.y + 10
+              )
+            }
+            return false
           })
 
-          if (clickedNodeIndex > -1) {
-            this.setState(
-              {
-                draggingNode: clickedNodeIndex,
-                selectedNode: clickedNodeIndex
-              },
-              () => this.redraw()
-            )
-          } else {
-            this.setState({ panning: true })
-            // this.setState({ selectedNode: null }, () => this.redraw())
+          if (clickedNode?.link) {
+            let href = clickedNode.link
+
+            // Check if the link ends with .md
+            if (href.endsWith('.md')) {
+              if (href.startsWith('./') || href.startsWith('../')) {
+                const currentURL = new URL(window.location.href)
+                const oldMapValue = currentURL.searchParams.get('map')
+                const oldMapURL = new URL(oldMapValue)
+                href = new URL(href, oldMapURL).toString()
+              }
+              href = 'https://nosdav.com/doc/?uri=' + encodeURIComponent(href)
+            } else if (href.startsWith('./') || href.startsWith('../')) {
+              const currentURL = new URL(window.location.href)
+              const oldMapValue = currentURL.searchParams.get('map')
+              const oldMapURL = new URL(oldMapValue)
+              const combinedValue = new URL(href, oldMapURL).toString()
+              currentURL.searchParams.set('map', combinedValue)
+              href = currentURL.toString()
+            }
+
+            window.open(href, clickedNode.name.replace(/\s+/g, '_'))
+            return true
           }
+          return false
         }
 
         handleCanvasMouseMove(e) {
@@ -630,14 +625,21 @@
         }
 
         handleTouchStart(e) {
-          e.preventDefault() // Prevent scrolling
+          e.preventDefault()
           if (e.touches.length === 1) {
             const touch = e.touches[0]
-            this.setState({
-              panning: true,
-              lastTouchX: touch.clientX,
-              lastTouchY: touch.clientY
-            })
+            const rect = e.target.getBoundingClientRect()
+            const touchX = touch.clientX - rect.left - this.state.canvasOffset.x
+            const touchY = touch.clientY - rect.top - this.state.canvasOffset.y
+
+            // Try to handle link first
+            if (!this.handleNodeLink(touchX, touchY)) {
+              this.setState({
+                panning: true,
+                lastTouchX: touch.clientX,
+                lastTouchY: touch.clientY
+              })
+            }
           }
         }
 
