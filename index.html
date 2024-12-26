@@ -85,7 +85,9 @@
             editingNode: null,
             points: 0,
             selectedNode:
-              props.selectedNode !== undefined ? props.selectedNode : null
+              props.selectedNode !== undefined ? props.selectedNode : null,
+            lastTouchX: null,
+            lastTouchY: null
           }
         }
 
@@ -108,10 +110,38 @@
           this.updateDocumentTitle()
 
           this.redraw()
+
+          // Add touch event listeners
+          this.canvas.addEventListener(
+            'touchstart',
+            this.handleTouchStart.bind(this)
+          )
+          this.canvas.addEventListener(
+            'touchmove',
+            this.handleTouchMove.bind(this)
+          )
+          this.canvas.addEventListener(
+            'touchend',
+            this.handleTouchEnd.bind(this)
+          )
         }
 
         componentWillUnmount() {
           document.removeEventListener('keydown', this.handleGlobalKeyDown)
+
+          // Remove touch event listeners
+          this.canvas.removeEventListener(
+            'touchstart',
+            this.handleTouchStart.bind(this)
+          )
+          this.canvas.removeEventListener(
+            'touchmove',
+            this.handleTouchMove.bind(this)
+          )
+          this.canvas.removeEventListener(
+            'touchend',
+            this.handleTouchEnd.bind(this)
+          )
         }
 
         openInNewWindowWithMap() {
@@ -132,8 +162,10 @@
         }
 
         updateCanvasSize() {
-          this.canvas.width = window.innerWidth
-          this.canvas.height = window.innerHeight
+          const margin = 16 // 16px margin on each side
+          this.canvas.width = window.innerWidth - margin * 2
+          this.canvas.height = window.innerHeight - 100 // Reduced height to account for header
+          this.canvas.style.margin = `${margin}px` // Add margin to the canvas
           this.redraw()
         }
 
@@ -491,7 +523,9 @@
                 canvasOffset: {
                   x: prevState.canvasOffset.x + deltaX,
                   y: prevState.canvasOffset.y + deltaY
-                }
+                },
+                lastTouchX: e.clientX,
+                lastTouchY: e.clientY
               }),
               () => this.redraw()
             )
@@ -593,6 +627,48 @@
           `
 
           document.body.appendChild(modal)
+        }
+
+        handleTouchStart(e) {
+          e.preventDefault() // Prevent scrolling
+          if (e.touches.length === 1) {
+            const touch = e.touches[0]
+            this.setState({
+              panning: true,
+              lastTouchX: touch.clientX,
+              lastTouchY: touch.clientY
+            })
+          }
+        }
+
+        handleTouchMove(e) {
+          e.preventDefault() // Prevent scrolling
+          if (e.touches.length === 1 && this.state.panning) {
+            const touch = e.touches[0]
+            const deltaX = touch.clientX - this.state.lastTouchX
+            const deltaY = touch.clientY - this.state.lastTouchY
+
+            this.setState(
+              prevState => ({
+                canvasOffset: {
+                  x: prevState.canvasOffset.x + deltaX,
+                  y: prevState.canvasOffset.y + deltaY
+                },
+                lastTouchX: touch.clientX,
+                lastTouchY: touch.clientY
+              }),
+              () => this.redraw()
+            )
+          }
+        }
+
+        handleTouchEnd(e) {
+          e.preventDefault()
+          this.setState({
+            panning: false,
+            lastTouchX: null,
+            lastTouchY: null
+          })
         }
 
         render(_, { nodes, newNodeName, editingNode }) {
