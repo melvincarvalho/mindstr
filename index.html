@@ -4,79 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mindstr - NosDAV</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
-
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
       body {
-        font-family: 'Roboto', sans-serif;
-        margin: 0;
-        overflow: hidden;
-      }
-
-      canvas {
-        background: linear-gradient(45deg, #f2f8ff, #e6edf8);
-      }
-
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6 {
-        font-weight: 700; /* Bold */
-      }
-
-      a {
-        color: #007bff; /* Blue color */
-        text-decoration: none; /* Removing underline */
-      }
-
-      a:hover {
-        text-decoration: underline; /* Adding underline on hover */
-      }
-
-      canvas {
-        position: absolute;
-        top: 50px;
-        left: 0;
-      }
-
-      #nodeCreation {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        z-index: 1;
-        background: #f9f9f9;
-        padding: 5px;
-        border: 1px solid #ccc;
-      }
-
-      button {
-        cursor: pointer;
-        background-color: #007bff; /* Blue color */
-        border: none;
-        color: white;
-        padding: 5px 10px;
-        border-radius: 3px;
-        font-size: 14px;
-      }
-
-      button:hover {
-        background-color: #0056b3; /* Darker blue on hover */
-      }
-
-      @media (max-width: 768px) {
-        /* Example breakpoint for tablets and below */
-        body {
-          font-size: 16px; /* Adjust as needed */
-        }
-      }
-
-      @media (max-width: 480px) {
-        /* Example breakpoint for mobile devices */
-        body {
-          font-size: 14px; /* Adjust as needed */
-        }
+        font-family: 'Inter', sans-serif;
       }
     </style>
   </head>
@@ -89,7 +24,7 @@
         "connections": []
       }
     </script>
-    <script src="./js/nosdav-shim"></script>
+    <script src="./nosdav-shim.js"></script>
     <script src="./js/browser-cuid.js"></script>
 
     <!-- App root -->
@@ -97,6 +32,38 @@
 
     <script type="module">
       import { html, render, Component } from './js/standalone.module.js'
+      import * as secp256k1 from 'https://cdn.jsdelivr.net/npm/@noble/secp256k1@1.7.1/+esm'
+
+      window.secp256k1 = secp256k1
+
+      class ActionButton extends Component {
+        constructor(props) {
+          super(props)
+          this.state = { showTooltip: false }
+        }
+
+        render({ icon, label }) {
+          return html`
+            <div
+              class="relative"
+              onMouseEnter=${() => this.setState({ showTooltip: true })}
+              onMouseLeave=${() => this.setState({ showTooltip: false })}
+            >
+              <button class="p-1 text-gray-700 hover:bg-gray-200 rounded">
+                ${icon}
+              </button>
+              ${this.state.showTooltip &&
+              html`
+                <div
+                  class="absolute z-10 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded-md shadow-sm -top-8 left-1/2 transform -translate-x-1/2"
+                >
+                  ${label}
+                </div>
+              `}
+            </div>
+          `
+        }
+      }
 
       class MindMap extends Component {
         constructor(props) {
@@ -509,8 +476,8 @@
         handleCanvasMouseMove(e) {
           if (this.state.draggingNode !== null) {
             const rect = e.target.getBoundingClientRect()
-            const mouseX = e.clientX - rect.left
-            const mouseY = e.clientY - rect.top // Adjusted for canvas offset
+            const mouseX = e.clientX - rect.left - this.state.canvasOffset.x // Adjust for canvas offset
+            const mouseY = e.clientY - rect.top - this.state.canvasOffset.y // Adjust for canvas offset
 
             const nodesCopy = [...this.state.nodes]
             nodesCopy[this.state.draggingNode].x = mouseX
@@ -602,39 +569,101 @@
           this.setState({ newNodeName: e.target.value })
         }
 
+        showShortcutsList() {
+          const shortcuts = [
+            { key: 'Insert/Enter', action: 'Insert Node' },
+            { key: 'Double Click', action: 'Edit Node' },
+            { key: 'Ctrl+M', action: 'Add Link' },
+            { key: 'Delete', action: 'Delete Node' },
+            { key: 'Ctrl+S', action: 'Save Data' }
+            // Add more shortcuts here
+          ]
+
+          const shortcutsList = shortcuts
+            .map(s => `<li>${s.key}: ${s.action}</li>`)
+            .join('')
+
+          const modal = document.createElement('div')
+          modal.innerHTML = `
+            <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.3);">
+              <h3>Keyboard Shortcuts</h3>
+              <ul>${shortcutsList}</ul>
+              <button onclick="this.parentElement.remove()">Close</button>
+            </div>
+          `
+
+          document.body.appendChild(modal)
+        }
+
         render(_, { nodes, newNodeName, editingNode }) {
           return html`
             <div>
-              <h4>
-                Mindstr Actions:
-                <span title="Insert Node">📌 (INS/Enter)</span>
-                <span title="Edit Node">✏️ (Double Click)</span>
-                <span title="Add Link">🔗 (Ctrl+M)</span>
-                <span title="Delete Node">🗑️ (Delete)</span> |
-                <button
-                  onClick=${() => {
-                    const dataIslandContent =
-                      document.getElementById('initialData').textContent
-                    const parsedData = JSON.parse(dataIslandContent)
-                    alert(JSON.stringify(parsedData, null, 2))
-                    console.log(JSON.stringify(parsedData, null, 2))
-                  }}
+              <nav class="bg-gray-100 p-4 shadow-md">
+                <div
+                  class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4"
                 >
-                  Show Data</button
-                >|
-                <button
-                  onClick=${async () => {
-                    var currentUser = await window.nostr.getPublicKey()
-                    if (currentUser) {
-                      localStorage.setItem('currentUser', currentUser)
+                  <div class="flex items-center space-x-2">
+                    <h1 class="text-xl font-bold text-gray-800">
+                      Mindstr Actions
+                    </h1>
+                    <div class="flex space-x-1">
+                      <${ActionButton}
+                        icon="📌"
+                        label="Insert Node (INS/Enter)"
+                      />
+                      <${ActionButton}
+                        icon="✏️"
+                        label="Edit Node (Double Click)"
+                      />
+                      <${ActionButton} icon="🔗" label="Add Link (Ctrl+M)" />
+                      <${ActionButton} icon="🗑️" label="Delete Node (Delete)" />
+                    </div>
+                  </div>
 
-                      // Construct the new URL
-                      const newUrl = `${window.location.origin}${window.location.pathname}?map=https://nosdav.net/${currentUser}/mm/index.json`
+                  <div class="flex items-center space-x-2">
+                    <button
+                      class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      onClick=${() => {
+                        const dataIslandContent =
+                          document.getElementById('initialData').textContent
+                        const parsedData = JSON.parse(dataIslandContent)
+                        alert(JSON.stringify(parsedData, null, 2))
+                        console.log(JSON.stringify(parsedData, null, 2))
+                      }}
+                    >
+                      👁️ Show Data
+                    </button>
+                    <button
+                      class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      onClick=${async () => {
+                        var currentUser = null
+                        if (localStorage.getItem('nostr:privkey')) {
+                          // get public key from private key using secp256k1
+                          try {
+                            // add debug output
+                            console.log('Getting public key from private key')
+                            const privkey =
+                              localStorage.getItem('nostr:privkey')
+                            const pubkey = secp256k1.utils.bytesToHex(
+                              secp256k1.schnorr.getPublicKey(privkey)
+                            )
+                            currentUser = pubkey
+                          } catch (error) {
+                            console.error('Invalid private key:', error)
+                          }
+                        } else {
+                          var currentUser = await window.nostr.getPublicKey()
+                        }
+                        if (currentUser) {
+                          localStorage.setItem('currentUser', currentUser)
 
-                      // Push the new URL to the browser
-                      window.location.href = newUrl
+                          // Construct the new URL
+                          const newUrl = `${window.location.origin}${window.location.pathname}?map=https://nosdav.net/${currentUser}/mm/index.json`
 
-                      /*
+                          // Push the new URL to the browser
+                          window.location.href = newUrl
+
+                          /*
                             window.history.pushState({}, null, newUrl)
 
                             // Fetch the data from the new URL
@@ -652,60 +681,77 @@
                                 initializeApp(data)
                               })
                               */
-                    }
-                  }}
-                >
-                  Login</button
-                >|
-
-                <button
-                  onClick=${async () => {
-                    const dataIslandContent =
-                      document.getElementById('initialData').textContent
-                    const data = JSON.parse(dataIslandContent)
-                    const urlParams = new URLSearchParams(
-                      window.location.search
-                    )
-                    const mapFile = urlParams.get('map')
-                    if (mapFile) {
-                      try {
-                        const response = await fetch(mapFile, {
-                          method: 'PUT',
-                          headers: {
-                            'Content-Type': 'application/json'
-                          },
-                          body: JSON.stringify(data)
-                        })
-                        if (response.ok) {
-                          alert('Data saved successfully!')
-                        } else {
-                          alert('Error saving data.')
                         }
-                      } catch (error) {
-                        alert('Error saving data: ' + error.message)
-                      }
-                    } else {
-                      alert('No map URL provided in query string.')
-                    }
-                  }}
-                >
-                  Save Data</button
-                >|
-                <button
-                  onClick=${() => {
-                    const currentUrl = new URL(window.location.href)
-                    const mapValue = currentUrl.searchParams.get('map')
-                    if (mapValue) {
-                      const shareUrl = `https://mindstr.org/?map=${mapValue}`
-                      window.open(shareUrl, '_blank')
-                    } else {
-                      alert('No map URL found.')
-                    }
-                  }}
-                >
-                  Share</button
-                >| Points: ${this.state.points}
-              </h4>
+                      }}
+                    >
+                      🔐 Login
+                    </button>
+                    <button
+                      class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      onClick=${async () => {
+                        const dataIslandContent =
+                          document.getElementById('initialData').textContent
+                        const data = JSON.parse(dataIslandContent)
+                        const urlParams = new URLSearchParams(
+                          window.location.search
+                        )
+                        const mapFile = urlParams.get('map')
+                        if (mapFile) {
+                          try {
+                            const response = await fetch(mapFile, {
+                              method: 'PUT',
+                              headers: {
+                                'Content-Type': 'application/json'
+                              },
+                              body: JSON.stringify(data)
+                            })
+                            if (response.ok) {
+                              alert('Data saved successfully!')
+                            } else {
+                              alert('Error saving data.')
+                            }
+                          } catch (error) {
+                            alert('Error saving data: ' + error.message)
+                          }
+                        } else {
+                          alert('No map URL provided in query string.')
+                        }
+                      }}
+                    >
+                      💾 Save Data
+                    </button>
+                    <button
+                      class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      onClick=${() => {
+                        const currentUrl = new URL(window.location.href)
+                        const mapValue = currentUrl.searchParams.get('map')
+                        if (mapValue) {
+                          const shareUrl = `https://mindstr.org/?map=${mapValue}`
+                          window.open(shareUrl, '_blank')
+                        } else {
+                          alert('No map URL found.')
+                        }
+                      }}
+                    >
+                      📤 Share
+                    </button>
+                  </div>
+
+                  <div class="flex items-center space-x-4">
+                    <div
+                      class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-semibold"
+                    >
+                      Points: ${this.state.points}
+                    </div>
+                    <button
+                      class="px-3 py-1 text-sm bg-gray-200 rounded-md hover:bg-gray-300"
+                      onClick=${() => this.showShortcutsList()}
+                    >
+                      ⌨️ Show Shortcuts
+                    </button>
+                  </div>
+                </div>
+              </nav>
 
               <div id="nodeCreation" style="display:none">
                 <input
@@ -759,11 +805,15 @@
 
       const urlParams = new URLSearchParams(window.location.search)
       const mapFile = urlParams.get('map')
+      const titleParam = urlParams.get('title')
 
       if (mapFile) {
         fetch(mapFile)
           .then(response => response.json())
           .then(data => {
+            if (titleParam) {
+              data.nodes[0].name = titleParam
+            }
             initializeApp(data)
           })
           .catch(err => {
@@ -772,6 +822,9 @@
             const data = JSON.parse(
               document.querySelector('#initialData').textContent
             )
+            if (titleParam) {
+              data.nodes[0].name = titleParam
+            }
             initializeApp(data)
           })
       } else {
@@ -779,6 +832,9 @@
         const data = JSON.parse(
           document.querySelector('#initialData').textContent
         )
+        if (titleParam) {
+          data.nodes[0].name = titleParam
+        }
         initializeApp(data)
       }
 
@@ -800,17 +856,15 @@
           data.nodes[0]['@id'] = '#this'
         }
 
-        if (data.selectedNode !== undefined) {
-          render(
-            html`<${MindMap} data=${data} selectedNode=${data.selectedNode} />`,
-            document.getElementById('app')
-          )
-        } else {
-          render(
-            html`<${MindMap} data=${data} />`,
-            document.getElementById('app')
-          )
+        // If there's no selected node, set it to the root node (index 0)
+        if (data.selectedNode === undefined && data.nodes.length > 0) {
+          data.selectedNode = 0
         }
+
+        render(
+          html`<${MindMap} data=${data} selectedNode=${data.selectedNode} />`,
+          document.getElementById('app')
+        )
       }
     </script>
   </body>
