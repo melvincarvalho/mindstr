@@ -37,17 +37,22 @@ well is part of the job; see *Layout* below.
 | Field | Rules |
 | --- | --- |
 | `nodes[]` | Required. **`nodes[0]` is the root**; its `@id` is always `#this`. |
-| `@id` | Unique fragment, `#` + 6 lowercase letters/digits. Never reuse or change an existing one; the app uses them to keep selection and highlight changes. |
+| `@id` | Unique fragment: `#` + 6 random lowercase letters/digits (e.g. `#k3x9q2`). Never reuse or change an existing one; the app uses them to keep selection and highlight changes. |
 | `name` | Node text. Keep it short: 1–4 words. Long names make wide ovals that collide. |
 | `x`, `y` | Centre of the node in map units (≈ CSS px at 100% zoom). `y` grows **downward**. Any origin; the app fits the map to the screen on load. |
-| `bgColor` | Optional CSS colour. Use soft pastels (`#FFD6E8` `#D6E8FF` `#D9F2DC` `#FFF3C4` `#FFE1CC` `#E6E0FF`) so dark text stays readable. |
+| `bgColor` | Optional CSS colour; keep it a soft pastel so the dark text stays readable. Convention: root `#FFF3C4`; top-level branches cycle `#D6E8FF` `#D9F2DC` `#FFD6E8` `#FFE1CC` `#E6E0FF` `#D4F1F4` (repeats are fine past six); leaves stay uncoloured. |
 | `link` | Optional. `http(s)` URL opens in a new tab; a `.md` URL opens in the NosDAV doc viewer; a relative link to `.json`/`.jsonld` (`./other.json`) opens that map in mindstr. Other schemes are blocked. |
 | `connections[]` | Parent → child edges. **`start` and `end` are array indices into `nodes`, not `@id`s.** Each non-root node should have exactly one parent, forming a tree under the root. |
-| `selectedNode` | Index of the selected node; optional. Leave it as is when editing. |
+| `selectedNode` | Index of the selected node. Use `0` in a new map; leave it as is when editing. |
 | `version` | `"0.1"`. |
 
 Unknown fields on nodes and at the top level (e.g. a JSON-LD `@context` or `@type`) are
-**preserved** by the app, so you can annotate a map without breaking it.
+**preserved** by the app, so you can annotate a map without breaking it. There is no
+official mindstr vocabulary yet, so new maps don't need an `@context`; keep any that an
+existing map already has.
+
+In a new map, list nodes **depth-first** (root, first branch, its descendants, next
+branch…) and connections in the same order. The layout code below does this.
 
 ## Storage and viewing
 
@@ -77,21 +82,80 @@ People may have the map open. The app subscribes to changes and shows yours live
 
 ## Layout
 
-Nodes are ovals ~36 high and about `8 × characters + 32` wide (minimum 56). Aim for:
+Use this function. It is the exact algorithm that laid out the bundled examples, and the
+example below comes from it. Pass an outline; it returns a complete map document.
 
-- **Radial tree.** Root at `(0, 0)`. Give each top-level branch an angular wedge sized by
-  how many leaves it has; place depth-1 nodes on an ellipse of radius ~220 × 175,
-  and each further level ~210 farther out, within the parent's wedge.
-- **Spacing.** Keep at least ~24 px between oval edges horizontally and ~12 vertically.
-  On a crowded outer ring, push alternate siblings ~80 farther out.
-- **Adding to an existing map.** Place a child ~170 away from its parent, continuing
-  outward along the grandparent → parent direction, and fan siblings ±25° around it.
-  Check for overlaps with *all* nodes and nudge down by ~48 until clear.
-- **Size.** 5–8 top-level branches and 2–5 leaves each read best. Split very big
-  topics into separate maps and connect them with relative links.
+```js
+// Lay out an outline as a mindstr map. tree = { name, extra?, kids?: [tree] }
+function layout(tree) {
+  const nodes = [], connections = []
+  const leaves = t => Math.max(1, (t.kids || []).reduce((s, k) => s + leaves(k), 0))
+  const id = () => '#' + Array.from({ length: 6 }, () => 'abcdefghijkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 32)]).join('')
+  function add(t, parent, a0, a1, depth, nth) {
+    const mid = (a0 + a1) / 2                      // centre of this node's wedge (radians)
+    const r = depth === 0 ? 0                      // root at the origin
+      : 220 + (depth - 1) * 210                    // ring radius: 220, 430, 640…
+      + (depth >= 2 && nth % 2 ? 80 : 0)           // stagger every other sibling outward
+    nodes.push({ '@id': depth ? id() : '#this', name: t.name,
+      x: Math.round(r * Math.cos(mid)), y: Math.round(r * Math.sin(mid) * 0.8), ...(t.extra || {}) })
+    const i = nodes.length - 1
+    if (parent !== null) connections.push({ start: parent, end: i })
+    const kids = t.kids || [], total = kids.reduce((s, k) => s + leaves(k), 0)
+    let a = a0
+    kids.forEach((k, j) => {                        // split the wedge by leaf count
+      const span = (a1 - a0) * leaves(k) / total
+      add(k, i, a, a + span, depth + 1, j)
+      a += span
+    })
+  }
+  add(tree, null, -Math.PI, Math.PI, 0, 0)         // full circle, starting at the left
+  // settle overlaps: push a clashing node outward along its own angle, 20 px at a time
+  const w = n => Math.max(8 * n.name.length + 32, 56)
+  const clash = (p, q) => Math.abs(p.x - q.x) < (w(p) + w(q)) / 2 + 24 && Math.abs(p.y - q.y) < 48
+  nodes.forEach((n, i) => {
+    const a = Math.atan2(n.y / 0.8, n.x)
+    for (let t = 0; i > 0 && t < 40 && nodes.slice(0, i).some(m => clash(n, m)); t++) {
+      n.x = Math.round(n.x + 20 * Math.cos(a)); n.y = Math.round(n.y + 16 * Math.sin(a))
+    }
+  })
+  return { version: '0.1', nodes, connections, selectedNode: 0 }
+}
 
-The examples in this repo were laid out this way by `scripts/build-examples.js`;
-read it for a working implementation.
+// usage
+const N = (name, extra, ...kids) => ({ name, extra, kids })
+const map = layout(N('Trip', { bgColor: '#FFF3C4' },
+  N('Travel', { bgColor: '#D6E8FF' }, N('Train'), N('Packing')),
+  N('Stay', { bgColor: '#D9F2DC' }, N('Hotel'))))
+```
+
+How it works, if you can't run code:
+
+- Angles are in radians with **y pointing down**; the root's wedge is the full circle,
+  from −π (left) going clockwise. Wedges have no gaps between them.
+- Each child gets a share of its parent's wedge proportional to its **leaf count**: the
+  number of descendants with no children of their own, counting a childless node as 1.
+- A node sits at the middle angle of its wedge on a shared ellipse around the root:
+  `x = r·cos(angle)`, `y = 0.8·r·sin(angle)`, with `r = 220` for top-level branches,
+  `430` for the next level, `640` after that, and every odd-numbered sibling (2nd, 4th…)
+  at depth 2 or more pushed `80` farther out.
+
+**Node size.** The app draws ovals 36 high and `text width + 32` wide (minimum 56), with
+text in a 15 px sans-serif. `8 × characters + 32` slightly overestimates that, which is
+the safe direction for overlap checks. Names never wrap.
+
+**Overlap.** Two nodes `a`, `b` overlap when *both*
+`|a.x − b.x| < (width(a) + width(b)) / 2 + 24` **and** `|a.y − b.y| < 48`.
+`layout()` already fixes these: it moves each clashing node (in document order) outward
+along its own angle in 20 px steps until it clears every earlier node. Do the same if you
+place nodes by hand. Edges may cross; don't worry about that.
+
+**Adding to an existing map** (keep everything else where it is): put the new child
+~170 from its parent, continuing the grandparent → parent direction (for a child of the
+root, pick the emptiest direction), fan siblings ±25° around that line, then fix
+overlaps as above.
+
+**Size.** 5–8 top-level branches with 2–5 leaves each read best. Split very big topics
+into separate maps and connect them with relative links.
 
 ## Checklist before writing
 
@@ -99,30 +163,36 @@ read it for a working implementation.
 - [ ] every `@id` is unique; existing ones unchanged
 - [ ] every `start`/`end` is a valid index, and no node is its own parent
 - [ ] every node except the root is the `end` of exactly one connection
-- [ ] `x`/`y` are finite numbers and no two ovals overlap
+- [ ] `x`/`y` are finite numbers and no two nodes overlap (rule above)
 - [ ] links are `http(s)` or relative `./…`
 
-## Minimal example (validated: renders in mindstr)
+## Minimal example (validated: output of `layout()` above; passes the checklist and renders in mindstr)
 
 ```json
 {
-  "@context": { "@vocab": "https://mindstr.org/ns#" },
   "version": "0.1",
   "nodes": [
-    { "@id": "#this",   "name": "Weekend trip", "x": 0,    "y": 0,    "bgColor": "#FFF3C4" },
-    { "@id": "#trv001", "name": "Travel",       "x": 220,  "y": 0,    "bgColor": "#D6E8FF" },
-    { "@id": "#trv002", "name": "Train tickets","x": 440,  "y": -50 },
-    { "@id": "#trv003", "name": "Packing list", "x": 440,  "y": 50,   "link": "./packing.json" },
-    { "@id": "#sty001", "name": "Stay",         "x": -110, "y": 150,  "bgColor": "#D9F2DC" },
-    { "@id": "#sty002", "name": "Hotel",        "x": -160, "y": 270 },
-    { "@id": "#do0001", "name": "Do",           "x": -110, "y": -150, "bgColor": "#FFD6E8" },
-    { "@id": "#do0002", "name": "Museum",       "x": -260, "y": -260 },
-    { "@id": "#do0003", "name": "Coast walk",   "x": -40,  "y": -280, "link": "https://example.com/walk" }
+    {"@id": "#this", "name": "Weekend trip", "x": 0, "y": 0, "bgColor": "#FFF3C4"},
+    {"@id": "#zyf9qd", "name": "Travel", "x": -110, "y": -152, "bgColor": "#D6E8FF"},
+    {"@id": "#j5dew5", "name": "Train tickets", "x": -372, "y": -172},
+    {"@id": "#m6xefa", "name": "Packing list", "x": 0, "y": -408, "link": "./packing.json"},
+    {"@id": "#zvmkg2", "name": "Stay", "x": 220, "y": 0, "bgColor": "#D9F2DC"},
+    {"@id": "#ibdxv5", "name": "Hotel", "x": 372, "y": -172},
+    {"@id": "#9khvdh", "name": "Breakfast", "x": 442, "y": 204},
+    {"@id": "#uxh998", "name": "Do", "x": -110, "y": 152, "bgColor": "#FFD6E8"},
+    {"@id": "#9eys32", "name": "Museum", "x": 0, "y": 344},
+    {"@id": "#zajc4z", "name": "Coast walk", "x": -442, "y": 204, "link": "https://example.com/walk"}
   ],
   "connections": [
-    { "start": 0, "end": 1 }, { "start": 1, "end": 2 }, { "start": 1, "end": 3 },
-    { "start": 0, "end": 4 }, { "start": 4, "end": 5 },
-    { "start": 0, "end": 6 }, { "start": 6, "end": 7 }, { "start": 6, "end": 8 }
+    {"start": 0, "end": 1},
+    {"start": 1, "end": 2},
+    {"start": 1, "end": 3},
+    {"start": 0, "end": 4},
+    {"start": 4, "end": 5},
+    {"start": 4, "end": 6},
+    {"start": 0, "end": 7},
+    {"start": 7, "end": 8},
+    {"start": 7, "end": 9}
   ],
   "selectedNode": 0
 }
