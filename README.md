@@ -12,6 +12,7 @@ from any URL and saves it back with an HTTP `PUT`, signed with your Nostr key
 | --- | --- |
 | `https://mindstr.org/` | Scratch map (not saved) |
 | `?map=<url>` | Load the map at `<url>`; Ctrl+S saves it back there |
+| `?example=<name>` | Open `examples/<name>.json` (read-only) |
 | `?title=<text>` | Name the root node of a *new* map |
 
 Press 🔐 to sign in with a NIP-07 extension (nos2x, Alby, …); that opens your
@@ -39,6 +40,17 @@ A 404 is treated as a new map.
 Links: `http(s)` URLs open in a new tab; `.md` files open in the NosDAV doc
 viewer; relative links (`./other.json`) open another map next to this one.
 Other schemes are blocked.
+
+## Examples
+
+[welcome](https://mindstr.org/?example=welcome) ·
+[solar-system](https://mindstr.org/?example=solar-system) ·
+[project-plan](https://mindstr.org/?example=project-plan) ·
+[nostr](https://mindstr.org/?example=nostr)
+
+Maps live in [`examples/`](examples/). Add a JSON file there and it's
+available as `?example=<file name>`. Maps served from mindstr.org itself are
+read-only.
 
 ## Data format
 

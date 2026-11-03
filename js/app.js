@@ -26,8 +26,13 @@ const island = $('#initialData')
 // ---------- state ----------
 
 const params = new URLSearchParams(location.search)
-const mapUrl = params.get('map')
+const exampleParam = params.get('example')
+const mapUrl =
+  params.get('map') ||
+  (/^[\w-]+$/.test(exampleParam || '') ? `examples/${exampleParam}.json` : null)
 const titleParam = params.get('title')
+// Maps hosted alongside the app (e.g. examples/) are read-only: gh-pages can't take a PUT.
+const readOnly = Boolean(mapUrl) && new URL(mapUrl, location.href).origin === location.origin
 
 const state = {
   nodes: [],
@@ -36,7 +41,7 @@ const state = {
   view: { x: 0, y: 0, scale: 1 },
   editing: null, // { index, original, isNew }
   dirty: false,
-  canSave: Boolean(mapUrl),
+  canSave: Boolean(mapUrl) && !readOnly,
   saving: false
 }
 let undoStack = []
@@ -435,7 +440,11 @@ function openLink(node) {
     // relative link → another mind map next to this one
     const here = new URL(location.href)
     here.search = ''
-    here.searchParams.set('map', url.href)
+    const example =
+      url.origin === location.origin &&
+      url.pathname.match(/\/examples\/([\w-]+)\.json$/)
+    if (example) here.searchParams.set('example', example[1])
+    else here.searchParams.set('map', url.href)
     target = here.href
   }
   window.open(target, '_blank', 'noopener')
@@ -792,7 +801,9 @@ function updateUi() {
 
   statusEl.textContent = !mapUrl
     ? 'Scratch map'
-    : !state.canSave
+    : readOnly
+      ? 'Example (read-only)'
+      : !state.canSave
       ? 'Read-only'
       : state.saving
         ? 'Saving…'
@@ -825,6 +836,9 @@ async function save() {
   commitEdit()
   if (!mapUrl) {
     return toast('Sign in (🔐) to get a map you can save, or open one with ?map=')
+  }
+  if (readOnly) {
+    return toast('Examples are read-only. Press 🔐 to open your own map.', 5000)
   }
   if (!state.canSave || state.saving) return
   state.saving = true
