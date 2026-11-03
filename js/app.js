@@ -27,12 +27,42 @@ const island = $('#initialData')
 
 const params = new URLSearchParams(location.search)
 const exampleParam = params.get('example')
-const mapUrl =
+// ?uri= is canonical (relative or absolute .json / .jsonld); ?map= and ?example= are aliases.
+const mapParam =
+  params.get('uri') ||
   params.get('map') ||
   (/^[\w-]+$/.test(exampleParam || '') ? `examples/${exampleParam}.json` : null)
 const titleParam = params.get('title')
+let mapUrl = null // absolute URL of the map document
+let badUri = false
+try {
+  if (mapParam) mapUrl = new URL(mapParam, location.href).href
+} catch {
+  badUri = true
+}
+if (mapUrl && !/^https?:$/.test(new URL(mapUrl).protocol)) {
+  mapUrl = null
+  badUri = true
+}
+const isJsonLd = Boolean(mapUrl) && /\.jsonld$/i.test(new URL(mapUrl).pathname)
 // Maps hosted alongside the app (e.g. examples/) are read-only: gh-pages can't take a PUT.
-const readOnly = Boolean(mapUrl) && new URL(mapUrl, location.href).origin === location.origin
+const readOnly = Boolean(mapUrl) && new URL(mapUrl).origin === location.origin
+
+// Shortest ?uri= value for a map: relative to the app if it lives under it.
+function uriParam(href) {
+  const u = new URL(href)
+  const appDir = new URL('./', location.href)
+  if (u.origin === appDir.origin && u.pathname.startsWith(appDir.pathname) && !u.search && !u.hash) {
+    return u.pathname.slice(appDir.pathname.length)
+  }
+  return u.href
+}
+
+function appUrlFor(href) {
+  const target = new URL('./', location.href)
+  target.searchParams.set('uri', uriParam(href))
+  return target.href
+}
 
 const state = {
   nodes: [],
@@ -42,7 +72,8 @@ const state = {
   editing: null, // { index, original, isNew }
   dirty: false,
   canSave: Boolean(mapUrl) && !readOnly,
-  saving: false
+  saving: false,
+  extra: {} // unknown top-level fields (e.g. @context) round-trip untouched
 }
 let undoStack = []
 let redoStack = []
@@ -73,11 +104,13 @@ function normalize(data) {
     .filter(c => c && valid(c.start) && valid(c.end) && c.start !== c.end)
     .map(c => ({ start: c.start, end: c.end }))
   const selected = valid(raw.selectedNode) ? raw.selectedNode : 0
-  return { nodes, connections, selected }
+  const { nodes: _n, connections: _c, selectedNode: _s, version: _v, ...extra } = raw
+  return { nodes, connections, selected, extra }
 }
 
 function serialize() {
   return {
+    ...state.extra,
     version: '0.1',
     nodes: state.nodes,
     connections: state.connections,
@@ -423,7 +456,7 @@ function editLink() {
 function openLink(node) {
   const raw = (node.link || '').trim()
   if (!raw) return
-  const base = mapUrl ? new URL(mapUrl, location.href) : new URL(location.href)
+  const base = new URL(mapUrl || location.href)
   let url
   try {
     url = new URL(raw, base)
@@ -438,14 +471,7 @@ function openLink(node) {
     target = DOC_VIEWER + encodeURIComponent(url.href)
   } else if (/^\.\.?\//.test(raw) && mapUrl) {
     // relative link → another mind map next to this one
-    const here = new URL(location.href)
-    here.search = ''
-    const example =
-      url.origin === location.origin &&
-      url.pathname.match(/\/examples\/([\w-]+)\.json$/)
-    if (example) here.searchParams.set('example', example[1])
-    else here.searchParams.set('map', url.href)
-    target = here.href
+    target = appUrlFor(url.href)
   }
   window.open(target, '_blank', 'noopener')
 }
@@ -846,7 +872,7 @@ async function save() {
   try {
     const res = await authFetch(mapUrl, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': isJsonLd ? 'application/ld+json' : 'application/json' },
       body: JSON.stringify(serialize(), null, 2)
     })
     if (!res.ok) {
@@ -886,10 +912,8 @@ async function login() {
       sessionStorage.setItem('mindstr:pending', JSON.stringify(serialize()))
     }
   } catch {}
-  const target = new URL(location.href)
-  target.search = ''
-  target.searchParams.set('map', `${STORAGE_ROOT}/${pubkey}/mm/index.json`)
-  if (target.href !== location.href) location.href = target.href
+  const target = appUrlFor(`${STORAGE_ROOT}/${pubkey}/mm/index.json`)
+  if (target !== location.href) location.href = target
   else toast('This is your map')
 }
 
@@ -910,9 +934,16 @@ window.addEventListener('beforeunload', e => {
 async function load() {
   let data = JSON.parse(island.textContent)
   let isNew = true
+  if (badUri) {
+    state.canSave = false
+    showBanner(`Can’t open “${mapParam}”: use an http(s) URL to a .json or .jsonld map, absolute or relative.`)
+  }
   if (mapUrl) {
     try {
-      const res = await fetch(mapUrl, { cache: 'no-cache' })
+      const res = await fetch(mapUrl, {
+        cache: 'no-cache',
+        headers: { Accept: 'application/ld+json, application/json;q=0.9, */*;q=0.1' }
+      })
       if (res.status === 404) {
         data = takePending() || data
         toast('New map — press Ctrl+S to create it', 5000)
@@ -929,7 +960,8 @@ async function load() {
       )
     }
   }
-  const { nodes, connections, selected } = normalize(data)
+  const { nodes, connections, selected, extra } = normalize(data)
+  state.extra = extra
   if (isNew && titleParam) nodes[0].name = titleParam
   state.nodes = nodes
   state.connections = connections

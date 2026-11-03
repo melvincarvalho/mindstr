@@ -1,7 +1,7 @@
 # Mindstr
 
-A mind map you own. Mindstr is a single static page: it loads a JSON map
-from any URL and saves it back with an HTTP `PUT`, signed with your Nostr key
+A mind map you own. Mindstr is a single static page: it loads a JSON or
+JSON-LD map from any URL and saves it back with an HTTP `PUT`, signed with your Nostr key
 ([NIP-98](https://github.com/nostr-protocol/nips/blob/master/98.md)).
 
 **Live:** https://mindstr.org
@@ -11,9 +11,13 @@ from any URL and saves it back with an HTTP `PUT`, signed with your Nostr key
 | URL | What happens |
 | --- | --- |
 | `https://mindstr.org/` | Scratch map (not saved) |
-| `?map=<url>` | Load the map at `<url>`; Ctrl+S saves it back there |
-| `?example=<name>` | Open `examples/<name>.json` (read-only) |
+| `?uri=<url>` | Open the `.json` / `.jsonld` map at `<url>` (absolute, or relative to the app); Ctrl+S saves it back there |
 | `?title=<text>` | Name the root node of a *new* map |
+
+For example `?uri=examples/welcome.json` or
+`?uri=https://nosdav.net/<pubkey>/mm/index.jsonld`. Older links keep working:
+`?map=<url>` is an alias for `?uri=`, and `?example=welcome` is short for
+`?uri=examples/welcome.json`.
 
 Press 🔐 to sign in with a NIP-07 extension (nos2x, Alby, …); that opens your
 own map at `https://nosdav.net/<pubkey>/mm/index.json`. A hex key in
@@ -38,18 +42,18 @@ A 404 is treated as a new map.
 | F, +, −, wheel, pinch | Fit / zoom |
 
 Links: `http(s)` URLs open in a new tab; `.md` files open in the NosDAV doc
-viewer; relative links (`./other.json`) open another map next to this one.
+viewer; relative links (`./other.json`) open another map next to this one via `?uri=`.
 Other schemes are blocked.
 
 ## Examples
 
-[welcome](https://mindstr.org/?example=welcome) ·
-[solar-system](https://mindstr.org/?example=solar-system) ·
-[project-plan](https://mindstr.org/?example=project-plan) ·
-[nostr](https://mindstr.org/?example=nostr)
+[welcome](https://mindstr.org/?uri=examples/welcome.json) ·
+[solar-system](https://mindstr.org/?uri=examples/solar-system.json) ·
+[project-plan](https://mindstr.org/?uri=examples/project-plan.json) ·
+[nostr](https://mindstr.org/?uri=examples/nostr.json)
 
-Maps live in [`examples/`](examples/). Add a JSON file there and it's
-available as `?example=<file name>`. The bundled ones are generated from
+Maps live in [`examples/`](examples/). Add a JSON file there and open it
+with `?uri=examples/<file>.json`. The bundled ones are generated from
 outlines in `scripts/build-examples.js` (`node scripts/build-examples.js`). Maps served from mindstr.org itself are
 read-only.
 
@@ -69,7 +73,9 @@ read-only.
 
 - `nodes[0]` is the root and always has `@id` `#this`.
 - `connections` refer to nodes by array index.
-- `bgColor`, `link` and any other fields on a node are preserved.
+- `bgColor`, `link` and any other fields on a node are preserved, as are
+  extra top-level fields such as a JSON-LD `@context`. `.jsonld` maps are
+  saved as `application/ld+json`.
 - The current map is also kept in the page's `<script id="initialData">` data island.
 
 ## Develop
