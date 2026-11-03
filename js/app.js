@@ -1,6 +1,5 @@
-import { authFetch, getPubkey, hasSigner } from './nostr-auth.js'
+import { authFetch, hostPod, identity, login as openLogin, MAP_PATH, myMapUrl, ready } from './pod.js'
 
-const STORAGE_ROOT = 'https://nosdav.net'
 const DOC_VIEWER = 'https://nosdav.com/doc/?uri='
 const NODE_H = 36
 const FONT = '500 15px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
@@ -31,7 +30,9 @@ const exampleParam = params.get('example')
 const mapParam =
   params.get('uri') ||
   params.get('map') ||
-  (/^[\w-]+$/.test(exampleParam || '') ? `examples/${exampleParam}.json` : null)
+  (/^[\w-]+$/.test(exampleParam || '') ? `examples/${exampleParam}.json` : null) ||
+  // installed in a pod: open the owner's map by default
+  (hostPod ? hostPod + MAP_PATH : null)
 const titleParam = params.get('title')
 let mapUrl = null // absolute URL of the map document
 let badUri = false
@@ -45,8 +46,8 @@ if (mapUrl && !/^https?:$/.test(new URL(mapUrl).protocol)) {
   badUri = true
 }
 const isJsonLd = Boolean(mapUrl) && /\.jsonld$/i.test(new URL(mapUrl).pathname)
-// Maps hosted alongside the app (e.g. examples/) are read-only: gh-pages can't take a PUT.
-const readOnly = Boolean(mapUrl) && new URL(mapUrl).origin === location.origin
+// Maps bundled with the app (examples/) are read-only.
+const readOnly = Boolean(mapUrl) && mapUrl.startsWith(new URL('./', location.href).href)
 
 // Shortest ?uri= value for a map: relative to the app if it lives under it.
 function uriParam(href) {
@@ -799,7 +800,7 @@ const actions = {
   redo,
   fit: fitView,
   save: () => save(),
-  login: () => login(),
+  mine: () => openMine(),
   help: () => helpDialog.showModal()
 }
 
@@ -861,10 +862,10 @@ function showBanner(msg) {
 async function save() {
   commitEdit()
   if (!mapUrl) {
-    return toast('Sign in (🔐) to get a map you can save, or open one with ?map=')
+    return toast('Press 🏠 to open your own map, or open one with ?uri=', 5000)
   }
   if (readOnly) {
-    return toast('Examples are read-only. Press 🔐 to open your own map.', 5000)
+    return toast('Examples are read-only. Press 🏠 to open your own map.', 5000)
   }
   if (!state.canSave || state.saving) return
   state.saving = true
@@ -875,13 +876,12 @@ async function save() {
       headers: { 'Content-Type': isJsonLd ? 'application/ld+json' : 'application/json' },
       body: JSON.stringify(serialize(), null, 2)
     })
+    if ((res.status === 401 || res.status === 403) && !identity()) {
+      openLogin()
+      throw new Error('sign in, then save again')
+    }
     if (!res.ok) {
-      const hint =
-        res.status === 401 || res.status === 403
-          ? hasSigner()
-            ? ' — this key can’t write here'
-            : ' — sign in with a Nostr extension'
-          : ''
+      const hint = res.status === 401 || res.status === 403 ? ' — no write access to this map' : ''
       throw new Error(`HTTP ${res.status}${hint}`)
     }
     state.dirty = false
@@ -895,27 +895,45 @@ async function save() {
   }
 }
 
-async function login() {
-  commitEdit()
-  let pubkey
-  try {
-    pubkey = await getPubkey()
-  } catch (err) {
-    return toast('Sign-in cancelled: ' + err.message)
+let leaving = false
+
+async function goToMine() {
+  const target = await myMapUrl()
+  if (!target) return false
+  const href = appUrlFor(target)
+  if (href === location.href) {
+    toast('This is your map')
+    return true
   }
-  if (!pubkey) {
-    return toast('Install a Nostr signer extension (NIP-07) to sign in', 6000)
-  }
   try {
-    localStorage.setItem('currentUser', pubkey)
-    if (state.dirty) {
-      sessionStorage.setItem('mindstr:pending', JSON.stringify(serialize()))
-    }
+    if (state.dirty && !readOnly) sessionStorage.setItem('mindstr:pending', JSON.stringify(serialize()))
   } catch {}
-  const target = appUrlFor(`${STORAGE_ROOT}/${pubkey}/mm/index.json`)
-  if (target !== location.href) location.href = target
-  else toast('This is your map')
+  leaving = true
+  location.href = href
+  return true
 }
+
+async function openMine() {
+  commitEdit()
+  if (await goToMine()) return
+  try {
+    sessionStorage.setItem('mindstr:goMine', '1')
+  } catch {}
+  if (!openLogin()) toast('Sign-in (xlogin) failed to load', 5000)
+}
+
+// Finish "open my map" once the user has signed in via xlogin.
+document.addEventListener('xlogin', () => {
+  updateUi()
+  try {
+    if (!sessionStorage.getItem('mindstr:goMine')) return
+    sessionStorage.removeItem('mindstr:goMine')
+  } catch {
+    return
+  }
+  goToMine()
+})
+document.addEventListener('xlogout', () => updateUi())
 
 function takePending() {
   try {
@@ -928,7 +946,7 @@ function takePending() {
 }
 
 window.addEventListener('beforeunload', e => {
-  if (state.dirty && state.canSave) e.preventDefault()
+  if (state.dirty && state.canSave && !leaving) e.preventDefault()
 })
 
 async function load() {

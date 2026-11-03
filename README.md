@@ -1,8 +1,10 @@
 # Mindstr
 
 A mind map you own. Mindstr is a single static page: it loads a JSON or
-JSON-LD map from any URL and saves it back with an HTTP `PUT`, signed with your Nostr key
-([NIP-98](https://github.com/nostr-protocol/nips/blob/master/98.md)).
+JSON-LD map from any URL and saves it back to your Solid pod with an HTTP
+`PUT`. Sign-in is [xlogin](https://github.com/melvincarvalho/xlogin): Nostr
+([NIP-98](https://github.com/nostr-protocol/nips/blob/master/98.md)) or Solid
+(OIDC + DPoP). Built for [JSS](https://jss.live) pods.
 
 **Live:** https://mindstr.org
 
@@ -19,9 +21,17 @@ For example `?uri=examples/welcome.json` or
 `?map=<url>` is an alias for `?uri=`, and `?example=welcome` is short for
 `?uri=examples/welcome.json`.
 
-Press 🔐 to sign in with a NIP-07 extension (nos2x, Alby, …); that opens your
-own map at `https://nosdav.net/<pubkey>/mm/index.json`. A hex key in
-`localStorage['nostr:privkey']` is used instead of an extension if present.
+### Your map
+
+Press 🏠 (or the xlogin button) to sign in. Your map lives at
+`public/mindstr/index.jsonld` in the root of your pod, so it's readable by
+anyone you share the link with and writable only by you:
+
+| Where mindstr runs | Your pod |
+| --- | --- |
+| Installed in a pod (`jss install melvincarvalho/mindstr=mindstr` → `<pod>/public/apps/mindstr/`) | That pod; opening the app goes straight to your map |
+| mindstr.org, signed in with Solid | The `pim:storage` in your WebID profile |
+| mindstr.org, signed in with Nostr | `https://nosdav.net/<pubkey>/` |
 
 If a map can't be loaded, saving is disabled so the original isn't overwritten.
 A 404 is treated as a new map.
@@ -85,7 +95,7 @@ No build step. Serve the folder (`npx serve .`) and open it. Pushing to
 
 - `index.html`: markup and styles
 - `js/app.js`: canvas, interaction, load/save
-- `js/nostr-auth.js`: NIP-07 / local-key signing and NIP-98 `authFetch`
+- `js/pod.js`: xlogin sign-in, `authFetch`, and finding your pod / default map
 - `scripts/build-examples.js`: regenerates `examples/` (Node, no dependencies)
 
 MIT licensed.

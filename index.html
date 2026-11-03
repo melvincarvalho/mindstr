@@ -171,7 +171,7 @@
       <div class="group">
         <span id="status" role="status"></span>
         <button data-action="save" class="primary" title="Save (Ctrl+S)" aria-label="Save"><span class="ico">💾</span><span class="label">Save</span></button>
-        <button data-action="login" title="Open my map (sign in with Nostr)" aria-label="My map"><span class="ico">🔐</span></button>
+        <button data-action="mine" title="My map (sign in with Nostr or Solid)" aria-label="My map"><span class="ico">🏠</span></button>
         <button data-action="help" title="Shortcuts (?)" aria-label="Help"><span class="ico">?</span></button>
       </div>
     </header>
@@ -216,6 +216,7 @@
         "connections": []
       }
     </script>
+    <script src="https://unpkg.com/xlogin"></script>
     <script type="module" src="./js/app.js"></script>
   </body>
 </html>

@@ -104,7 +104,7 @@
     },
     {
       "@id": "#jhaa84",
-      "name": "🔐 opens your own map",
+      "name": "🏠 opens your own map",
       "x": 192,
       "y": 308
     },
@@ -116,7 +116,7 @@
     },
     {
       "@id": "#i9w3v4",
-      "name": "Signed with your Nostr key",
+      "name": "Sign in with Nostr or Solid",
       "x": -118,
       "y": 331
     },
