@@ -4,8 +4,8 @@ import { BRANCH_COLORS, readableText, tones } from './colors.js'
 const STACK = 'system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif'
 // Node styles by depth: root, top-level branch, everything deeper.
 export const STYLES = [
-  { font: `650 18px ${STACK}`, padX: 22, h: 46, r: 23 },
-  { font: `600 15px ${STACK}`, padX: 16, h: 36, r: 12 },
+  { font: `800 18px Manrope, ${STACK}`, padX: 22, h: 46, r: 23 },
+  { font: `700 15px Manrope, ${STACK}`, padX: 16, h: 36, r: 12 },
   { font: `450 14px ${STACK}`, padX: 14, h: 32, r: 10 }
 ]
 const LINK_W = 18 // room for the ↗ icon
@@ -38,7 +38,7 @@ export const THEMES = {
 
 export function makeMeasure(ctx) {
   const widths = new Map()
-  return (node, depth) => {
+  const measure = (node, depth) => {
     const st = STYLES[Math.min(depth, 2)]
     const key = st.font + '\u0000' + node.name
     let tw = widths.get(key)
@@ -51,6 +51,8 @@ export function makeMeasure(ctx) {
     const link = node.link ? LINK_W : 0
     return { ...st, tw, w: Math.max(tw + st.padX * 2 + link, 48), link: Boolean(node.link) }
   }
+  measure.reset = () => widths.clear()
+  return measure
 }
 
 // Distance from a box's centre to its edge along unit vector (dx, dy).
@@ -178,7 +180,11 @@ export function drawMap(ctx, s) {
     ctx.save()
     if (dimming && !s.matches.has(i) && s.selected !== i) ctx.globalAlpha = 0.35
     if (!editing) {
-      if (s.selected === i && !lifted) {
+      if (s.selected === i && !lifted && info.depth[i] === 0) {
+        // the root is already violet: separate it with a background gap, then the ring
+        ring(ctx, p, m, 2.5, 3, theme.bg)
+        ring(ctx, p, m, 5, 2.5, theme.accent)
+      } else if (s.selected === i && !lifted) {
         ring(ctx, p, m, 6, 5, theme.accentSoft)
         ring(ctx, p, m, 3, 2, theme.accent)
       } else if (s.matches?.has(i)) {
@@ -194,7 +200,7 @@ export function drawMap(ctx, s) {
 
     ctx.save()
     if (lifted) {
-      ctx.globalAlpha *= 0.92
+      ctx.globalAlpha *= s.drop !== null && s.drop !== undefined ? 0.5 : 0.92
       ctx.shadowColor = 'rgba(20,20,50,0.28)'
       ctx.shadowBlur = 24
       ctx.shadowOffsetY = 8
@@ -244,6 +250,10 @@ export function drawMap(ctx, s) {
       const b = badgeAt(i, s)
       const col = c.edge
       ctx.beginPath()
+      ctx.arc(b.x, b.y, b.r + 3, 0, Math.PI * 2)
+      ctx.fillStyle = theme.bg
+      ctx.fill()
+      ctx.beginPath()
       ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2)
       ctx.fillStyle = collapsed ? col : theme.badgeBg
       ctx.fill()
@@ -268,13 +278,14 @@ export function drawMap(ctx, s) {
 
   const lifted = s.dragging || null
   nodes.forEach((_, i) => info.visible[i] && !lifted?.has(i) && drawNode(i, false))
+  if (lifted) for (const i of lifted) if (info.visible[i]) drawNode(i, true)
+  // the drop target goes on top of everything so it's never hidden by what's being dragged
   if (s.drop !== null && s.drop !== undefined && info.visible[s.drop]) {
     const p = s.pos(s.drop)
     const m = s.size(s.drop)
-    box(ctx, p.x - m.w / 2 - 6, p.y - m.h / 2 - 6, m.w + 12, m.h + 12, m.r + 6)
+    box(ctx, p.x - m.w / 2 - 8, p.y - m.h / 2 - 8, m.w + 16, m.h + 16, m.r + 8)
     ctx.fillStyle = theme.accentSoft
     ctx.fill()
-    ring(ctx, p, m, 6, 2.5, theme.accent)
+    ring(ctx, p, m, 8, 3, theme.accent)
   }
-  if (lifted) for (const i of lifted) if (info.visible[i]) drawNode(i, true)
 }

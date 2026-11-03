@@ -99,9 +99,57 @@ if (mapUrl && !/^https?:$/.test(new URL(mapUrl).protocol)) {
   badUri = true
 }
 const isJsonLd = Boolean(mapUrl) && /\.jsonld$/i.test(new URL(mapUrl).pathname)
-// Maps bundled with the app (examples/) can be edited, but saving makes a copy in your pod.
-const isExample = Boolean(mapUrl) && mapUrl.startsWith(new URL('./', location.href).href)
-const SCRATCH_KEY = 'mindstr:scratch'
+// Maps bundled with the app (examples/): the first edit turns them into a draft of your own.
+let isExample = Boolean(mapUrl) && mapUrl.startsWith(new URL('./', location.href).href)
+const exampleTitle = isExample ? decodeURIComponent(mapUrl.split('/').pop().replace(/\.jsonld?$/, '')) : ''
+
+// ---------- drafts: maps kept in this browser until saved to a pod ----------
+
+const DRAFTS_KEY = 'mindstr:drafts'
+const draftKey = id => 'mindstr:draft:' + id
+let draftId = null
+const newDraftId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+function drafts() {
+  try {
+    return JSON.parse(store.get(DRAFTS_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
+function saveDraft() {
+  if (!draftId) return
+  store.set(draftKey(draftId), JSON.stringify(serialize()))
+  const list = drafts().filter(d => d.id !== draftId)
+  list.unshift({ id: draftId, title: state.nodes[0]?.name || 'Untitled', at: Date.now(), count: state.nodes.length })
+  store.set(DRAFTS_KEY, JSON.stringify(list.slice(0, 50)))
+}
+function deleteDraft(id) {
+  store.set(draftKey(id), null)
+  store.set(DRAFTS_KEY, JSON.stringify(drafts().filter(d => d.id !== id)))
+}
+function createDraft(data, title) {
+  const id = newDraftId()
+  store.set(draftKey(id), JSON.stringify(data))
+  const list = drafts()
+  list.unshift({ id, title: title || data?.nodes?.[0]?.name || 'Untitled', at: Date.now(), count: data?.nodes?.length || 1 })
+  store.set(DRAFTS_KEY, JSON.stringify(list.slice(0, 50)))
+  return id
+}
+// one-time move of the old single scratch slot into the drafts list
+{
+  const old = store.get('mindstr:scratch')
+  if (old) {
+    try {
+      createDraft(JSON.parse(old))
+    } catch {}
+    store.set('mindstr:scratch', null)
+  }
+}
+const draftUrl = id => {
+  const u = new URL('./', location.href)
+  u.searchParams.set('draft', id)
+  return u.href
+}
 
 function uriParam(href) {
   const u = new URL(href)
@@ -136,8 +184,10 @@ const state = {
 let info = { parent: [], kids: [], depth: [], branchColor: [], visible: [], hidden: [] }
 const peek = new Set() // ids of folded nodes shown open for find, without changing the map
 const folded = n => n.collapsed && !peek.has(n['@id'])
-let undoStack = []
+let undoStack = [] // [{ n: serial, s: snapshot }]
 let redoStack = []
+let serial = 0
+const topSerial = () => undoStack.at(-1)?.n
 
 // ---------- model ----------
 
@@ -182,6 +232,18 @@ function serialize() {
   }
 }
 
+// A stable colour for a branch that has none of its own (doesn't change when siblings move).
+const hashColor = id => BRANCH_COLORS[[...String(id)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % BRANCH_COLORS.length]
+// The branch colour least used among the root's current branches.
+function freshColor() {
+  const used = new Map(BRANCH_COLORS.map(c => [c, 0]))
+  for (const k of info.kids[0] || []) {
+    const c = info.branchColor[k]
+    if (used.has(c)) used.set(c, used.get(c) + 1)
+  }
+  return [...used].sort((a, b) => a[1] - b[1])[0][0]
+}
+
 // Tree facts derived from nodes + connections: parents, depth, branch colours, folding.
 function analyze() {
   const n = state.nodes.length
@@ -204,7 +266,7 @@ function analyze() {
       if (depth[i] !== -1) continue
       depth[i] = d
       visible[i] = vis
-      const own = d === 1 ? state.nodes[i].bgColor || BRANCH_COLORS[kids[0].indexOf(i) % BRANCH_COLORS.length] || BRANCH_COLORS[0] : col
+      const own = d === 1 ? state.nodes[i].bgColor || hashColor(state.nodes[i]['@id']) : col
       branchColor[i] = own
       for (const k of kids[i]) stack.push([k, d + 1, own, vis && !folded(state.nodes[i])])
     }
@@ -243,7 +305,7 @@ function restore(snap) {
 }
 
 function checkpoint() {
-  undoStack.push(snapshot())
+  undoStack.push({ n: ++serial, s: snapshot() })
   if (undoStack.length > HISTORY_LIMIT) undoStack.shift()
   redoStack = []
 }
@@ -255,19 +317,27 @@ function changed() {
   analyze()
   state.dirty = true
   syncIsland()
-  if (!mapUrl) store.set(SCRATCH_KEY, JSON.stringify(serialize()))
+  if (isExample) forkExample()
+  if (!mapUrl) saveDraft()
   updateUi()
   invalidate()
 }
 
 const hideToast = () => (toastEl.hidden = true)
+function openDialog(d) {
+  hideToast()
+  const pill = document.getElementById('xlogin-widget')
+  if (pill) pill.style.visibility = 'hidden'
+  d.showModal()
+  d.addEventListener('close', () => pill && (pill.style.visibility = ''), { once: true })
+}
 
 function undo() {
   if (!undoStack.length) return
   hideToast()
   commitEdit()
-  redoStack.push(snapshot())
-  restore(undoStack.pop())
+  redoStack.push({ n: ++serial, s: snapshot() })
+  restore(undoStack.pop().s)
   changed()
   if (state.selected !== null) ensureVisible(state.selected)
   announce('Undone')
@@ -277,8 +347,8 @@ function redo() {
   if (!redoStack.length) return
   hideToast()
   commitEdit()
-  undoStack.push(snapshot())
-  restore(redoStack.pop())
+  undoStack.push({ n: ++serial, s: snapshot() })
+  restore(redoStack.pop().s)
   changed()
   if (state.selected !== null) ensureVisible(state.selected)
   announce('Redone')
@@ -436,7 +506,14 @@ function zoomAt(sx, sy, factor) {
   invalidate()
 }
 
-function fitView(animate = true) {
+// The part of the stage not covered by floating bars.
+function visibleArea() {
+  const top = findBar.hidden ? 0 : 64
+  const bar = width < 760 && document.body.classList.contains('has-selection') ? 76 : 0
+  return { top, bottom: height - bar }
+}
+
+function fitView(animate = true, initial = false) {
   if (!state.nodes.length || !width) return
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
   state.nodes.forEach((n, i) => {
@@ -447,20 +524,22 @@ function fitView(animate = true) {
     minY = Math.min(minY, n.y - m.h / 2)
     maxY = Math.max(maxY, n.y + m.h / 2)
   })
-  const pad = width < 500 ? 24 : 56
-  let scale = Math.min((width - pad * 2) / (maxX - minX || 1), (height - pad * 2) / (maxY - minY || 1), 1.25)
-  const floor = width < 760 || coarse.matches ? 0.62 : 0.3
+  const area = visibleArea()
+  const small = width < 760 || coarse.matches
+  const pad = width < 500 ? 20 : 56
+  const cap = small ? 1 : 1.25
+  let scale = Math.min((width - pad * 2) / (maxX - minX || 1), (area.bottom - area.top - pad * 2) / (maxY - minY || 1), cap)
   let cx = (minX + maxX) / 2
   let cy = (minY + maxY) / 2
-  if (scale < floor) {
-    // too big to read when fitted: show a readable piece around the selection or root
-    scale = floor
-    const focus = state.nodes[state.selected ?? 0]
-    cx = focus.x
-    cy = focus.y
+  if (initial && small && scale < 0.45) {
+    // too big to read when fitted on a phone: open on a readable piece around the root
+    scale = 0.62
+    cx = state.nodes[0].x
+    cy = state.nodes[0].y
   }
   scale = Math.max(MIN_SCALE, scale)
-  setView({ scale, x: width / 2 - cx * scale, y: height / 2 - cy * scale }, animate)
+  const midY = (area.top + area.bottom) / 2
+  setView({ scale, x: width / 2 - cx * scale, y: midY - cy * scale }, animate)
 }
 
 function ensureVisible(i, animate = true) {
@@ -469,8 +548,10 @@ function ensureVisible(i, animate = true) {
   const s = toScreen(n.x, n.y)
   const m = size(i)
   const margin = 40 + (m.w * state.view.scale) / 2
-  if (s.x < margin || s.x > width - margin || s.y < 60 || s.y > height - 90) {
-    setView({ ...state.view, x: state.view.x + width / 2 - s.x, y: state.view.y + height / 2 - s.y }, animate)
+  const area = visibleArea()
+  if (s.x < margin || s.x > width - margin || s.y < area.top + 50 || s.y > area.bottom - 110) {
+    const midY = (area.top + area.bottom) / 2
+    setView({ ...state.view, x: state.view.x + width / 2 - s.x, y: state.view.y + midY - s.y }, animate)
   }
 }
 
@@ -531,6 +612,7 @@ function draw() {
     positionEditor()
   }
   drawMap(ctx, scene())
+  placeTreeItems()
   if (viewAnim || anims.size || flashing.until > now) invalidate()
 }
 
@@ -577,6 +659,7 @@ function addChild(parentIndex = state.selected ?? 0) {
   if (state.nodes[parentIndex].collapsed) state.nodes[parentIndex] = { ...state.nodes[parentIndex], collapsed: undefined }
   const at = placeChild(parentIndex)
   const node = { '@id': newId(), name: '', ...at }
+  if (parentIndex === 0) node.bgColor = freshColor()
   state.nodes.push(node)
   const index = state.nodes.length - 1
   state.connections.push({ start: parentIndex, end: index })
@@ -599,7 +682,7 @@ function addSibling() {
 // Undo for a specific action: only if nothing else has happened since.
 function undoTo(mark) {
   return () => {
-    if (undoStack.length === mark) undo()
+    if (topSerial() === mark) undo()
     else toast('Other changes came after that — use Ctrl+Z to step back')
   }
 }
@@ -611,7 +694,7 @@ function deleteSelected({ nodeOnly = false, quiet = false } = {}) {
   if (del === 0) return toast('The central idea can’t be deleted')
   commitEdit()
   checkpoint()
-  const mark = undoStack.length
+  const mark = topSerial()
   const name = state.nodes[del].name || 'Untitled'
   const parent = info.parent[del]
   const kids = info.kids[del].slice()
@@ -706,6 +789,12 @@ function placeBranch(i) {
   const p = state.nodes[parent]
   const angle = Math.atan2((at.y - p.y) / 0.8, at.x - p.x)
   fanLayout(i, j => info.kids[j], size, j => state.nodes[j], angle)
+  settleWithin(i, moving)
+  pushClear(moving, angle)
+}
+
+// Nudge a block of nodes along `angle` until it no longer overlaps anything else.
+function pushClear(moving, angle) {
   const others = state.nodes.map((_, j) => j).filter(j => !moving.has(j) && info.visible[j])
   const clash = () =>
     [...moving].some(a => {
@@ -724,6 +813,32 @@ function placeBranch(i) {
       state.nodes[j].y += Math.round(32 * Math.sin(angle))
     }
   }
+}
+
+// Inside a freshly laid-out branch, push any node that overlaps an earlier one
+// outward from its parent (breadth-first), so nested fans don't collide.
+function settleWithin(root, moving) {
+  const order = []
+  const queue = [root]
+  while (queue.length) {
+    const j = queue.shift()
+    order.push(j)
+    queue.push(...info.kids[j])
+  }
+  const box = j => ({ n: state.nodes[j], m: size(j) })
+  const hits = (a, b) => Math.abs(a.n.x - b.n.x) < (a.m.w + b.m.w) / 2 + 20 && Math.abs(a.n.y - b.n.y) < (a.m.h + b.m.h) / 2 + 10
+  order.forEach((j, k) => {
+    if (!k) return
+    const p = state.nodes[info.parent[j]]
+    const a = Math.atan2((state.nodes[j].y - p.y) / 0.8, state.nodes[j].x - p.x)
+    const me = box(j)
+    for (let t = 0; t < 30 && order.slice(0, k).some(o => hits(me, box(o))); t++) {
+      for (const d of subtree(j)) {
+        state.nodes[d].x += Math.round(24 * Math.cos(a))
+        state.nodes[d].y += Math.round(19 * Math.sin(a))
+      }
+    }
+  })
 }
 
 // Keyboard restructuring: Alt+↑/↓ reorder, Alt+← promote, Alt+→ demote.
@@ -759,8 +874,8 @@ function moveNode(dir) {
     changed()
     announce(`${name} moved up a level, under ${state.nodes[gp].name || 'Untitled'}`)
   } else {
-    const prev = sibs[k - 1] ?? sibs[k + 1]
-    if (prev === undefined) return announce('No sibling to move under')
+    const prev = sibs[k - 1]
+    if (prev === undefined) return announce('No previous sibling to move under')
     checkpoint()
     reparent(i, prev)
     changed()
@@ -805,8 +920,7 @@ function editLink() {
   linkInput.value = state.nodes[i].link || ''
   $('#linkRemove').hidden = !state.nodes[i].link
   linkDialog.returnValue = ''
-  hideToast()
-  linkDialog.showModal()
+  openDialog(linkDialog)
   linkInput.select()
   linkDialog.onclose = () => {
     const v = linkDialog.returnValue
@@ -840,7 +954,11 @@ function openLink(node) {
 }
 
 function navigate(dx, dy) {
-  const from = state.nodes[state.selected ?? 0]
+  if (state.selected === null) {
+    select(0)
+    return ensureVisible(0)
+  }
+  const from = state.nodes[state.selected]
   let best = -1
   let bestScore = Infinity
   state.nodes.forEach((n, i) => {
@@ -895,11 +1013,18 @@ function insertTrees(parent, trees) {
   if (state.nodes[parent].collapsed) state.nodes[parent] = { ...state.nodes[parent], collapsed: undefined }
   for (const t of trees) add(t, parent, true)
   analyze()
+  if (parent === 0) {
+    for (const r of roots) {
+      if (state.nodes[r].bgColor) continue
+      state.nodes[r].bgColor = freshColor()
+      analyze()
+    }
+  }
   for (const r of roots) placeBranch(r)
   state.selected = first
   changed()
   ensureVisible(first)
-  toast(`Added ${count} ${count === 1 ? 'idea' : 'ideas'}`, { action: ['Undo', undoTo(undoStack.length)] })
+  toast(`Added ${count} ${count === 1 ? 'idea' : 'ideas'}`, { action: ['Undo', undoTo(topSerial())] })
   announce(`Added ${count} ideas`)
 }
 
@@ -915,9 +1040,9 @@ function onCopy(e, cut) {
   clip = { md, tree: t }
   const count = subtree(state.selected).length
   if (cut && state.selected !== 0) {
-    const mark = undoStack.length + 1
     const name = state.nodes[state.selected].name || 'Untitled'
     deleteSelected({ quiet: true })
+    const mark = topSerial()
     toast(`Cut “${name}”` + (count > 1 ? ` (${count} ideas)` : ''), { action: ['Undo', undoTo(mark)] })
   } else toast(`Copied ${count === 1 ? 'idea' : `branch (${count} ideas)`}`)
 }
@@ -933,8 +1058,7 @@ document.addEventListener('paste', e => {
 function openImport() {
   importText.value = ''
   importDialog.returnValue = ''
-  hideToast()
-  importDialog.showModal()
+  openDialog(importDialog)
   importDialog.onclose = () => {
     if (importDialog.returnValue === 'add') insertTrees(state.selected ?? 0, parseOutline(importText.value))
     focusMap()
@@ -1111,7 +1235,7 @@ function commitEdit() {
   if (state.nodes[e.index]) state.nodes[e.index].name = e.original // undo the live preview first
   if (e.isNew && !name) {
     // abandoned new node: drop it without leaving an undo step behind
-    restore(undoStack.pop())
+    restore(undoStack.pop().s)
     changed()
     focusMap()
     return
@@ -1250,6 +1374,7 @@ canvas.addEventListener('pointermove', e => {
     if (!gesture.moved) {
       checkpoint()
       gesture.moved = true
+      gesture.orig = new Map(gesture.items.map(({ j }) => [j, { x: state.nodes[j].x, y: state.nodes[j].y }]))
       canvas.classList.add('dragging')
     }
     const w = toWorld(p.x, p.y)
@@ -1262,6 +1387,10 @@ canvas.addEventListener('pointermove', e => {
     const t = hitTest(w, moving)
     const inside = t >= 0 && Math.abs(w.x - state.nodes[t].x) <= size(t).w / 2 && Math.abs(w.y - state.nodes[t].y) <= size(t).h / 2
     state.drop = inside && t !== info.parent[gesture.index] && gesture.index !== 0 ? t : null
+    // pointing at a node inside the branch being dragged (possible with Alt) is not allowed
+    const own = hitTest(w, new Set(gesture.items.map(it => it.j)))
+    gesture.invalid = own >= 0 && moving.has(own) && Math.abs(w.x - state.nodes[own].x) <= size(own).w / 2 && Math.abs(w.y - state.nodes[own].y) <= size(own).h / 2
+    canvas.style.cursor = gesture.invalid ? 'not-allowed' : ''
     invalidate()
   } else if (gesture.type === 'pan') {
     if (far) gesture.moved = true
@@ -1289,16 +1418,29 @@ function finishDrag(g) {
   g.moved = false
   const target = state.drop
   state.drop = null
-  if (target !== null) {
-    const before = positions()
-    if (reparent(g.index, target)) {
-      changed()
-      animateFrom(before)
-      announce(`Moved under ${state.nodes[target].name || 'Untitled'}`)
-      return
-    }
+  canvas.style.cursor = ''
+  const before = positions()
+  if (g.invalid) {
+    for (const [j, p] of g.orig) Object.assign(state.nodes[j], p)
+    restore(undoStack.pop().s)
+    animateFrom(before)
+    invalidate()
+    updateUi()
+    return toast('A branch can’t move into itself')
   }
+  if (target !== null && reparent(g.index, target)) {
+    changed()
+    animateFrom(before)
+    announce(`Moved under ${state.nodes[target].name || 'Untitled'}`)
+    return
+  }
+  // a free move: keep the moved block from landing on top of other nodes
+  const moved = new Set(g.items.map(it => it.j))
+  const o = g.orig.get(g.index)
+  const n = state.nodes[g.index]
+  if (o && (n.x !== o.x || n.y !== o.y)) pushClear(moved, Math.atan2((n.y - o.y) / 0.8, n.x - o.x))
   changed()
+  animateFrom(before)
 }
 
 function endPointer(e) {
@@ -1450,19 +1592,20 @@ document.addEventListener('keydown', e => {
 function showHelp() {
   closeMenu()
   $('#kbdHelp').open = !coarse.matches
-  hideToast()
-  helpDialog.showModal()
+  openDialog(helpDialog)
   helpDialog.querySelector('.dlg-body').scrollTop = 0
+  $('#helpTitle').focus()
   helpDialog.onclose = focusMap
 }
 
-function openMenu() {
+function openMenu(byKeyboard) {
   const r = menuBtn.getBoundingClientRect()
   menu.style.top = r.bottom + 6 + 'px'
   menu.style.right = Math.max(8, window.innerWidth - r.right) + 'px'
   menu.hidden = false
   menuBtn.setAttribute('aria-expanded', 'true')
-  menu.querySelector('button:not([hidden])')?.focus({ preventScroll: true })
+  if (byKeyboard) [...menu.querySelectorAll('button')].find(b => b.offsetParent)?.focus({ preventScroll: true })
+  else menu.focus({ preventScroll: true })
 }
 function closeMenu(refocus) {
   if (menu.hidden) return
@@ -1473,6 +1616,10 @@ function closeMenu(refocus) {
 menu.addEventListener('keydown', e => {
   const items = [...menu.querySelectorAll('button')].filter(b => b.offsetParent)
   const k = items.indexOf(document.activeElement)
+  if (e.key === 'Tab') {
+    e.preventDefault()
+    return closeMenu(true)
+  }
   const go = { ArrowDown: k + 1, ArrowUp: k - 1, Home: 0, End: items.length - 1 }[e.key]
   if (go === undefined) return
   e.preventDefault()
@@ -1499,6 +1646,7 @@ const actions = {
   zoomOut: () => zoomAt(width / 2, height / 2, 0.8),
   find: openFind,
   maps: openMaps,
+  openFile,
   newMap,
   findNext: () => stepFind(1),
   findPrev: () => stepFind(-1),
@@ -1511,7 +1659,7 @@ const actions = {
   save: () => save(),
   mine: () => openMine(),
   help: showHelp,
-  menu: () => (menu.hidden ? openMenu() : closeMenu()),
+  menu: e => (menu.hidden ? openMenu(e?.detail === 0) : closeMenu()),
   hintClose: () => {
     store.set('mindstr:hint', 'off')
     updateUi()
@@ -1522,9 +1670,10 @@ for (const btn of document.querySelectorAll('[data-action]')) {
   const inMenu = menu.contains(btn)
   // keep keyboard focus on the map after mouse clicks on toolbar buttons
   if (!inMenu && !findBar.contains(btn)) btn.addEventListener('mousedown', e => e.preventDefault())
-  btn.addEventListener('click', () => {
+  if (inMenu) btn.tabIndex = -1
+  btn.addEventListener('click', e => {
     if (inMenu) closeMenu()
-    actions[btn.dataset.action]?.()
+    actions[btn.dataset.action]?.(e)
   })
 }
 
@@ -1538,6 +1687,21 @@ tree.addEventListener('click', e => {
     ensureVisible(i)
   }
 })
+
+function placeTreeItems() {
+  const k = state.view.scale
+  for (const li of tree.children) {
+    const i = Number(li.id.slice(3))
+    const n = state.nodes[i]
+    if (!n) continue
+    const p = pos(i)
+    const m = size(i)
+    li.style.left = p.x * k + state.view.x - (m.w * k) / 2 + 'px'
+    li.style.top = p.y * k + state.view.y - (m.h * k) / 2 + 'px'
+    li.style.width = m.w * k + 'px'
+    li.style.height = m.h * k + 'px'
+  }
+}
 
 function renderTree() {
   // A screen-reader mirror of the map: a flat ARIA tree with levels.
@@ -1563,6 +1727,7 @@ function renderTree() {
   walk(0)
   state.nodes.forEach((_, i) => info.depth[i] === 1 && info.parent[i] === null && walk(i))
   tree.replaceChildren(...items)
+  placeTreeItems()
   if (sel !== null && info.visible[sel]) tree.setAttribute('aria-activedescendant', 'ti-' + sel)
   else tree.removeAttribute('aria-activedescendant')
 }
@@ -1786,7 +1951,7 @@ function askToSignIn(next, why) {
   hideToast()
   $('#signinTitle').textContent = why
   signinDialog.returnValue = ''
-  signinDialog.showModal()
+  openDialog(signinDialog)
   signinDialog.onclose = () => {
     const v = signinDialog.returnValue
     if (v === 'signin') {
@@ -1798,6 +1963,44 @@ function askToSignIn(next, why) {
     } else focusMap()
   }
 }
+
+// The first edit to an example makes it your own draft.
+function forkExample() {
+  isExample = false
+  mapUrl = null
+  state.canSave = false
+  draftId = newDraftId()
+  saveDraft()
+  history.replaceState(null, '', draftUrl(draftId))
+  toast(`Editing your own copy of “${exampleTitle}” — kept in this browser until you save it`, { ms: 5000 })
+}
+
+function openFile() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.json,.jsonld,application/json,application/ld+json'
+  input.onchange = () => input.files[0] && importFile(input.files[0])
+  input.click()
+}
+async function importFile(file) {
+  try {
+    const data = JSON.parse(await file.text())
+    if (!Array.isArray(data?.nodes)) throw new Error('not a mind map')
+    leaving = true
+    location.href = draftUrl(createDraft(data))
+  } catch (err) {
+    toast(`Couldn’t open ${file.name}: ${err.message}`, { ms: 6000 })
+  }
+}
+stage.addEventListener('dragover', e => {
+  if ([...(e.dataTransfer?.items || [])].some(i => i.kind === 'file')) e.preventDefault()
+})
+stage.addEventListener('drop', e => {
+  const f = e.dataTransfer?.files?.[0]
+  if (!f) return
+  e.preventDefault()
+  importFile(f)
+})
 
 // ---------- your maps ----------
 
@@ -1840,28 +2043,50 @@ async function openMaps() {
     ul.append(...items)
     mapsList.append(h, ul)
   }
-  const draft = store.get(SCRATCH_KEY)
-  if (draft) {
-    let name = 'Draft'
-    try {
-      name = JSON.parse(draft).nodes[0].name || name
-    } catch {}
-    const li = document.createElement('li')
-    const a = document.createElement('a')
-    a.href = './'
-    a.textContent = name
-    const span = document.createElement('span')
-    span.textContent = 'draft in this browser'
-    a.append(span)
-    li.append(a)
-    section('Draft', [li])
+  const ago = t => {
+    const m = Math.round((Date.now() - t) / 60000)
+    return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
   }
+  section(
+    'Drafts in this browser',
+    drafts().map(d => {
+      const li = document.createElement('li')
+      li.className = 'row'
+      const a = document.createElement('a')
+      a.href = draftUrl(d.id)
+      a.textContent = d.title
+      const span = document.createElement('span')
+      span.textContent = (d.id === draftId ? 'open now · ' : '') + ago(d.at) + (d.count ? ` · ${d.count} ${d.count === 1 ? 'idea' : 'ideas'}` : '')
+      a.append(span)
+      const del = document.createElement('button')
+      del.className = 'danger-ghost'
+      del.setAttribute('aria-label', 'Delete draft ' + d.title)
+      del.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-delete" /></svg>'
+      del.addEventListener('click', () => {
+        const json = store.get(draftKey(d.id))
+        deleteDraft(d.id)
+        li.remove()
+        toast(`Deleted draft “${d.title}”`, {
+          action: ['Undo', () => {
+            store.set(draftKey(d.id), json)
+            store.set(DRAFTS_KEY, JSON.stringify([d, ...drafts()]))
+            openMaps()
+          }],
+          ms: 7000
+        })
+        if (d.id === draftId) draftId = newDraftId()
+      })
+      li.append(a, del)
+      return li
+    })
+  )
   const when = t => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
   section('Recent', recentMaps().map(m => mapLink(m.url, m.title, new URL(m.url).host + ' · ' + when(m.at))))
   const status = document.createElement('p')
   status.className = 'muted'
   mapsList.append(status)
-  mapsDialog.showModal()
+  openDialog(mapsDialog)
+  $('#mapsTitle').focus()
   mapsDialog.onclose = focusMap
   if (!identity() && !hostPod) {
     status.textContent = 'Sign in to see the maps in your pod.'
@@ -1886,24 +2111,11 @@ async function openMaps() {
   }
 }
 
-let confirmNew = false
 function newMap() {
-  const draft = store.get(SCRATCH_KEY)
-  let hasDraft = false
-  try {
-    const d = JSON.parse(draft)
-    hasDraft = d.nodes.length > 1 || d.nodes[0].name !== 'Central idea'
-  } catch {}
-  if (hasDraft && !confirmNew) {
-    confirmNew = true
-    if (!mapsDialog.open) openMaps()
-    $('#newMapBtn').lastChild.textContent = 'Discard draft and start new'
-    toast('You have an unsaved draft in this browser. Save it first, or press the button again to discard it.', { ms: 7000 })
-    return
-  }
-  store.set(SCRATCH_KEY, null)
-  leaving = !mapUrl || !state.dirty
-  location.href = './'
+  closeMenu()
+  if (!mapUrl && state.nodes.length === 1 && state.nodes[0].name === 'Central idea') return startEdit(0)
+  if (!(isExample && state.dirty)) leaving = true
+  location.href = draftUrl(newDraftId())
 }
 
 async function save() {
@@ -1978,7 +2190,7 @@ async function saveCopy() {
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     remember(target, state.nodes[0].name)
-    if (!mapUrl) store.set(SCRATCH_KEY, null)
+    if (draftId) deleteDraft(draftId)
     session.set('mindstr:toast', 'Saved to your pod')
     leaving = true
     location.href = appUrlFor(target)
@@ -2056,13 +2268,16 @@ async function load() {
       showBanner(`Couldn’t load ${mapUrl} (${err.message}). Saving is off so the original isn’t overwritten.`)
     }
   } else {
-    const saved = store.get(SCRATCH_KEY)
-    if (saved && !titleParam) {
+    const wanted = params.get('draft')
+    draftId = wanted || (!titleParam && drafts()[0]?.id) || newDraftId()
+    const saved = store.get(draftKey(draftId))
+    if (saved) {
       try {
         data = JSON.parse(saved)
         restored = true
       } catch {}
     }
+    if (wanted !== draftId) history.replaceState(null, '', draftUrl(draftId) + (titleParam ? '&title=' + encodeURIComponent(titleParam) : ''))
   }
   // work stashed before a sign-in redirect comes back with the page
   let stash = null
@@ -2078,12 +2293,12 @@ async function load() {
   if (isNew && titleParam && !fromStash) nodes[0].name = titleParam
   state.nodes = nodes
   state.connections = connections
-  state.selected = selected
+  state.selected = fromStash ? selected : null // open calm: nothing selected until you act
   analyze()
   state.dirty = fromStash ? Boolean(stash.dirty) : !mapUrl ? restored : isNew && state.canSave
   syncIsland()
   resize()
-  fitView(false)
+  fitView(false, true)
   updateUi()
   if (state.canSave || remote.exists) startLive(updatesVia)
 
@@ -2099,5 +2314,8 @@ async function load() {
 
 new ResizeObserver(resize).observe(stage)
 dark.addEventListener('change', invalidate)
-document.fonts?.ready.then(invalidate)
+document.fonts?.load('700 18px Manrope').then(() => document.fonts.load('700 15px Manrope')).then(() => {
+  measure.reset()
+  invalidate()
+}).catch(() => {})
 load()
