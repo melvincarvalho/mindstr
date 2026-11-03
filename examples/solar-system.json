@@ -9,173 +9,173 @@
       "bgColor": "#FFE08A"
     },
     {
-      "@id": "#fiqrfa",
+      "@id": "#ujs2ci",
       "name": "Inner planets",
       "x": -141,
       "y": -135,
       "bgColor": "#FFE1CC"
     },
     {
-      "@id": "#fad69b",
+      "@id": "#442pm7",
       "name": "Mercury",
       "x": -423,
       "y": -60
     },
     {
-      "@id": "#fnrzmm",
+      "@id": "#imr4n9",
       "name": "Venus",
       "x": -442,
       "y": -204
     },
     {
-      "@id": "#3y3s3p",
+      "@id": "#tpktj6",
       "name": "Earth",
       "x": -276,
       "y": -264,
       "bgColor": "#D6E8FF"
     },
     {
-      "@id": "#ujs2ci",
+      "@id": "#u94rpy",
       "name": "Moon",
       "x": -411,
       "y": -392
     },
     {
-      "@id": "#442pm7",
+      "@id": "#7txfyn",
       "name": "Mars",
       "x": -89,
       "y": -402
     },
     {
-      "@id": "#imr4n9",
+      "@id": "#v5njcx",
       "name": "Phobos",
       "x": -219,
       "y": -481
     },
     {
-      "@id": "#tpktj6",
+      "@id": "#z8kicz",
       "name": "Deimos",
       "x": 0,
       "y": -576
     },
     {
-      "@id": "#u94rpy",
+      "@id": "#7348h9",
       "name": "Asteroid belt",
       "x": 110,
       "y": -152
     },
     {
-      "@id": "#7txfyn",
+      "@id": "#jtny2v",
       "name": "Ceres",
       "x": 147,
       "y": -323
     },
     {
-      "@id": "#v5njcx",
+      "@id": "#zvvi4r",
       "name": "Vesta",
       "x": 328,
       "y": -313
     },
     {
-      "@id": "#z8kicz",
+      "@id": "#ezqtt6",
       "name": "Outer planets",
       "x": 169,
       "y": 113,
       "bgColor": "#D6E8FF"
     },
     {
-      "@id": "#7348h9",
+      "@id": "#8edjsn",
       "name": "Jupiter",
       "x": 430,
       "y": 0
     },
     {
-      "@id": "#jtny2v",
+      "@id": "#75s7ir",
       "name": "Io",
       "x": 554,
       "y": -256
     },
     {
-      "@id": "#zvvi4r",
+      "@id": "#7x3k79",
       "name": "Europa",
       "x": 709,
       "y": -100
     },
     {
-      "@id": "#ezqtt6",
+      "@id": "#4af2dc",
       "name": "Ganymede",
       "x": 630,
       "y": 89
     },
     {
-      "@id": "#8edjsn",
+      "@id": "#7iui3z",
       "name": "Callisto",
       "x": 624,
       "y": 288
     },
     {
-      "@id": "#75s7ir",
+      "@id": "#bq9ccn",
       "name": "Saturn",
       "x": 255,
       "y": 353
     },
     {
-      "@id": "#7x3k79",
+      "@id": "#3yirdr",
       "name": "Titan",
       "x": 411,
       "y": 392
     },
     {
-      "@id": "#4af2dc",
+      "@id": "#ptf2jy",
       "name": "Enceladus",
       "x": 246,
       "y": 541
     },
     {
-      "@id": "#7iui3z",
+      "@id": "#4bfy6j",
       "name": "Uranus",
       "x": 0,
       "y": 344
     },
     {
-      "@id": "#bq9ccn",
+      "@id": "#4wkdd9",
       "name": "Neptune",
       "x": -174,
       "y": 383
     },
     {
-      "@id": "#3yirdr",
+      "@id": "#yiscsp",
       "name": "Triton",
       "x": -219,
       "y": 481
     },
     {
-      "@id": "#ptf2jy",
+      "@id": "#2fzfhg",
       "name": "Beyond",
       "x": -169,
       "y": 113,
       "bgColor": "#E6E0FF"
     },
     {
-      "@id": "#4bfy6j",
+      "@id": "#6ab87r",
       "name": "Kuiper belt",
       "x": -276,
       "y": 264
     },
     {
-      "@id": "#4wkdd9",
+      "@id": "#uyfscv",
       "name": "Pluto",
       "x": -411,
       "y": 392
     },
     {
-      "@id": "#yiscsp",
+      "@id": "#z5cumb",
       "name": "Oort cloud",
       "x": -442,
       "y": 204
     },
     {
-      "@id": "#2fzfhg",
+      "@id": "#7iejm3",
       "name": "← Back to welcome",
       "x": -217,
       "y": 31,

@@ -44,20 +44,25 @@ else appear straight away. If you have unsaved edits you get a choice instead:
 **Load theirs** or **Keep mine**. Saves send `If-Match`, so nobody silently
 overwrites a newer version.
 
-### Shortcuts
+### Using it
 
-| Key | Action |
+| Do | How |
 | --- | --- |
-| Tab / Insert | Add child |
-| Enter | Add sibling |
-| F2 / double-click / double-tap | Rename |
-| Delete | Delete node (its children move up to its parent) |
-| Ctrl+K | Set link |
-| O / click link text | Open link |
-| Arrows | Move selection |
-| Ctrl+Z / Ctrl+Shift+Z | Undo / redo |
-| Ctrl+S | Save |
-| F, +, −, wheel, pinch | Fit / zoom |
+| Add a child / sibling | Tab / Enter (or the toolbar) |
+| Rename | Double-click, double-tap or F2 |
+| Move a branch | Drag it (Alt-drag moves one node) |
+| Re-parent | Drop a node onto another |
+| Fold a branch | Space, or click the round badge |
+| Tidy the layout | L |
+| Find | Ctrl+F |
+| Link | Ctrl+K to set, click ↗ or O to open |
+| Copy / paste | Ctrl+C copies a branch as an outline; Ctrl+V pastes branches or any Markdown/indented list |
+| Undo / redo | Ctrl+Z / Ctrl+Shift+Z |
+| Pan / zoom | Scroll or drag; pinch, Ctrl+scroll or the + − buttons |
+| Export | ⋯ menu: PNG image, Markdown outline, JSON-LD |
+| Save | Ctrl+S. Scratch maps and examples are saved as a new map in your pod |
+
+Scratch maps (no `?uri=`) are kept in your browser until you save them.
 
 Links: `http(s)` URLs open in a new tab; `.md` files open in the NosDAV doc
 viewer; relative links (`./other.json`) open another map next to this one via `?uri=`.

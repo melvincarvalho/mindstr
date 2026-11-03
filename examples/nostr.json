@@ -9,137 +9,137 @@
       "bgColor": "#E6E0FF"
     },
     {
-      "@id": "#vn2imx",
+      "@id": "#5aggpq",
       "name": "Keys",
       "x": -183,
       "y": -98,
       "bgColor": "#FFF3C4"
     },
     {
-      "@id": "#2tznvh",
+      "@id": "#eqmaaw",
       "name": "Private key signs",
       "x": -422,
       "y": -67
     },
     {
-      "@id": "#cnh2fk",
+      "@id": "#pjbq25",
       "name": "Public key = identity",
       "x": -424,
       "y": -227
     },
     {
-      "@id": "#dk76uz",
+      "@id": "#tz98k5",
       "name": "NIP-19: npub / nsec",
       "x": -239,
       "y": -286,
       "link": "https://github.com/nostr-protocol/nips/blob/master/19.md"
     },
     {
-      "@id": "#5aggpq",
+      "@id": "#437yyk",
       "name": "Events",
       "x": 122,
       "y": -146,
       "bgColor": "#D6E8FF"
     },
     {
-      "@id": "#eqmaaw",
+      "@id": "#j3k2bu",
       "name": "NIP-01: the protocol",
       "x": -84,
       "y": -337,
       "link": "https://github.com/nostr-protocol/nips/blob/master/01.md"
     },
     {
-      "@id": "#pjbq25",
+      "@id": "#uhqx6j",
       "name": "kind 0: profile",
       "x": 99,
       "y": -400
     },
     {
-      "@id": "#tz98k5",
+      "@id": "#aurbbn",
       "name": "kind 1: note",
       "x": 239,
       "y": -286
     },
     {
-      "@id": "#437yyk",
+      "@id": "#fxz322",
       "name": "id = sha256 of content",
       "x": 424,
       "y": -227
     },
     {
-      "@id": "#j3k2bu",
+      "@id": "#s77s87",
       "name": "sig = schnorr",
       "x": 422,
       "y": -67
     },
     {
-      "@id": "#uhqx6j",
+      "@id": "#k73rni",
       "name": "Relays",
       "x": 183,
       "y": 98,
       "bgColor": "#D9F2DC"
     },
     {
-      "@id": "#aurbbn",
+      "@id": "#r8zm2z",
       "name": "Store and forward events",
       "x": 422,
       "y": 67
     },
     {
-      "@id": "#fxz322",
+      "@id": "#wzv4c3",
       "name": "Pick your own",
       "x": 424,
       "y": 227
     },
     {
-      "@id": "#s77s87",
+      "@id": "#7fnz2s",
       "name": "NIP-65: relay lists",
       "x": 239,
       "y": 286,
       "link": "https://github.com/nostr-protocol/nips/blob/master/65.md"
     },
     {
-      "@id": "#k73rni",
+      "@id": "#p89exh",
       "name": "Clients",
       "x": 0,
       "y": 176,
       "bgColor": "#FFE1CC"
     },
     {
-      "@id": "#r8zm2z",
+      "@id": "#urtpxv",
       "name": "NIP-07: browser signer",
       "x": 84,
       "y": 337,
       "link": "https://github.com/nostr-protocol/nips/blob/master/07.md"
     },
     {
-      "@id": "#wzv4c3",
+      "@id": "#4dg5c4",
       "name": "Many apps, one identity",
       "x": -99,
       "y": 400
     },
     {
-      "@id": "#7fnz2s",
+      "@id": "#kwm3he",
       "name": "Beyond notes",
       "x": -156,
       "y": 124,
       "bgColor": "#FFD6E8"
     },
     {
-      "@id": "#p89exh",
+      "@id": "#qvd9cw",
       "name": "NIP-98: HTTP auth",
       "x": -239,
       "y": 286,
       "link": "https://github.com/nostr-protocol/nips/blob/master/98.md"
     },
     {
-      "@id": "#urtpxv",
+      "@id": "#sf37xb",
       "name": "Mindstr saves with NIP-98",
       "x": -424,
       "y": 227
     },
     {
-      "@id": "#4dg5c4",
+      "@id": "#fuhjpf",
       "name": "← Back to welcome",
       "x": -216,
       "y": 34,

@@ -10,141 +10,167 @@
     },
     {
       "@id": "#ab9ysn",
-      "name": "Edit",
-      "x": -163,
-      "y": -119,
+      "name": "Add ideas",
+      "x": -178,
+      "y": -103,
       "bgColor": "#D6E8FF"
     },
     {
       "@id": "#qhtzie",
-      "name": "Tab: add child",
-      "x": -423,
-      "y": -63
+      "name": "Tab: add a child",
+      "x": -425,
+      "y": -54
     },
     {
       "@id": "#2sgmjt",
-      "name": "Enter: add sibling",
-      "x": -434,
-      "y": -215
+      "name": "Enter: add a sibling",
+      "x": -454,
+      "y": -185
     },
     {
       "@id": "#j9h6ge",
-      "name": "F2 or double-click: rename",
-      "x": -259,
-      "y": -275
+      "name": "Double-click: rename",
+      "x": -304,
+      "y": -243
     },
     {
       "@id": "#ejt2c7",
-      "name": "Delete: remove node",
-      "x": -140,
-      "y": -392
+      "name": "Paste a list: adds a branch",
+      "x": -232,
+      "y": -364
     },
     {
       "@id": "#tvx8v7",
-      "name": "Move around",
-      "x": 133,
-      "y": -140,
+      "name": "Arrange",
+      "x": 68,
+      "y": -167,
       "bgColor": "#D9F2DC"
     },
     {
       "@id": "#4bfmpa",
-      "name": "Drag background to pan",
-      "x": 40,
-      "y": -343
+      "name": "Drag a branch to move it",
+      "x": -67,
+      "y": -340
     },
     {
       "@id": "#c2mpq8",
-      "name": "Wheel or pinch to zoom",
-      "x": 227,
-      "y": -365
+      "name": "Drop on a node to re-parent",
+      "x": 80,
+      "y": -403
     },
     {
       "@id": "#yykmee",
-      "name": "F: fit to screen",
-      "x": 318,
-      "y": -232
+      "name": "Space folds a branch",
+      "x": 195,
+      "y": -307
     },
     {
       "@id": "#7kgwkb",
-      "name": "Arrows: hop between nodes",
-      "x": 476,
-      "y": -147
+      "name": "L tidies the layout",
+      "x": 361,
+      "y": -288
     },
     {
       "@id": "#x7t4w7",
-      "name": "Links",
-      "x": 205,
-      "y": 64,
+      "name": "Get around",
+      "x": 217,
+      "y": -28,
       "bgColor": "#FFE1CC"
     },
     {
       "@id": "#dsw684",
-      "name": "Ctrl+K: set a link",
-      "x": 430,
-      "y": 0
+      "name": "Scroll or drag to pan",
+      "x": 383,
+      "y": -156
     },
     {
       "@id": "#v88t4a",
-      "name": "Click blue text to open",
-      "x": 476,
-      "y": 147
+      "name": "Pinch or Ctrl+scroll to zoom",
+      "x": 504,
+      "y": -64
     },
     {
       "@id": "#skzt29",
-      "name": "Relative links open other maps",
-      "x": 318,
-      "y": 232
+      "name": "Ctrl+F finds anything",
+      "x": 425,
+      "y": 54
     },
     {
       "@id": "#t4pwzt",
-      "name": "Save",
-      "x": 20,
-      "y": 175,
-      "bgColor": "#FFD6E8"
+      "name": "Links",
+      "x": 156,
+      "y": 124,
+      "bgColor": "#D4F1F4"
     },
     {
       "@id": "#jhaa84",
-      "name": "🏠 opens your own map",
-      "x": 192,
-      "y": 308
+      "name": "Ctrl+K sets a link",
+      "x": 383,
+      "y": 156
     },
     {
       "@id": "#wavvy9",
-      "name": "Ctrl+S saves it",
-      "x": 47,
-      "y": 406
+      "name": "Click ↗ to open it",
+      "x": 361,
+      "y": 288
     },
     {
       "@id": "#i9w3v4",
-      "name": "Sign in with Nostr or Solid",
-      "x": -118,
-      "y": 331
+      "name": "./other.json opens a map",
+      "x": 195,
+      "y": 307
     },
     {
       "@id": "#e9sufn",
-      "name": "More examples",
-      "x": -187,
-      "y": 93
+      "name": "Keep it",
+      "x": -34,
+      "y": 174,
+      "bgColor": "#FFD6E8"
     },
     {
       "@id": "#g45zx9",
-      "name": "Solar system",
-      "x": -259,
-      "y": 275,
-      "link": "./solar-system.json"
+      "name": "Save stores it in your pod",
+      "x": 67,
+      "y": 340
     },
     {
       "@id": "#vz8rhu",
-      "name": "Plan a project",
-      "x": -434,
-      "y": 215,
-      "link": "./project-plan.json"
+      "name": "Sign in with Nostr or Solid",
+      "x": -80,
+      "y": 403
     },
     {
       "@id": "#35gtrs",
+      "name": "Edits sync live",
+      "x": -195,
+      "y": 307
+    },
+    {
+      "@id": "#fiqrfa",
+      "name": "More examples",
+      "x": -196,
+      "y": 80,
+      "bgColor": "#E6E0FF"
+    },
+    {
+      "@id": "#fad69b",
+      "name": "Solar system",
+      "x": -304,
+      "y": 243,
+      "link": "./solar-system.json"
+    },
+    {
+      "@id": "#fnrzmm",
+      "name": "Plan a project",
+      "x": -454,
+      "y": 185,
+      "link": "./project-plan.json"
+    },
+    {
+      "@id": "#3y3s3p",
       "name": "Learn Nostr",
-      "x": -423,
-      "y": 63,
+      "x": -425,
+      "y": 54,
       "link": "./nostr.json"
     }
   ],
@@ -236,6 +262,22 @@
     {
       "start": 19,
       "end": 22
+    },
+    {
+      "start": 0,
+      "end": 23
+    },
+    {
+      "start": 23,
+      "end": 24
+    },
+    {
+      "start": 23,
+      "end": 25
+    },
+    {
+      "start": 23,
+      "end": 26
     }
   ],
   "selectedNode": 0

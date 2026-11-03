@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="description" content="Mind maps saved to your own Solid pod. Sign in with Nostr or Solid, edit live together, and open any map by URL." />
     <meta name="theme-color" content="#1d1650" />
     <meta property="og:type" content="website" />
@@ -25,32 +25,40 @@
     <link rel="icon" href="favicon.ico" />
     <style>
       :root {
-        --bg: #fafafa;
+        --bg: #f7f7fa;
         --bar: #ffffff;
-        --border: #e2e5ea;
+        --raised: #ffffff;
+        --border: #e3e4ea;
         --text: #1b1f27;
-        --muted: #687080;
-        --hover: #eef1f5;
-        --accent: #1a5fd0;
+        --muted: #5f6675;
+        --hover: #f0eefb;
+        --accent: #6d4aff;
+        --accent-text: #ffffff;
+        --accent-soft: rgb(109 74 255 / 0.14);
         --warn-bg: #fff4d6;
-        --warn-text: #6b4b00;
-        --toast-bg: #1b1f27;
-        --toast-text: #ffffff;
+        --warn-text: #5c4100;
+        --shadow: 0 8px 30px rgb(20 20 50 / 0.14), 0 1px 3px rgb(20 20 50 / 0.08);
+        --target: 36px;
       }
       @media (prefers-color-scheme: dark) {
         :root {
-          --bg: #15171c;
-          --bar: #1b1e25;
+          --bg: #14161c;
+          --bar: #1a1d24;
+          --raised: #20242e;
           --border: #2c313b;
           --text: #e8eaee;
-          --muted: #9aa2b1;
-          --hover: #262b35;
-          --accent: #7fb2ff;
+          --muted: #a0a7b5;
+          --hover: #272b36;
+          --accent: #a28bff;
+          --accent-text: #14161c;
+          --accent-soft: rgb(162 139 255 / 0.18);
           --warn-bg: #3a2f10;
           --warn-text: #f3d78a;
-          --toast-bg: #e8eaee;
-          --toast-text: #15171c;
+          --shadow: 0 8px 30px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
         }
+      }
+      @media (pointer: coarse) {
+        :root { --target: 44px; }
       }
       * { box-sizing: border-box; }
       html, body { height: 100%; margin: 0; }
@@ -60,182 +68,404 @@
         height: 100dvh;
         background: var(--bg);
         color: var(--text);
-        font: 14px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        font: 14px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, sans-serif;
         overflow: hidden;
       }
+      .sr-only {
+        position: absolute !important;
+        width: 1px; height: 1px;
+        overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%);
+        white-space: nowrap;
+      }
+      [hidden] { display: none !important; }
+      .icon {
+        width: 18px; height: 18px; flex: none;
+        fill: none; stroke: currentColor; stroke-width: 1.75;
+        stroke-linecap: round; stroke-linejoin: round;
+      }
+
+      /* ---------- top bar ---------- */
       header {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 4px;
+        min-height: 52px;
         padding: 6px max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left));
         background: var(--bar);
         border-bottom: 1px solid var(--border);
-        flex-wrap: wrap;
       }
-      .brand { font-weight: 700; font-size: 16px; margin-right: 4px; }
+      .brand {
+        display: flex; align-items: center; gap: 8px;
+        margin-right: 8px;
+        font-weight: 750; font-size: 16px; letter-spacing: -0.2px;
+        color: var(--text); text-decoration: none;
+      }
+      .brand svg { width: 24px; height: 24px; }
       .group { display: flex; align-items: center; gap: 2px; }
-      .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+      .sep { width: 1px; height: 22px; background: var(--border); margin: 0 6px; }
       .spacer { flex: 1; }
-      button {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        min-width: 36px;
-        height: 34px;
+      button, .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        min-width: var(--target); height: var(--target);
         padding: 0 8px;
-        border: 1px solid transparent;
-        border-radius: 8px;
-        background: none;
-        color: var(--text);
-        font: inherit;
+        border: 1px solid transparent; border-radius: 10px;
+        background: none; color: var(--text);
+        font: inherit; font-weight: 500;
         cursor: pointer;
-        justify-content: center;
+        text-decoration: none;
+        -webkit-tap-highlight-color: transparent;
       }
-      button:hover:not(:disabled) { background: var(--hover); }
-      button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-      button:disabled { opacity: 0.35; cursor: default; }
-      button.primary { border-color: var(--border); }
-      .ico { font-size: 16px; line-height: 1; }
-      #status { color: var(--muted); font-size: 12px; min-width: 64px; text-align: right; }
+      @media (hover: hover) {
+        button:hover:not(:disabled), .btn:hover { background: var(--hover); }
+        .primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--accent); }
+      }
+      button:focus-visible, .btn:focus-visible, a:focus-visible {
+        outline: 2px solid var(--accent); outline-offset: 2px;
+      }
+      button:disabled { color: var(--muted); opacity: 0.45; cursor: default; }
+      .primary {
+        background: var(--accent); color: var(--accent-text);
+        padding: 0 14px; font-weight: 600;
+      }
+      .primary:disabled { background: var(--hover); color: var(--muted); }
+      #status { color: var(--muted); font-size: 12.5px; margin-right: 6px; white-space: nowrap; }
       #status[data-state='dirty'] { color: var(--accent); font-weight: 600; }
-      @media (max-width: 720px) {
-        .label { display: none; }
-        #status { display: none; }
-        .brand { display: none; }
+
+      /* ---------- menus, banner, toast ---------- */
+      .menu {
+        position: fixed; z-index: 20;
+        min-width: 220px; padding: 6px;
+        background: var(--raised); color: var(--text);
+        border: 1px solid var(--border); border-radius: 12px;
+        box-shadow: var(--shadow);
       }
+      .menu button { width: 100%; justify-content: flex-start; padding: 0 10px; gap: 10px; }
+      .menu hr { border: 0; border-top: 1px solid var(--border); margin: 6px 4px; }
       #banner {
+        display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
         padding: 8px 12px;
-        background: var(--warn-bg);
-        color: var(--warn-text);
+        background: var(--warn-bg); color: var(--warn-text);
         border-bottom: 1px solid var(--border);
         overflow-wrap: anywhere;
       }
-      .banner-btn {
-        height: 28px;
-        margin-left: 8px;
-        border: 1px solid currentColor;
-        color: inherit;
-        font-weight: 600;
+      .banner-btn { height: 30px; border: 1px solid currentColor; color: inherit; font-weight: 600; }
+      #toast {
+        position: fixed; z-index: 30;
+        left: 50%; bottom: max(24px, env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        display: flex; align-items: center; gap: 12px;
+        max-width: calc(100vw - 32px);
+        padding: 10px 12px 10px 16px;
+        border-radius: 12px;
+        background: #1b1f27; color: #fff;
+        box-shadow: var(--shadow);
       }
+      @media (prefers-color-scheme: dark) { #toast { background: #e8eaee; color: #14161c; } }
+      #toast button { height: 30px; color: inherit; font-weight: 650; border: 1px solid currentColor; }
+
+      /* ---------- stage ---------- */
       #stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+      #stage:has(#tree:focus-visible) { box-shadow: inset 0 0 0 2px var(--accent); }
       #canvas { display: block; touch-action: none; user-select: none; -webkit-user-select: none; }
       #canvas.dragging { cursor: grabbing !important; }
+      #tree {
+        position: absolute; inset: 0; margin: 0; padding: 0; list-style: none;
+        opacity: 0; pointer-events: none; overflow: hidden; outline: none;
+      }
       #editor {
-        position: absolute;
+        position: absolute; z-index: 5;
         transform: translate(-50%, -50%);
-        padding: 6px 12px;
-        border: 2px solid var(--accent);
-        border-radius: 999px;
-        background: var(--bar);
-        color: var(--text);
-        font: 500 15px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-        text-align: center;
-        outline: none;
-        box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
+        padding: 0 14px;
+        border: 0; border-radius: 10px;
+        background: var(--raised); color: var(--text);
+        box-shadow: 0 0 0 2px var(--accent), 0 0 0 6px var(--accent-soft), var(--shadow);
+        text-align: center; outline: none;
       }
-      #toast {
-        position: fixed;
-        left: 50%;
-        bottom: max(20px, env(safe-area-inset-bottom));
-        transform: translateX(-50%);
-        max-width: calc(100vw - 32px);
-        padding: 10px 16px;
-        border-radius: 10px;
-        background: var(--toast-bg);
-        color: var(--toast-text);
-        box-shadow: 0 6px 24px rgb(0 0 0 / 0.25);
-        z-index: 10;
+      #hint {
+        position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%);
+        display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
+        max-width: calc(100% - 32px);
+        padding: 10px 12px 10px 16px;
+        background: var(--raised); color: var(--muted);
+        border: 1px solid var(--border); border-radius: 14px;
+        box-shadow: var(--shadow);
+        font-size: 13px;
       }
-      [hidden] { display: none !important; }
+      #hint kbd { color: var(--text); }
+      #hint .btn { height: 32px; color: var(--accent); font-weight: 600; }
+      #find {
+        position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 6;
+        display: flex; align-items: center; gap: 4px;
+        padding: 4px 4px 4px 10px;
+        background: var(--raised); border: 1px solid var(--border); border-radius: 12px;
+        box-shadow: var(--shadow);
+      }
+      #find input {
+        width: min(260px, 50vw); height: 32px;
+        border: 0; outline: none; background: none; color: var(--text); font: inherit; font-size: 16px;
+      }
+      #findCount { color: var(--muted); font-size: 12px; min-width: 40px; text-align: right; }
+      #zoom {
+        position: absolute; right: 16px; bottom: 76px; z-index: 4;
+        display: flex; flex-direction: column;
+        background: var(--raised); border: 1px solid var(--border); border-radius: 12px;
+        box-shadow: var(--shadow); overflow: hidden;
+      }
+      #zoom button { border-radius: 0; }
+
+      /* ---------- dialogs ---------- */
       dialog {
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        background: var(--bar);
-        color: var(--text);
-        padding: 20px 24px;
-        max-width: min(440px, calc(100vw - 32px));
+        border: 1px solid var(--border); border-radius: 16px;
+        background: var(--raised); color: var(--text);
+        padding: 0; width: min(480px, calc(100vw - 32px));
+        box-shadow: var(--shadow);
       }
-      dialog::backdrop { background: rgb(0 0 0 / 0.35); }
-      dialog h2 { margin: 0 0 12px; font-size: 18px; }
-      dialog table { border-collapse: collapse; width: 100%; }
-      dialog td { padding: 4px 0; vertical-align: top; }
-      dialog td:first-child { padding-right: 16px; white-space: nowrap; }
+      dialog::backdrop { background: rgb(10 10 25 / 0.45); }
+      .dlg-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 0 20px; }
+      .dlg-head h2 { margin: 0; font-size: 18px; }
+      .dlg-body { padding: 8px 20px 20px; max-height: 70dvh; overflow: auto; }
+      .dlg-body h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 18px 0 8px; }
+      .dlg-body table { border-collapse: collapse; width: 100%; }
+      .dlg-body td { padding: 5px 0; vertical-align: top; }
+      .dlg-body td:first-child { padding-right: 16px; white-space: nowrap; color: var(--muted); }
+      .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+      .dlg-actions .left { margin-right: auto; }
       kbd {
         font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
-        padding: 1px 5px;
-        border: 1px solid var(--border);
-        border-bottom-width: 2px;
-        border-radius: 4px;
+        padding: 1px 6px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px;
+        color: var(--text);
       }
-      dialog p { color: var(--muted); margin: 12px 0 0; }
-      dialog a { color: var(--accent); }
-      .examples { margin: 0; padding-left: 20px; }
-      dialog form { margin-top: 16px; text-align: right; }
+      .field { display: grid; gap: 6px; margin-top: 8px; }
+      .field input, .field textarea {
+        width: 100%; padding: 10px 12px;
+        border: 1px solid var(--border); border-radius: 10px;
+        background: var(--bg); color: var(--text); font: inherit; font-size: 16px;
+      }
+      .field textarea { min-height: 180px; resize: vertical; font-family: ui-monospace, Menlo, monospace; font-size: 14px; }
+      .field input:focus, .field textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+      .muted { color: var(--muted); font-size: 13px; }
+      .examples { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .examples a {
+        display: block; padding: 12px; border: 1px solid var(--border); border-radius: 12px;
+        color: var(--text); text-decoration: none; font-weight: 600;
+      }
+      .examples a span { display: block; color: var(--muted); font-weight: 400; font-size: 12.5px; }
+      @media (hover: hover) { .examples a:hover { border-color: var(--accent); } }
+      .touch-only { display: none; }
+      @media (pointer: coarse) { .touch-only { display: revert; } .fine-only { display: none; } }
+
+      /* ---------- narrow screens ---------- */
+      .narrow-only { display: none !important; }
+      @media (max-width: 760px) {
+        .wide-only { display: none !important; }
+        .narrow-only { display: flex !important; }
+        .brand span { display: none; }
+        header { gap: 2px; }
+        #status { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+        .node-actions {
+          position: fixed; z-index: 15;
+          left: max(12px, env(safe-area-inset-left)); bottom: max(14px, env(safe-area-inset-bottom));
+          padding: 4px; gap: 4px;
+          background: var(--raised); border: 1px solid var(--border); border-radius: 16px;
+          box-shadow: var(--shadow);
+        }
+        body:not(.has-selection) .node-actions { display: none; }
+        #toast { bottom: auto; top: 64px; }
+        #hint { bottom: 16px; }
+        #zoom { bottom: 72px; right: 12px; }
+      }
     </style>
   </head>
   <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <linearGradient id="logo-g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#a855f7" /><stop offset="1" stop-color="#6366f1" />
+        </linearGradient>
+      </defs>
+      <symbol id="i-child" viewBox="0 0 24 24"><path d="M6 4v7a4 4 0 0 0 4 4h9" /><path d="M15 11l4 4-4 4" /></symbol>
+      <symbol id="i-sibling" viewBox="0 0 24 24"><path d="M4 7h11M4 12h11M4 17h6" /><path d="M18 14v6M15 17h6" /></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z" /><path d="M13.5 6.5l4 4" /></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></symbol>
+      <symbol id="i-open" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></symbol>
+      <symbol id="i-delete" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" /></symbol>
+      <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></symbol>
+      <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5" /><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" /></symbol>
+      <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></symbol>
+      <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z" /><path d="M8 4v5h7V4M8 20v-6h8v6" /></symbol>
+      <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7" /><path d="M6 9.5V20h12V9.5" /></symbol>
+      <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.4M12 17h.01" /></symbol>
+      <symbol id="i-find" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.3-4.3" /></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2" /><circle cx="12" cy="12" r="1.2" /><circle cx="19" cy="12" r="1.2" /></symbol>
+      <symbol id="i-tidy" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="5.5" r="2.5" /><circle cx="18" cy="18.5" r="2.5" /><path d="M8.5 12h2.5c2 0 2-6.5 4.5-6.5M11 12c2 0 2 6.5 4.5 6.5" /></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" /></symbol>
+      <symbol id="i-image" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2" /><circle cx="9" cy="10" r="1.5" /><path d="M20 16l-5-5-8 8" /></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" /></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></symbol>
+      <symbol id="i-paste" viewBox="0 0 24 24"><path d="M9 4h6v3H9z" /><path d="M15 5h3v15H6V5h3" /><path d="M9 12h6M9 16h4" /></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></symbol>
+      <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6" /></symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></symbol>
+      <symbol id="logo" viewBox="0 0 24 24">
+        <path d="M12 12L4.5 6M12 12l7.5-5M12 12l-7 6.5M12 12l7.5 6" stroke="url(#logo-g)" stroke-width="2" stroke-linecap="round" fill="none" />
+        <circle cx="12" cy="12" r="4.2" fill="url(#logo-g)" />
+        <circle cx="4.5" cy="6" r="2.4" fill="#f472b6" /><circle cx="19.5" cy="7" r="2.4" fill="#60a5fa" />
+        <circle cx="5" cy="18.5" r="2.4" fill="#34d399" /><circle cx="19.5" cy="18" r="2.4" fill="#fbbf24" />
+      </symbol>
+    </svg>
+
     <header>
-      <span class="brand">Mindstr</span>
-      <div class="group">
-        <button data-action="child" title="Add child (Tab)" aria-label="Add child"><span class="ico">＋</span><span class="label">Child</span></button>
-        <button data-action="sibling" title="Add sibling (Enter)" aria-label="Add sibling"><span class="ico">⇣</span><span class="label">Sibling</span></button>
-        <button data-action="edit" title="Rename (F2 / double-click)" aria-label="Rename"><span class="ico">✎</span></button>
-        <button data-action="link" title="Set link (Ctrl+K)" aria-label="Set link"><span class="ico">🔗</span></button>
-        <button data-action="open" title="Open link (O)" aria-label="Open link"><span class="ico">↗</span></button>
-        <button data-action="delete" title="Delete (Delete)" aria-label="Delete"><span class="ico">🗑</span></button>
+      <a class="brand" href="./" aria-label="Mindstr home"><svg aria-hidden="true"><use href="#logo" /></svg><span>Mindstr</span></a>
+      <div class="group node-actions" role="toolbar" aria-label="Node">
+        <button data-action="child" title="Add child (Tab)" aria-label="Add child"><svg class="icon" aria-hidden="true"><use href="#i-child" /></svg></button>
+        <button data-action="sibling" title="Add sibling (Enter)" aria-label="Add sibling"><svg class="icon" aria-hidden="true"><use href="#i-sibling" /></svg></button>
+        <button data-action="edit" title="Rename (F2 / double-click)" aria-label="Rename"><svg class="icon" aria-hidden="true"><use href="#i-edit" /></svg></button>
+        <button data-action="link" title="Set link (Ctrl+K)" aria-label="Set link"><svg class="icon" aria-hidden="true"><use href="#i-link" /></svg></button>
+        <button data-action="open" class="wide-only" title="Open link (O)" aria-label="Open link"><svg class="icon" aria-hidden="true"><use href="#i-open" /></svg></button>
+        <button data-action="delete" title="Delete (Delete)" aria-label="Delete"><svg class="icon" aria-hidden="true"><use href="#i-delete" /></svg></button>
       </div>
-      <span class="sep"></span>
+      <span class="sep wide-only"></span>
       <div class="group">
-        <button data-action="undo" title="Undo (Ctrl+Z)" aria-label="Undo"><span class="ico">↶</span></button>
-        <button data-action="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><span class="ico">↷</span></button>
-        <button data-action="fit" title="Fit to screen (F)" aria-label="Fit to screen"><span class="ico">⤢</span></button>
+        <button data-action="undo" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="icon" aria-hidden="true"><use href="#i-undo" /></svg></button>
+        <button data-action="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg class="icon" aria-hidden="true"><use href="#i-redo" /></svg></button>
+      </div>
+      <span class="sep wide-only"></span>
+      <div class="group wide-only">
+        <button data-action="find" title="Find (Ctrl+F)" aria-label="Find"><svg class="icon" aria-hidden="true"><use href="#i-find" /></svg></button>
+        <button data-action="tidy" title="Tidy layout (L)" aria-label="Tidy layout"><svg class="icon" aria-hidden="true"><use href="#i-tidy" /></svg></button>
       </div>
       <span class="spacer"></span>
-      <div class="group">
-        <span id="status" role="status"></span>
-        <button data-action="save" class="primary" title="Save (Ctrl+S)" aria-label="Save"><span class="ico">💾</span><span class="label">Save</span></button>
-        <button data-action="mine" title="My map (sign in with Nostr or Solid)" aria-label="My map"><span class="ico">🏠</span></button>
-        <button data-action="help" title="Shortcuts (?)" aria-label="Help"><span class="ico">?</span></button>
-      </div>
+      <span id="status" role="status"></span>
+      <button data-action="save" class="primary" title="Save (Ctrl+S)"><svg class="icon" aria-hidden="true"><use href="#i-save" /></svg><span id="saveLabel">Save</span></button>
+      <button data-action="mine" class="wide-only" title="My map (sign in with Nostr or Solid)" aria-label="My map"><svg class="icon" aria-hidden="true"><use href="#i-home" /></svg></button>
+      <button data-action="menu" id="menuBtn" title="More" aria-label="More" aria-haspopup="menu" aria-expanded="false" aria-controls="menu"><svg class="icon" aria-hidden="true"><use href="#i-more" /></svg></button>
+      <button data-action="help" class="wide-only" title="Help (?)" aria-label="Help"><svg class="icon" aria-hidden="true"><use href="#i-help" /></svg></button>
     </header>
-    <div id="banner" role="alert" hidden></div>
-    <main id="stage">
-      <canvas id="canvas" aria-label="Mind map canvas"></canvas>
-      <input id="editor" type="text" aria-label="Node name" autocomplete="off" spellcheck="false" hidden />
-    </main>
-    <div id="toast" role="status" hidden></div>
 
-    <dialog id="help">
-      <h2>Shortcuts</h2>
-      <table>
-        <tr><td><kbd>Tab</kbd> / <kbd>Insert</kbd></td><td>Add child</td></tr>
-        <tr><td><kbd>Enter</kbd></td><td>Add sibling</td></tr>
-        <tr><td><kbd>F2</kbd> / double-click</td><td>Rename</td></tr>
-        <tr><td><kbd>Delete</kbd></td><td>Delete node (children move up)</td></tr>
-        <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Set link</td></tr>
-        <tr><td><kbd>O</kbd> / click link text</td><td>Open link</td></tr>
-        <tr><td>Arrow keys</td><td>Move selection</td></tr>
-        <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Undo / redo</td></tr>
-        <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save</td></tr>
-        <tr><td><kbd>F</kbd>, <kbd>+</kbd>, <kbd>−</kbd>, wheel</td><td>Fit / zoom</td></tr>
-        <tr><td><kbd>Esc</kbd></td><td>Cancel edit / deselect</td></tr>
-      </table>
-      <p>Drag the background to pan, pinch to zoom, double-tap a node to rename. Open any map with <code>?uri=</code> and a relative or absolute URL to a <code>.json</code> or <code>.jsonld</code> file.</p>
-      <h2 style="margin-top: 16px">Examples</h2>
-      <ul class="examples">
-        <li><a href="?uri=examples/welcome.json">Welcome tour</a></li>
-        <li><a href="?uri=examples/solar-system.json">Solar system</a></li>
-        <li><a href="?uri=examples/project-plan.json">Plan a project</a></li>
-        <li><a href="?uri=examples/nostr.json">Learn Nostr</a></li>
-      </ul>
-      <form method="dialog"><button class="primary">Close</button></form>
+    <div class="menu" id="menu" role="menu" aria-label="More" hidden>
+      <button role="menuitem" data-action="find" class="narrow-only"><svg class="icon" aria-hidden="true"><use href="#i-find" /></svg>Find</button>
+      <button role="menuitem" data-action="tidy" class="narrow-only"><svg class="icon" aria-hidden="true"><use href="#i-tidy" /></svg>Tidy layout</button>
+      <button role="menuitem" data-action="import"><svg class="icon" aria-hidden="true"><use href="#i-paste" /></svg>Add from outline…</button>
+      <hr />
+      <button role="menuitem" data-action="png"><svg class="icon" aria-hidden="true"><use href="#i-image" /></svg>Download image (PNG)</button>
+      <button role="menuitem" data-action="outline"><svg class="icon" aria-hidden="true"><use href="#i-copy" /></svg>Copy as outline</button>
+      <button role="menuitem" data-action="json"><svg class="icon" aria-hidden="true"><use href="#i-download" /></svg>Download JSON-LD</button>
+      <hr />
+      <button role="menuitem" data-action="mine" class="narrow-only"><svg class="icon" aria-hidden="true"><use href="#i-home" /></svg>My map</button>
+      <button role="menuitem" data-action="help"><svg class="icon" aria-hidden="true"><use href="#i-help" /></svg>Help and examples</button>
+    </div>
+
+    <div id="banner" role="alert" hidden></div>
+
+    <main id="stage">
+      <canvas id="canvas" aria-hidden="true"></canvas>
+      <ul id="tree" role="tree" tabindex="0" aria-label="Mind map. Arrow keys move, Tab adds a child, Enter a sibling, F2 renames, Space folds, question mark for help."></ul>
+      <input id="editor" type="text" aria-label="Node name" autocomplete="off" spellcheck="false" enterkeyhint="done" hidden />
+      <div id="find" role="search" hidden>
+        <svg class="icon" aria-hidden="true"><use href="#i-find" /></svg>
+        <input id="findInput" type="search" placeholder="Find in map" aria-label="Find in map" enterkeyhint="search" />
+        <span id="findCount" aria-live="polite"></span>
+        <button data-action="findPrev" aria-label="Previous match"><svg class="icon" aria-hidden="true"><use href="#i-up" /></svg></button>
+        <button data-action="findNext" aria-label="Next match"><svg class="icon" aria-hidden="true"><use href="#i-down" /></svg></button>
+        <button data-action="findClose" aria-label="Close find"><svg class="icon" aria-hidden="true"><use href="#i-close" /></svg></button>
+      </div>
+      <div id="zoom" role="group" aria-label="Zoom">
+        <button data-action="zoomIn" title="Zoom in (+)" aria-label="Zoom in"><svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg></button>
+        <button data-action="zoomOut" title="Zoom out (−)" aria-label="Zoom out"><svg class="icon" aria-hidden="true"><use href="#i-minus" /></svg></button>
+        <button data-action="fit" title="Fit to screen (F)" aria-label="Fit to screen"><svg class="icon" aria-hidden="true"><use href="#i-fit" /></svg></button>
+      </div>
+      <div id="hint" hidden>
+        <span class="fine-only"><kbd>Tab</kbd> adds an idea · <kbd>Enter</kbd> a sibling · double-click to rename</span>
+        <span class="touch-only">Tap ＋ to add an idea · double-tap to rename</span>
+        <a class="btn" href="?uri=examples/welcome.json">Take the tour</a>
+        <button data-action="hintClose" aria-label="Dismiss tips"><svg class="icon" aria-hidden="true"><use href="#i-close" /></svg></button>
+      </div>
+    </main>
+
+    <div id="toast" role="status" hidden></div>
+    <div id="announce" class="sr-only" aria-live="polite"></div>
+
+    <dialog id="help" aria-labelledby="helpTitle">
+      <div class="dlg-head">
+        <h2 id="helpTitle">Help</h2>
+        <form method="dialog"><button aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-close" /></svg></button></form>
+      </div>
+      <div class="dlg-body">
+        <h3>Mouse and touch</h3>
+        <table>
+          <tr><td>Drag a node</td><td>Move it with its branch (hold Alt for just the node)</td></tr>
+          <tr><td>Drop on a node</td><td>Make it a child of that node</td></tr>
+          <tr><td>Double-click / double-tap</td><td>Rename</td></tr>
+          <tr><td>Click ↗ in a node</td><td>Open its link</td></tr>
+          <tr><td>Click the round badge</td><td>Fold or unfold a branch</td></tr>
+          <tr><td>Drag background · scroll</td><td>Pan</td></tr>
+          <tr><td>Pinch · Ctrl+scroll · ＋ −</td><td>Zoom</td></tr>
+        </table>
+        <h3>Keyboard</h3>
+        <table>
+          <tr><td><kbd>Tab</kbd> / <kbd>Insert</kbd></td><td>Add child (Esc then Tab leaves the map)</td></tr>
+          <tr><td><kbd>Enter</kbd></td><td>Add sibling</td></tr>
+          <tr><td><kbd>F2</kbd></td><td>Rename</td></tr>
+          <tr><td>Arrow keys</td><td>Move between nodes</td></tr>
+          <tr><td><kbd>Space</kbd></td><td>Fold / unfold</td></tr>
+          <tr><td><kbd>Delete</kbd></td><td>Delete node (children move up)</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd> · <kbd>O</kbd></td><td>Set link · open link</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>V</kbd></td><td>Copy branch · paste a branch or any text outline</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Find</td></tr>
+          <tr><td><kbd>L</kbd> · <kbd>F</kbd></td><td>Tidy layout · fit to screen</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Undo / redo</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save</td></tr>
+        </table>
+        <h3>Examples</h3>
+        <div class="examples">
+          <a href="?uri=examples/welcome.json">Welcome tour<span>How Mindstr works</span></a>
+          <a href="?uri=examples/solar-system.json">Solar system<span>A colourful overview</span></a>
+          <a href="?uri=examples/project-plan.json">Plan a project<span>Goals to launch</span></a>
+          <a href="?uri=examples/nostr.json">Learn Nostr<span>With links to the NIPs</span></a>
+        </div>
+        <p class="muted">Open any map with <code>?uri=</code> and a link to a <code>.json</code> or <code>.jsonld</code> file. Saved maps live in your own pod.</p>
+      </div>
+    </dialog>
+
+    <dialog id="linkDialog" aria-labelledby="linkTitle">
+      <form method="dialog" id="linkForm">
+        <div class="dlg-head"><h2 id="linkTitle">Link</h2></div>
+        <div class="dlg-body">
+          <label class="field">
+            <span class="muted">A web address, a <code>.md</code> note or another map (<code>./other.json</code>)</span>
+            <input id="linkInput" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://…" />
+          </label>
+          <div class="dlg-actions">
+            <button value="remove" class="left" id="linkRemove">Remove link</button>
+            <button value="cancel">Cancel</button>
+            <button value="save" class="primary">Save link</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="importDialog" aria-labelledby="importTitle">
+      <form method="dialog">
+        <div class="dlg-head"><h2 id="importTitle">Add from outline</h2></div>
+        <div class="dlg-body">
+          <label class="field">
+            <span class="muted">Paste notes, a Markdown list or headings. Each indented line becomes a child of the line above. It's added under the selected node.</span>
+            <textarea id="importText" placeholder="Trip&#10;- Travel&#10;  - Tickets&#10;- Stay"></textarea>
+          </label>
+          <div class="dlg-actions">
+            <button value="cancel">Cancel</button>
+            <button value="add" class="primary">Add to map</button>
+          </div>
+        </div>
+      </form>
     </dialog>
 
     <!-- Data island: always holds the current map as JSON -->
     <script type="application/json" id="initialData">
       {
         "version": "0.1",
-        "nodes": [{ "@id": "#this", "name": "New", "x": 0, "y": 0 }],
+        "nodes": [{ "@id": "#this", "name": "Central idea", "x": 0, "y": 0 }],
         "connections": []
       }
     </script>
