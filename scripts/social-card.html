@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<!--
+  Source for social-card.png (the Open Graph / Twitter image).
+  Open this file at a 1200×630 viewport and take a screenshot of the page.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Mindstr social card</title>
+<style>
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #0a0d22; }
+  svg { display: block; }
+  text { font-family: Inter, 'Segoe UI', Ubuntu, system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<svg id="card" width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+const W = 1200, H = 630, CX = 600, CY = 300
+const svg = document.getElementById('card')
+const NS = 'http://www.w3.org/2000/svg'
+const el = (tag, attrs = {}, parent = svg) => {
+  const e = document.createElementNS(NS, tag)
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v)
+  parent.appendChild(e)
+  return e
+}
+
+const branches = [
+  { name: 'Ideas',    color: '#f472b6', leaves: ['sparks', 'questions'] },
+  { name: 'Your pod', color: '#fbbf24', leaves: ['public/mindstr/', 'JSON-LD'] },
+  { name: 'Live',     color: '#34d399', leaves: ['together', 'in sync'] },
+  { name: 'Plans',    color: '#60a5fa', leaves: ['goals', 'next steps'] },
+  { name: 'Nostr',    color: '#a78bfa', leaves: ['did:nostr', 'NIP-98'] },
+  { name: 'Links',    color: '#22d3ee', leaves: ['notes.md', 'other maps'] }
+]
+
+// ---- background
+const defs = el('defs')
+const bg = el('radialGradient', { id: 'bg', cx: '50%', cy: '45%', r: '75%' }, defs)
+el('stop', { offset: '0%', 'stop-color': '#1d1650' }, bg)
+el('stop', { offset: '55%', 'stop-color': '#0f1233' }, bg)
+el('stop', { offset: '100%', 'stop-color': '#070918' }, bg)
+const root = el('linearGradient', { id: 'root', x1: '0', y1: '0', x2: '1', y2: '1' }, defs)
+el('stop', { offset: '0%', 'stop-color': '#a855f7' }, root)
+el('stop', { offset: '100%', 'stop-color': '#6366f1' }, root)
+const glow = el('filter', { id: 'glow', x: '-50%', y: '-50%', width: '200%', height: '200%' }, defs)
+el('feGaussianBlur', { stdDeviation: '6', result: 'b' }, glow)
+const merge = el('feMerge', {}, glow)
+el('feMergeNode', { in: 'b' }, merge)
+el('feMergeNode', { in: 'SourceGraphic' }, merge)
+const soft = el('filter', { id: 'soft', x: '-100%', y: '-100%', width: '300%', height: '300%' }, defs)
+el('feGaussianBlur', { stdDeviation: '60' }, soft)
+
+el('rect', { width: W, height: H, fill: 'url(#bg)' })
+for (let x = 20; x < W; x += 32)
+  for (let y = 20; y < H; y += 32)
+    el('circle', { cx: x, cy: y, r: 1.1, fill: '#ffffff', opacity: 0.06 })
+el('circle', { cx: CX, cy: CY, r: 170, fill: '#7c3aed', opacity: 0.45, filter: 'url(#soft)' })
+el('circle', { cx: 250, cy: 470, r: 120, fill: '#0ea5e9', opacity: 0.18, filter: 'url(#soft)' })
+el('circle', { cx: 980, cy: 140, r: 120, fill: '#ec4899', opacity: 0.16, filter: 'url(#soft)' })
+
+// ---- layout
+const edges = el('g')
+const nodes = el('g')
+const pt = (deg, rx, ry) => {
+  const a = (deg * Math.PI) / 180
+  return [CX + rx * Math.cos(a), CY + ry * Math.sin(a)]
+}
+const curve = ([x1, y1], [x2, y2]) => {
+  const mx = (x1 + x2) / 2
+  return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`
+}
+
+function pill([x, y], text, { size, color, fill, stroke, weight, padX, h }) {
+  const g = el('g', {}, nodes)
+  const t = el('text', { x, y: y + size * 0.36, 'text-anchor': 'middle', 'font-size': size, 'font-weight': weight, fill: color }, g)
+  t.textContent = text
+  const w = t.getComputedTextLength() + padX * 2
+  const r = el('rect', { x: x - w / 2, y: y - h / 2, width: w, height: h, rx: h / 2, fill, stroke, 'stroke-width': 2 }, g)
+  g.insertBefore(r, t)
+  return g
+}
+
+branches.forEach((b, i) => {
+  const deg = i * 60
+  const bp = pt(deg, 330, 172)
+  el('path', { d: curve([CX, CY], bp), stroke: b.color, 'stroke-width': 4, fill: 'none', opacity: 0.9, filter: 'url(#glow)', 'stroke-linecap': 'round' }, edges)
+  b.leaves.forEach((leaf, j) => {
+    const lp = pt(deg + (j ? 17 : -17), 488, 262)
+    el('path', { d: curve(bp, lp), stroke: b.color, 'stroke-width': 2.2, fill: 'none', opacity: 0.55, 'stroke-linecap': 'round' }, edges)
+    pill(lp, leaf, { size: 17, weight: 500, color: '#dbe2f0', fill: '#141a3c', stroke: b.color + 'aa', padX: 16, h: 36 })
+  })
+  pill(bp, b.name, { size: 22, weight: 650, color: '#ffffff', fill: b.color + '2e', stroke: b.color, padX: 22, h: 46 })
+})
+
+// ---- root
+const rg = el('g', { filter: 'url(#glow)' }, nodes)
+el('rect', { x: CX - 165, y: CY - 58, width: 330, height: 116, rx: 58, fill: 'url(#root)' }, rg)
+const title = el('text', { x: CX, y: CY + 6, 'text-anchor': 'middle', 'font-size': 58, 'font-weight': 800, fill: '#fff', 'letter-spacing': '-1' }, nodes)
+title.textContent = 'mindstr'
+const tag = el('text', { x: CX, y: CY + 38, 'text-anchor': 'middle', 'font-size': 19, 'font-weight': 500, fill: '#ede9fe', 'letter-spacing': '0.5' }, nodes)
+tag.textContent = 'mind maps you own'
+
+const foot = el('text', { x: CX, y: 612, 'text-anchor': 'middle', 'font-size': 16, 'font-weight': 600, fill: '#8b93b8', 'letter-spacing': '2' })
+foot.textContent = 'MINDSTR.ORG'
+</script>
+</body>
+</html>

@@ -106,5 +106,6 @@ No build step. Serve the folder (`npx serve .`) and open it. Pushing to
 - `js/pod.js`: xlogin sign-in, `authFetch`, and finding your pod / default map
 - `js/live.js`: solid-0.1 WebSocket notifications
 - `scripts/build-examples.js`: regenerates `examples/` (Node, no dependencies)
+- `scripts/social-card.html`: source of `social-card.png`; open at 1200×630 and screenshot
 
 MIT licensed.
