@@ -259,6 +259,14 @@ const palette = () =>
         selStroke: '#1a5fd0'
       }
 
+// Briefly highlight nodes that arrived from someone else.
+const FLASH_MS = 2400
+let flashing = { ids: new Set(), until: 0 }
+function flash(ids) {
+  flashing = { ids: new Set(ids), until: performance.now() + FLASH_MS }
+  invalidate()
+}
+
 let frame = 0
 function invalidate() {
   if (!frame) frame = requestAnimationFrame(draw)
@@ -299,6 +307,24 @@ function draw() {
     const mx = (a.x + b.x) / 2
     ctx.bezierCurveTo(mx, a.y, mx, b.y, b.x, b.y)
     ctx.stroke()
+  }
+
+  const flashLeft = flashing.until - performance.now()
+  if (flashLeft > 0) {
+    const t = flashLeft / FLASH_MS // 1 → 0
+    ctx.save()
+    for (const n of state.nodes) {
+      if (!flashing.ids.has(n['@id'])) continue
+      const grow = 6 + 10 * (1 - t)
+      ctx.beginPath()
+      ctx.ellipse(n.x, n.y, nodeWidth(n) / 2 + grow, NODE_H / 2 + grow, 0, 0, Math.PI * 2)
+      ctx.lineWidth = 4
+      ctx.strokeStyle = c.selStroke
+      ctx.globalAlpha = 0.6 * t
+      ctx.stroke()
+    }
+    ctx.restore()
+    invalidate() // keep animating until the glow fades
   }
 
   state.nodes.forEach((n, i) => {
@@ -896,13 +922,22 @@ const sameAsLocal = data => content(data) === content(serialize())
 
 function applyRemote(data, etag) {
   const selId = state.nodes[state.selected]?.['@id']
+  const known = new Set(state.nodes.map(n => n['@id']))
   if (state.editing) cancelEdit()
   const { nodes, connections, selected, extra } = normalize(data)
   state.nodes = nodes
   state.connections = connections
   state.extra = extra
-  const keep = nodes.findIndex(n => n['@id'] === selId)
-  state.selected = keep >= 0 ? keep : selected
+  const added = nodes.map((n, i) => i).filter(i => !known.has(nodes[i]['@id']))
+  if (added.length) {
+    // jump to what's new, and make it glow for a moment
+    state.selected = added[added.length - 1]
+    flash(added.map(i => nodes[i]['@id']))
+    ensureVisible(state.selected)
+  } else {
+    const keep = nodes.findIndex(n => n['@id'] === selId)
+    state.selected = keep >= 0 ? keep : selected
+  }
   undoStack = []
   redoStack = []
   remote.etag = etag
@@ -952,10 +987,10 @@ async function checkRemote() {
     }
     if (state.dirty || state.editing || gesture) {
       remote.pending = { data, etag }
-      showConflict('Someone else changed this map while you were editing.')
+      showConflict('This map was changed elsewhere while you were editing.')
     } else {
       applyRemote(data, etag)
-      toast('Map updated by someone else')
+      toast('Map updated elsewhere')
     }
   } catch {
     // offline or bad JSON: try again on the next notification
@@ -1007,7 +1042,7 @@ async function save() {
       remote.pending = theirs.ok ? { data: await theirs.json(), etag: theirs.headers.get('ETag') } : null
       remote.exists = theirs.ok
       if (!theirs.ok) remote.etag = null
-      showConflict('Someone else saved this map since you loaded it.')
+      showConflict('This map was saved elsewhere since you loaded it.')
       throw new Error('it changed on the server')
     }
     if ((res.status === 401 || res.status === 403) && !identity()) {
