@@ -39,13 +39,15 @@ function findStorage(node, seen = new Set()) {
   if (!node || typeof node !== 'object' || seen.has(node)) return null
   seen.add(node)
   for (const [k, v] of Object.entries(node)) {
+    if (k === '@context') continue // term definitions, not data
     if (/(^|[:#/])storage$/.test(k)) {
       const first = Array.isArray(v) ? v[0] : v
       const id = typeof first === 'string' ? first : first?.['@id']
       if (id) return id
     }
   }
-  for (const v of Object.values(node)) {
+  for (const [k, v] of Object.entries(node)) {
+    if (k === '@context') continue
     const found = findStorage(v, seen)
     if (found) return found
   }

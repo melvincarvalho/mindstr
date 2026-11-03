@@ -901,7 +901,7 @@ async function goToMine() {
   const target = await myMapUrl()
   if (!target) return false
   const href = appUrlFor(target)
-  if (href === location.href) {
+  if (target === mapUrl) {
     toast('This is your map')
     return true
   }
