@@ -90,6 +90,29 @@ both versions, saves existing maps in the version they came in, and creates new 
 0.2. The current map is also mirrored in the page's `<script id="initialData">` data
 island.
 
+## Maps for a repo
+
+Any repo or site can carry its own mind maps. The convention, used across 30+ repos:
+
+- `/mindstr/index.jsonld` is the entry map; child maps sit beside it with relative links,
+  and `outline.md` is the whole set as one nested Markdown list for people and LLMs.
+- Open it at `https://mindstr.org/?uri=<site>/mindstr/index.jsonld`.
+- The repo gets the GitHub topic `mindstr`, so https://github.com/topics/mindstr lists every
+  repo with maps, and a badge in its README:
+
+  ```markdown
+  [![Mind map](https://mindstr.org/badge.svg)](https://mindstr.org/?uri=https://example.org/mindstr/index.jsonld)
+  ```
+- An org gets a `mindstr` repo whose map links to each repo's folder
+  (for example https://jss.live/mindstr/).
+
+What a repo map holds: what the project is (README sections, docs, specs, a roadmap when
+there is one), what is there (source tree with exports, CLI commands from `--help`, examples,
+chapters), and what is in flight (open PRs, open issues by label). No commit logs. Maps keep
+to about 30 nodes, no fan wider than 7, one hue per branch; anything bigger is a child map,
+marked with `›`. The generator lives in cos (`cos maps <set>`); the rules and their sources
+are in its `mindstr/research.md`.
+
 ## For agents
 
 [`SKILL.md`](SKILL.md) tells LLMs how to create and edit maps: the document
