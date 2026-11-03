@@ -1,0 +1,128 @@
+{
+  "@context": {
+    "@vocab": "https://mindstr.org/ns#",
+    "link": {
+      "@type": "@id"
+    },
+    "parent": {
+      "@type": "@id"
+    }
+  },
+  "version": "0.2",
+  "nodes": [
+    {
+      "@id": "#this",
+      "name": "colors.js",
+      "x": 0,
+      "y": 0,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/colors.js",
+      "bgColor": "#ebc573"
+    },
+    {
+      "@id": "#ab9ysn",
+      "name": "exports",
+      "x": 156,
+      "y": -166,
+      "bgColor": "#acd5ff",
+      "parent": "#this"
+    },
+    {
+      "@id": "#qhtzie",
+      "name": "BRANCH_COLORS()",
+      "x": -369,
+      "y": -287,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/colors.js#L4",
+      "bgColor": "#daeeff",
+      "parent": "#ab9ysn"
+    },
+    {
+      "@id": "#2sgmjt",
+      "name": "toRgb()",
+      "x": -42,
+      "y": -500,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/colors.js#L10",
+      "bgColor": "#daeeff",
+      "parent": "#ab9ysn"
+    },
+    {
+      "@id": "#j9h6ge",
+      "name": "contrast()",
+      "x": 315,
+      "y": -330,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/colors.js#L51",
+      "bgColor": "#daeeff",
+      "parent": "#ab9ysn"
+    },
+    {
+      "@id": "#ejt2c7",
+      "name": "readableText()",
+      "x": 584,
+      "y": -68,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/colors.js#L57",
+      "bgColor": "#daeeff",
+      "parent": "#ab9ysn"
+    },
+    {
+      "@id": "#tvx8v7",
+      "name": "tones()",
+      "x": 408,
+      "y": 245,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/colors.js#L62",
+      "bgColor": "#daeeff",
+      "parent": "#ab9ysn"
+    },
+    {
+      "@id": "#4bfmpa",
+      "name": "69 lines",
+      "x": -56,
+      "y": 207,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/colors.js",
+      "bgColor": "#ececec",
+      "parent": "#this"
+    },
+    {
+      "@id": "#c2mpq8",
+      "name": "← js/",
+      "x": -225,
+      "y": 92,
+      "link": "./src.jsonld",
+      "bgColor": "#ececec",
+      "parent": "#this"
+    }
+  ],
+  "connections": [
+    {
+      "start": 0,
+      "end": 1
+    },
+    {
+      "start": 1,
+      "end": 2
+    },
+    {
+      "start": 1,
+      "end": 3
+    },
+    {
+      "start": 1,
+      "end": 4
+    },
+    {
+      "start": 1,
+      "end": 5
+    },
+    {
+      "start": 1,
+      "end": 6
+    },
+    {
+      "start": 0,
+      "end": 7
+    },
+    {
+      "start": 0,
+      "end": 8
+    }
+  ],
+  "selectedNode": 0
+}

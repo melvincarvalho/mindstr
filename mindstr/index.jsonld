@@ -1,0 +1,298 @@
+{
+  "@context": {
+    "@vocab": "https://mindstr.org/ns#",
+    "link": {
+      "@type": "@id"
+    },
+    "parent": {
+      "@type": "@id"
+    }
+  },
+  "version": "0.2",
+  "nodes": [
+    {
+      "@id": "#this",
+      "name": "mindstr",
+      "x": 0,
+      "y": 0,
+      "link": "https://github.com/melvincarvalho/mindstr",
+      "bgColor": "#ebc573"
+    },
+    {
+      "@id": "#35gtrs",
+      "name": "README · 5",
+      "x": -194,
+      "y": -134,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md",
+      "bgColor": "#acd5ff",
+      "parent": "#this"
+    },
+    {
+      "@id": "#fiqrfa",
+      "name": "Use",
+      "x": -488,
+      "y": -94,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#use",
+      "bgColor": "#daeeff",
+      "parent": "#35gtrs"
+    },
+    {
+      "@id": "#fad69b",
+      "name": "Examples",
+      "x": -531,
+      "y": -219,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#examples",
+      "bgColor": "#daeeff",
+      "parent": "#35gtrs"
+    },
+    {
+      "@id": "#fnrzmm",
+      "name": "Data format",
+      "x": -389,
+      "y": -267,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#data-format",
+      "bgColor": "#daeeff",
+      "parent": "#35gtrs"
+    },
+    {
+      "@id": "#3y3s3p",
+      "name": "For agents",
+      "x": -363,
+      "y": -396,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#for-agents",
+      "bgColor": "#daeeff",
+      "parent": "#35gtrs"
+    },
+    {
+      "@id": "#ujs2ci",
+      "name": "Develop",
+      "x": -210,
+      "y": -386,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#develop",
+      "bgColor": "#daeeff",
+      "parent": "#35gtrs"
+    },
+    {
+      "@id": "#442pm7",
+      "name": "SKILL.md · 7",
+      "x": -59,
+      "y": -212,
+      "link": "./doc-skill.jsonld",
+      "bgColor": "#d9c6fb",
+      "parent": "#this"
+    },
+    {
+      "@id": "#imr4n9",
+      "name": "SPEC.md · 12",
+      "x": 71,
+      "y": -224,
+      "link": "./doc-spec.jsonld",
+      "bgColor": "#f9bdd5",
+      "parent": "#this"
+    },
+    {
+      "@id": "#tpktj6",
+      "name": "Source · js/",
+      "x": 113,
+      "y": -180,
+      "link": "./src.jsonld",
+      "bgColor": "#fcc2a9",
+      "parent": "#this"
+    },
+    {
+      "@id": "#u94rpy",
+      "name": "Examples · 4",
+      "x": 231,
+      "y": -80,
+      "link": "https://github.com/melvincarvalho/mindstr/tree/gh-pages/examples",
+      "bgColor": "#e0d199",
+      "parent": "#this"
+    },
+    {
+      "@id": "#7txfyn",
+      "name": "nostr.json",
+      "x": 363,
+      "y": -292,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/examples/nostr.json",
+      "bgColor": "#f2ecd2",
+      "parent": "#u94rpy"
+    },
+    {
+      "@id": "#v5njcx",
+      "name": "project-plan.json",
+      "x": 513,
+      "y": -247,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/examples/project-plan.json",
+      "bgColor": "#f2ecd2",
+      "parent": "#u94rpy"
+    },
+    {
+      "@id": "#z8kicz",
+      "name": "solar-system.json",
+      "x": 483,
+      "y": -109,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/examples/solar-system.json",
+      "bgColor": "#f2ecd2",
+      "parent": "#u94rpy"
+    },
+    {
+      "@id": "#7348h9",
+      "name": "welcome.json",
+      "x": 590,
+      "y": -9,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/examples/welcome.json",
+      "bgColor": "#f2ecd2",
+      "parent": "#u94rpy"
+    },
+    {
+      "@id": "#jtny2v",
+      "name": "Open issues · 5",
+      "x": 52,
+      "y": 208,
+      "link": "https://github.com/melvincarvalho/mindstr/issues",
+      "bgColor": "#b1dfb5",
+      "parent": "#this"
+    },
+    {
+      "@id": "#zvvi4r",
+      "name": "#15 Modernize for solid-apps convention…",
+      "x": 402,
+      "y": 252,
+      "link": "https://github.com/melvincarvalho/mindstr/issues/15",
+      "bgColor": "#ddf2de",
+      "parent": "#jtny2v"
+    },
+    {
+      "@id": "#ezqtt6",
+      "name": "#12 Integration with Gamestr",
+      "x": 295,
+      "y": 443,
+      "link": "https://github.com/melvincarvalho/mindstr/issues/12",
+      "bgColor": "#ddf2de",
+      "parent": "#jtny2v"
+    },
+    {
+      "@id": "#8edjsn",
+      "name": "#8 Implement Pub/Sub Mechanism",
+      "x": 36,
+      "y": 423,
+      "link": "https://github.com/melvincarvalho/mindstr/issues/8",
+      "bgColor": "#ddf2de",
+      "parent": "#jtny2v"
+    },
+    {
+      "@id": "#75s7ir",
+      "name": "#6 Add AI Capabilities",
+      "x": -155,
+      "y": 484,
+      "link": "https://github.com/melvincarvalho/mindstr/issues/6",
+      "bgColor": "#ddf2de",
+      "parent": "#jtny2v"
+    },
+    {
+      "@id": "#7x3k79",
+      "name": "#5 NosDAV Storage Selector",
+      "x": -282,
+      "y": 351,
+      "link": "https://github.com/melvincarvalho/mindstr/issues/5",
+      "bgColor": "#ddf2de",
+      "parent": "#jtny2v"
+    },
+    {
+      "@id": "#4af2dc",
+      "name": "2026-11-03 · Map format: SPEC.md for 0…",
+      "x": -239,
+      "y": 66,
+      "link": "https://github.com/melvincarvalho/mindstr/commits/gh-pages",
+      "bgColor": "#ececec",
+      "parent": "#this"
+    }
+  ],
+  "connections": [
+    {
+      "start": 0,
+      "end": 1
+    },
+    {
+      "start": 1,
+      "end": 2
+    },
+    {
+      "start": 1,
+      "end": 3
+    },
+    {
+      "start": 1,
+      "end": 4
+    },
+    {
+      "start": 1,
+      "end": 5
+    },
+    {
+      "start": 1,
+      "end": 6
+    },
+    {
+      "start": 0,
+      "end": 7
+    },
+    {
+      "start": 0,
+      "end": 8
+    },
+    {
+      "start": 0,
+      "end": 9
+    },
+    {
+      "start": 0,
+      "end": 10
+    },
+    {
+      "start": 10,
+      "end": 11
+    },
+    {
+      "start": 10,
+      "end": 12
+    },
+    {
+      "start": 10,
+      "end": 13
+    },
+    {
+      "start": 10,
+      "end": 14
+    },
+    {
+      "start": 0,
+      "end": 15
+    },
+    {
+      "start": 15,
+      "end": 16
+    },
+    {
+      "start": 15,
+      "end": 17
+    },
+    {
+      "start": 15,
+      "end": 18
+    },
+    {
+      "start": 15,
+      "end": 19
+    },
+    {
+      "start": 15,
+      "end": 20
+    },
+    {
+      "start": 0,
+      "end": 21
+    }
+  ],
+  "selectedNode": 0
+}

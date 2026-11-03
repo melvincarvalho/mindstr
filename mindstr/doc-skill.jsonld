@@ -1,0 +1,129 @@
+{
+  "@context": {
+    "@vocab": "https://mindstr.org/ns#",
+    "link": {
+      "@type": "@id"
+    },
+    "parent": {
+      "@type": "@id"
+    }
+  },
+  "version": "0.2",
+  "nodes": [
+    {
+      "@id": "#this",
+      "name": "mindstr",
+      "x": 0,
+      "y": 0,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SKILL.md",
+      "bgColor": "#ebc573"
+    },
+    {
+      "@id": "#ab9ysn",
+      "name": "Document shape",
+      "x": -234,
+      "y": -75,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SKILL.md#document-shape",
+      "bgColor": "#acd5ff",
+      "parent": "#this"
+    },
+    {
+      "@id": "#qhtzie",
+      "name": "Storage and viewing",
+      "x": -99,
+      "y": -195,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SKILL.md#storage-and-viewing",
+      "bgColor": "#d9c6fb",
+      "parent": "#this"
+    },
+    {
+      "@id": "#2sgmjt",
+      "name": "Editing safely",
+      "x": 95,
+      "y": -196,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SKILL.md#editing-safely",
+      "bgColor": "#f9bdd5",
+      "parent": "#this"
+    },
+    {
+      "@id": "#j9h6ge",
+      "name": "Layout",
+      "x": 224,
+      "y": -94,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SKILL.md#layout",
+      "bgColor": "#fcc2a9",
+      "parent": "#this"
+    },
+    {
+      "@id": "#ejt2c7",
+      "name": "Checklist before writing",
+      "x": 227,
+      "y": 89,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SKILL.md#checklist-before-writing",
+      "bgColor": "#e0d199",
+      "parent": "#this"
+    },
+    {
+      "@id": "#tvx8v7",
+      "name": "Minimal example",
+      "x": 60,
+      "y": 206,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SKILL.md#minimal-example-validated-output-of-layout-above-passes-the-checklist-and-renders-in-mindstr",
+      "bgColor": "#b1dfb5",
+      "parent": "#this"
+    },
+    {
+      "@id": "#4bfmpa",
+      "name": "Related",
+      "x": -117,
+      "y": 188,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SKILL.md#related",
+      "bgColor": "#95e1e3",
+      "parent": "#this"
+    },
+    {
+      "@id": "#c2mpq8",
+      "name": "← mindstr",
+      "x": -234,
+      "y": 75,
+      "link": "./index.jsonld",
+      "bgColor": "#ececec",
+      "parent": "#this"
+    }
+  ],
+  "connections": [
+    {
+      "start": 0,
+      "end": 1
+    },
+    {
+      "start": 0,
+      "end": 2
+    },
+    {
+      "start": 0,
+      "end": 3
+    },
+    {
+      "start": 0,
+      "end": 4
+    },
+    {
+      "start": 0,
+      "end": 5
+    },
+    {
+      "start": 0,
+      "end": 6
+    },
+    {
+      "start": 0,
+      "end": 7
+    },
+    {
+      "start": 0,
+      "end": 8
+    }
+  ],
+  "selectedNode": 0
+}

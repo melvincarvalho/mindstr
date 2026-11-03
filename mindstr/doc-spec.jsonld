@@ -1,0 +1,194 @@
+{
+  "@context": {
+    "@vocab": "https://mindstr.org/ns#",
+    "link": {
+      "@type": "@id"
+    },
+    "parent": {
+      "@type": "@id"
+    }
+  },
+  "version": "0.2",
+  "nodes": [
+    {
+      "@id": "#this",
+      "name": "Mindstr map format",
+      "x": 0,
+      "y": 0,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md",
+      "bgColor": "#ebc573"
+    },
+    {
+      "@id": "#yykmee",
+      "name": "Files and transport",
+      "x": -236,
+      "y": -71,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#files-and-transport",
+      "bgColor": "#acd5ff",
+      "parent": "#this"
+    },
+    {
+      "@id": "#7kgwkb",
+      "name": "0.1",
+      "x": 58,
+      "y": -207,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#01",
+      "bgColor": "#e0c4f6",
+      "parent": "#this"
+    },
+    {
+      "@id": "#x7t4w7",
+      "name": "Top level",
+      "x": -230,
+      "y": -377,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#top-level",
+      "bgColor": "#f2e5fd",
+      "parent": "#7kgwkb"
+    },
+    {
+      "@id": "#dsw684",
+      "name": "Nodes",
+      "x": -6,
+      "y": -501,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#nodes",
+      "bgColor": "#f2e5fd",
+      "parent": "#7kgwkb"
+    },
+    {
+      "@id": "#v88t4a",
+      "name": "Structure rules",
+      "x": 223,
+      "y": -380,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#structure-rules",
+      "bgColor": "#f2e5fd",
+      "parent": "#7kgwkb"
+    },
+    {
+      "@id": "#skzt29",
+      "name": "@context in 0.1",
+      "x": 476,
+      "y": -296,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#context-in-01",
+      "bgColor": "#f2e5fd",
+      "parent": "#7kgwkb"
+    },
+    {
+      "@id": "#t4pwzt",
+      "name": "0.2",
+      "x": 202,
+      "y": 125,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#02",
+      "bgColor": "#febdc6",
+      "parent": "#this"
+    },
+    {
+      "@id": "#jhaa84",
+      "name": "The context",
+      "x": 494,
+      "y": 66,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#the-context",
+      "bgColor": "#ffe2e6",
+      "parent": "#t4pwzt"
+    },
+    {
+      "@id": "#wavvy9",
+      "name": "parent",
+      "x": 479,
+      "y": 293,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#parent",
+      "bgColor": "#ffe2e6",
+      "parent": "#t4pwzt"
+    },
+    {
+      "@id": "#i9w3v4",
+      "name": "Which edges win",
+      "x": 229,
+      "y": 378,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#which-edges-win",
+      "bgColor": "#ffe2e6",
+      "parent": "#t4pwzt"
+    },
+    {
+      "@id": "#e9sufn",
+      "name": "Compatibility",
+      "x": -44,
+      "y": 209,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#compatibility",
+      "bgColor": "#f1c99c",
+      "parent": "#this"
+    },
+    {
+      "@id": "#g45zx9",
+      "name": "Outlines",
+      "x": -168,
+      "y": 158,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#outlines",
+      "bgColor": "#c1dba8",
+      "parent": "#this"
+    },
+    {
+      "@id": "#vz8rhu",
+      "name": "← mindstr",
+      "x": -240,
+      "y": 58,
+      "link": "./index.jsonld",
+      "bgColor": "#ececec",
+      "parent": "#this"
+    }
+  ],
+  "connections": [
+    {
+      "start": 0,
+      "end": 1
+    },
+    {
+      "start": 0,
+      "end": 2
+    },
+    {
+      "start": 2,
+      "end": 3
+    },
+    {
+      "start": 2,
+      "end": 4
+    },
+    {
+      "start": 2,
+      "end": 5
+    },
+    {
+      "start": 2,
+      "end": 6
+    },
+    {
+      "start": 0,
+      "end": 7
+    },
+    {
+      "start": 7,
+      "end": 8
+    },
+    {
+      "start": 7,
+      "end": 9
+    },
+    {
+      "start": 7,
+      "end": 10
+    },
+    {
+      "start": 0,
+      "end": 11
+    },
+    {
+      "start": 0,
+      "end": 12
+    },
+    {
+      "start": 0,
+      "end": 13
+    }
+  ],
+  "selectedNode": 0
+}

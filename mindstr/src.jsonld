@@ -1,0 +1,194 @@
+{
+  "@context": {
+    "@vocab": "https://mindstr.org/ns#",
+    "link": {
+      "@type": "@id"
+    },
+    "parent": {
+      "@type": "@id"
+    }
+  },
+  "version": "0.2",
+  "nodes": [
+    {
+      "@id": "#this",
+      "name": "mindstr source",
+      "x": 0,
+      "y": 0,
+      "link": "https://github.com/melvincarvalho/mindstr/tree/gh-pages/js",
+      "bgColor": "#ebc573"
+    },
+    {
+      "@id": "#imr4n9",
+      "name": "app.js",
+      "x": -238,
+      "y": -66,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/app.js",
+      "bgColor": "#acd5ff",
+      "parent": "#this"
+    },
+    {
+      "@id": "#tpktj6",
+      "name": "colors.js · 5",
+      "x": -147,
+      "y": -172,
+      "link": "./src-colors-js.jsonld",
+      "bgColor": "#d9c6fb",
+      "parent": "#this"
+    },
+    {
+      "@id": "#u94rpy",
+      "name": "layout.js",
+      "x": 77,
+      "y": -202,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/layout.js",
+      "bgColor": "#f9bdd5",
+      "parent": "#this"
+    },
+    {
+      "@id": "#7txfyn",
+      "name": "radialLayout()",
+      "x": 25,
+      "y": -424,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/layout.js#L6",
+      "bgColor": "#ffe2ed",
+      "parent": "#u94rpy"
+    },
+    {
+      "@id": "#v5njcx",
+      "name": "fanLayout()",
+      "x": 322,
+      "y": -420,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/layout.js#L60",
+      "bgColor": "#ffe2ed",
+      "parent": "#u94rpy"
+    },
+    {
+      "@id": "#z8kicz",
+      "name": "live.js",
+      "x": 238,
+      "y": -66,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/live.js",
+      "bgColor": "#fcc2a9",
+      "parent": "#this"
+    },
+    {
+      "@id": "#7348h9",
+      "name": "watch()",
+      "x": 476,
+      "y": -131,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/live.js#L5",
+      "bgColor": "#ffe4d9",
+      "parent": "#z8kicz"
+    },
+    {
+      "@id": "#jtny2v",
+      "name": "outline.js",
+      "x": 202,
+      "y": 125,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/outline.js",
+      "bgColor": "#e0d199",
+      "parent": "#this"
+    },
+    {
+      "@id": "#zvvi4r",
+      "name": "parseOutline()",
+      "x": 467,
+      "y": 151,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/outline.js#L6",
+      "bgColor": "#f2ecd2",
+      "parent": "#jtny2v"
+    },
+    {
+      "@id": "#ezqtt6",
+      "name": "toMarkdown()",
+      "x": 370,
+      "y": 390,
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/outline.js#L36",
+      "bgColor": "#f2ecd2",
+      "parent": "#jtny2v"
+    },
+    {
+      "@id": "#8edjsn",
+      "name": "pod.js · 7",
+      "x": 0,
+      "y": 213,
+      "link": "./src-pod-js.jsonld",
+      "bgColor": "#b1dfb5",
+      "parent": "#this"
+    },
+    {
+      "@id": "#75s7ir",
+      "name": "render.js · 7",
+      "x": -147,
+      "y": 172,
+      "link": "./src-render-js.jsonld",
+      "bgColor": "#95e1e3",
+      "parent": "#this"
+    },
+    {
+      "@id": "#7x3k79",
+      "name": "← mindstr",
+      "x": -238,
+      "y": 66,
+      "link": "./index.jsonld",
+      "bgColor": "#ececec",
+      "parent": "#this"
+    }
+  ],
+  "connections": [
+    {
+      "start": 0,
+      "end": 1
+    },
+    {
+      "start": 0,
+      "end": 2
+    },
+    {
+      "start": 0,
+      "end": 3
+    },
+    {
+      "start": 3,
+      "end": 4
+    },
+    {
+      "start": 3,
+      "end": 5
+    },
+    {
+      "start": 0,
+      "end": 6
+    },
+    {
+      "start": 6,
+      "end": 7
+    },
+    {
+      "start": 0,
+      "end": 8
+    },
+    {
+      "start": 8,
+      "end": 9
+    },
+    {
+      "start": 8,
+      "end": 10
+    },
+    {
+      "start": 0,
+      "end": 11
+    },
+    {
+      "start": 0,
+      "end": 12
+    },
+    {
+      "start": 0,
+      "end": 13
+    }
+  ],
+  "selectedNode": 0
+}
