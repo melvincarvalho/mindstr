@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Builds examples/*.json from the outlines below, laying nodes out radially.
-// Usage: node scripts/build-examples.mjs
+// Usage: node scripts/build-examples.js
 
 import { writeFileSync } from 'node:fs'
 

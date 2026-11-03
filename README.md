@@ -50,7 +50,7 @@ Other schemes are blocked.
 
 Maps live in [`examples/`](examples/). Add a JSON file there and it's
 available as `?example=<file name>`. The bundled ones are generated from
-outlines in `scripts/build-examples.mjs` (`node scripts/build-examples.mjs`). Maps served from mindstr.org itself are
+outlines in `scripts/build-examples.js` (`node scripts/build-examples.js`). Maps served from mindstr.org itself are
 read-only.
 
 ## Data format
@@ -80,6 +80,6 @@ No build step. Serve the folder (`npx serve .`) and open it. Pushing to
 - `index.html`: markup and styles
 - `js/app.js`: canvas, interaction, load/save
 - `js/nostr-auth.js`: NIP-07 / local-key signing and NIP-98 `authFetch`
-- `scripts/build-examples.mjs`: regenerates `examples/` (Node, no dependencies)
+- `scripts/build-examples.js`: regenerates `examples/` (Node, no dependencies)
 
 MIT licensed.

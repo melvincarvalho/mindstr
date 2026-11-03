@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "description": "Mind maps you own, saved to Nostr-authenticated storage",
   "main": "index.html",
+  "type": "module",
   "scripts": {
-    "start": "npx serve ."
+    "start": "npx serve .",
+    "examples": "node scripts/build-examples.js"
   },
   "repository": {
     "type": "git",
