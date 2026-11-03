@@ -2063,6 +2063,37 @@ function startLive(updatesVia) {
   })
 }
 
+// ---------- update events ----------
+// A repo with a blocktrail announces each new state on Nostr (kind 30811, blocktrails.org); the
+// event names the repo's map in an r tag. Hearing one for the map on screen: refetch and redraw,
+// the same path as a change on the pod. Nothing is trusted from the event itself but the nudge.
+
+const EVENT_KIND = 30811
+const EVENT_RELAYS = ['wss://melvin.me/relay', 'wss://relay.nostr.com', 'wss://relay.primal.net']
+function startEvents() {
+  if (!mapUrl || !/^https?:/.test(mapUrl) || typeof WebSocket === 'undefined') return
+  const since = Math.floor(Date.now() / 1000) - 60
+  const seen = new Set()
+  for (const url of EVENT_RELAYS) {
+    let attempt = 0
+    const open = () => {
+      let ws
+      try { ws = new WebSocket(url) } catch { return }
+      ws.onopen = () => { attempt = 0; ws.send(JSON.stringify(['REQ', 'upd', { kinds: [EVENT_KIND], '#r': [mapUrl], since }])) }
+      ws.onmessage = m => {
+        let x
+        try { x = JSON.parse(m.data) } catch { return }
+        if (x[0] !== 'EVENT' || !x[2] || seen.has(x[2].id)) return
+        seen.add(x[2].id)
+        checkRemote()
+      }
+      ws.onerror = () => {}
+      ws.onclose = () => setTimeout(open, Math.min(60000, 2000 * 2 ** attempt++))
+    }
+    open()
+  }
+}
+
 // ---------- saving ----------
 
 let leaving = false
@@ -2488,6 +2519,7 @@ async function load() {
   loaded = true
   updateUi()
   if (state.canSave || remote.exists) startLive(updatesVia)
+  if (remote.exists) startEvents()
 
   if (focusId) {
     const i = state.nodes.findIndex(n => n['@id'] === focusId)
