@@ -23,7 +23,7 @@
       "name": "README · 5",
       "x": -194,
       "y": -134,
-      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md",
+      "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#mindstr",
       "bgColor": "#acd5ff",
       "parent": "#this"
     },
@@ -200,7 +200,7 @@
     },
     {
       "@id": "#4af2dc",
-      "name": "2026-11-03 · Map format: SPEC.md for 0…",
+      "name": "2026-11-03 · mindstr/: this repo as mi…",
       "x": -239,
       "y": 66,
       "link": "https://github.com/melvincarvalho/mindstr/commits/gh-pages",

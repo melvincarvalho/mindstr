@@ -1,6 +1,6 @@
 # [mindstr](https://github.com/melvincarvalho/mindstr)
 
-- [README · 5](https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md)
+- [README · 5](https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#mindstr)
   - [Use](https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#use)
   - [Examples](https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#examples)
   - [Data format](https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#data-format)
@@ -76,4 +76,4 @@
   - [#8 Implement Pub/Sub Mechanism](https://github.com/melvincarvalho/mindstr/issues/8)
   - [#6 Add AI Capabilities](https://github.com/melvincarvalho/mindstr/issues/6)
   - [#5 NosDAV Storage Selector](https://github.com/melvincarvalho/mindstr/issues/5)
-- [2026-11-03 · Map format: SPEC.md for 0…](https://github.com/melvincarvalho/mindstr/commits/gh-pages)
+- [2026-11-03 · mindstr/: this repo as mi…](https://github.com/melvincarvalho/mindstr/commits/gh-pages)
