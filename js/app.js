@@ -5,7 +5,6 @@ import { badgeAt, colorsFor, drawMap, linkIconAt, makeMeasure, THEMES } from './
 import { fanLayout, radialLayout } from './layout.js'
 import { parseOutline, toMarkdown } from './outline.js'
 
-const DOC_VIEWER = 'https://nosdav.com/doc/?uri='
 const MIN_SCALE = 0.1
 const MAX_SCALE = 4
 const DRAG_THRESHOLD = 5
@@ -1070,8 +1069,7 @@ function openLink(node) {
   }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return toast('Blocked a non-web link')
   let target = url.href
-  if (url.pathname.endsWith('.md')) target = DOC_VIEWER + encodeURIComponent(url.href)
-  else if (/^\.\.?\//.test(raw)) target = appUrlFor(url.href) // another map next to this one
+  if (/^\.\.?\//.test(raw)) target = appUrlFor(url.href) // another map next to this one; .md links open where they live, like any other link
   window.open(target, '_blank', 'noopener')
 }
 
