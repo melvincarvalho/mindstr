@@ -178,6 +178,14 @@ export function drawMap(ctx, s) {
     const editing = s.editing === i
 
     ctx.save()
+    const g = s.appear ? s.appear(i) : 1
+    if (g < 1) {
+      const k = 0.6 + 0.4 * (1 + 2.2 * (g - 1) ** 3 + 1.2 * (g - 1) ** 2) // easeOutBack
+      ctx.translate(p.x, p.y)
+      ctx.scale(k, k)
+      ctx.translate(-p.x, -p.y)
+      ctx.globalAlpha = Math.min(1, g * 2)
+    }
     if (dimming && !s.matches.has(i) && s.selected !== i) ctx.globalAlpha = 0.35
     if (!editing) {
       if (s.selected === i && !lifted && info.depth[i] === 0) {
@@ -188,7 +196,7 @@ export function drawMap(ctx, s) {
         ring(ctx, p, m, 6, 5, theme.accentSoft)
         ring(ctx, p, m, 3, 2, theme.accent)
       } else if (s.matches?.has(i)) {
-        ring(ctx, p, m, 3, 2, `rgba(${theme.accentRgb},0.45)`)
+        ring(ctx, p, m, 3, 1.5, `rgba(${theme.accentRgb},0.5)`)
       } else if (s.hover === i && !lifted) {
         ring(ctx, p, m, 3, 2, theme.accentSoft)
       }

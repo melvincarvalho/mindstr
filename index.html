@@ -71,7 +71,7 @@
         height: 100dvh;
         background: var(--bg);
         color: var(--text);
-        font: 14px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, sans-serif;
+        font: 500 14px/1.4 Manrope, system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, sans-serif;
         overflow: hidden;
       }
       .sr-only {
@@ -116,7 +116,7 @@
         padding: 0 8px;
         border: 1px solid transparent; border-radius: 10px;
         background: none; color: var(--text);
-        font: inherit; font-weight: 500;
+        font: inherit; font-weight: 600;
         cursor: pointer;
         text-decoration: none;
         -webkit-tap-highlight-color: transparent;
@@ -134,7 +134,8 @@
         padding: 0 14px; font-weight: 600;
         white-space: nowrap; flex-shrink: 0;
       }
-      .lbl { display: none; }
+      .lbl, .lbl-idle { display: none; }
+      @media (max-width: 760px) { body:not(.node-selected) .node-actions .lbl { display: none; } body:not(.node-selected) .node-actions .lbl-idle { display: inline; } }
       @media (min-width: 1100px) { .lbl { display: inline; } }
       .primary:disabled { background: var(--hover); color: var(--muted); }
       #status { color: var(--muted); font-size: 12.5px; margin-right: 6px; white-space: nowrap; }
@@ -271,7 +272,7 @@
       .maplist .row .danger-ghost { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); }
       @media (hover: hover) {
         .maplist a:hover { background: var(--hover); }
-        .maplist .row .danger-ghost { opacity: 0; }
+        .maplist .row .danger-ghost { opacity: 0.45; }
         .maplist .row:hover .danger-ghost, .maplist .row .danger-ghost:focus-visible { opacity: 1; }
       }
       .danger-ghost { color: #c0362c; }
@@ -298,6 +299,20 @@
       @media (max-width: 800px) {
         .wide-only { display: none !important; }
         .narrow-only { display: flex !important; }
+      }
+      @media (max-width: 380px) {
+        #saveLabel { display: none; }
+        .primary { padding: 0 10px; }
+      }
+      @media (pointer: coarse) and (max-width: 900px) {
+        header [data-action=tidy], header [data-action=open] { display: none !important; }
+        #menu [data-action=tidy] { display: flex !important; }
+        header .sep { margin: 0 2px; }
+      }
+      @media (max-width: 760px) {
+        /* nothing selected: the phone bar is just an inviting "Add idea" pill */
+        body:not(.node-selected) .node-actions button:not([data-action=child]) { display: none; }
+        body:not(.node-selected) .node-actions [data-action=child] { padding: 0 14px; color: var(--accent); }
       }
       @media (max-height: 480px) and (max-width: 1000px) {
         header { min-height: 44px; padding-top: 0; padding-bottom: 0; }
@@ -376,7 +391,7 @@
     <header>
       <a class="brand" href="./" aria-label="Mindstr home"><svg aria-hidden="true"><use href="#logo" /></svg><span>Mindstr</span></a>
       <div class="group node-actions" role="toolbar" aria-label="Node">
-        <button data-action="child" title="Add child (Tab)" aria-label="Add child"><svg class="icon" aria-hidden="true"><use href="#i-child" /></svg><span class="lbl">Child</span></button>
+        <button data-action="child" title="Add child (Tab)" aria-label="Add child"><svg class="icon" aria-hidden="true"><use href="#i-child" /></svg><span class="lbl">Child</span><span class="lbl-idle">Add idea</span></button>
         <button data-action="sibling" title="Add sibling (Enter)" aria-label="Add sibling"><svg class="icon" aria-hidden="true"><use href="#i-sibling" /></svg><span class="lbl">Sibling</span></button>
         <button data-action="edit" title="Rename (F2 / double-click)" aria-label="Rename"><svg class="icon" aria-hidden="true"><use href="#i-edit" /></svg></button>
         <button data-action="link" title="Set link (Ctrl+K)" aria-label="Set link"><svg class="icon" aria-hidden="true"><use href="#i-link" /></svg></button>

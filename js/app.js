@@ -388,7 +388,7 @@ function undo() {
   commitEdit()
   redoStack.push({ n: ++serial, s: snapshot() })
   restore(undoStack.pop().s)
-  changed()
+  changed({ view: isExample || (Boolean(mapUrl) && !state.canSave) })
   if (state.selected !== null) ensureVisible(state.selected)
   announce('Undone')
 }
@@ -399,7 +399,7 @@ function redo() {
   commitEdit()
   undoStack.push({ n: ++serial, s: snapshot() })
   restore(redoStack.pop().s)
-  changed()
+  changed({ view: isExample || (Boolean(mapUrl) && !state.canSave) })
   if (state.selected !== null) ensureVisible(state.selected)
   announce('Redone')
 }
@@ -442,7 +442,8 @@ const positions = () => new Map(state.nodes.map(n => [n['@id'], { x: n.x, y: n.y
 function dragPos(i) {
   const p = pos(i)
   if (!gesture?.items?.some(it => it.j === i)) return p
-  return { x: p.x + 26 / state.view.scale, y: p.y + 22 / state.view.scale }
+  const t = state.drop !== null ? size(state.drop) : { h: 36 }
+  return { x: p.x + 12 / state.view.scale, y: p.y + (t.h / 2 + 34) / state.view.scale }
 }
 
 const toWorld = (sx, sy) => ({ x: (sx - state.view.x) / state.view.scale, y: (sy - state.view.y) / state.view.scale })
@@ -615,9 +616,25 @@ function ensureVisible(i, animate = true) {
 // ---------- drawing ----------
 
 let flashing = { ids: new Set(), until: 0 }
-function flash(ids) {
-  flashing = { ids: new Set(ids), until: performance.now() + FLASH_MS }
+function flash(ids, ms = FLASH_MS) {
+  flashing = { ids: new Set(ids), until: performance.now() + ms, ms }
   invalidate()
+}
+const appearing = new Map() // id → start time
+function appear(id) {
+  if (reducedMotion.matches) return
+  appearing.set(id, performance.now())
+  invalidate()
+}
+function appearT(i) {
+  const t0 = appearing.get(state.nodes[i]?.['@id'])
+  if (t0 === undefined) return 1
+  const t = (performance.now() - t0) / 240
+  if (t >= 1) {
+    appearing.delete(state.nodes[i]['@id'])
+    return 1
+  }
+  return t
 }
 
 const find = { matches: [], index: -1, set: null }
@@ -643,7 +660,8 @@ function scene(over = {}) {
     pos: gesture?.type === 'node' && gesture.moved && state.drop !== null ? dragPos : pos,
     badgeR: coarse.matches ? 13 : 11,
     editing: state.editing?.index ?? null,
-    flash: flashing.until > now ? { ids: flashing.ids, t: (flashing.until - now) / FLASH_MS } : null,
+    flash: flashing.until > now ? { ids: flashing.ids, t: (flashing.until - now) / (flashing.ms || FLASH_MS) } : null,
+    appear: appearT,
     matches: find.set,
     reduced: reducedMotion.matches,
     grid: true,
@@ -671,7 +689,7 @@ function draw() {
   }
   drawMap(ctx, scene())
   placeTreeItems()
-  if (viewAnim || anims.size || flashing.until > now) invalidate()
+  if (viewAnim || anims.size || appearing.size || flashing.until > now) invalidate()
 }
 
 let userMoved = false
@@ -729,6 +747,7 @@ function addChild(parentIndex = state.selected ?? 0) {
   changed()
   const from = state.nodes[parentIndex]
   if (!reducedMotion.matches) anims.set(node['@id'], { x: from.x, y: from.y, t0: performance.now() })
+  appear(node['@id'])
   ensureVisible(index)
   startEdit(index, true)
   announce(`New idea under ${state.nodes[parentIndex].name || 'Untitled'}. Type a name, Enter to finish.`)
@@ -1499,6 +1518,7 @@ function finishDrag(g) {
   if (target !== null && reparent(g.index, target)) {
     changed()
     animateFrom(before)
+    flash([state.nodes[target]['@id']], 500)
     announce(`Moved under ${state.nodes[target].name || 'Untitled'}`)
     return
   }
@@ -1820,6 +1840,7 @@ function updateUi() {
   set('save', !state.saving && (copy || state.canSave))
   saveLabel.textContent = copy ? (isExample ? 'Save copy' : 'Save') : 'Save'
   document.body.classList.toggle('has-selection', has || width < 760 || coarse.matches)
+  document.body.classList.toggle('node-selected', has)
 
   statusEl.textContent = state.saving
     ? 'Saving…'
@@ -2175,6 +2196,10 @@ async function openMaps() {
       a.append(span)
       const del = document.createElement('button')
       del.className = 'danger-ghost'
+      if (d.id === draftId) {
+        del.disabled = true
+        del.title = 'Open another map to delete this one'
+      }
       del.setAttribute('aria-label', 'Delete draft ' + d.title)
       del.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-delete" /></svg>'
       del.addEventListener('click', () => {
@@ -2348,7 +2373,7 @@ document.addEventListener('xlogout', () => updateUi())
 
 window.addEventListener('beforeunload', e => {
   if (leaving || !state.dirty) return
-  if ((mapUrl && state.canSave) || isExample) e.preventDefault()
+  if ((mapUrl && state.canSave) || isExample || storageFailed) e.preventDefault()
 })
 
 // ---------- loading ----------
@@ -2425,7 +2450,7 @@ async function load() {
 
   if (isExample) {
     const copy = drafts().find(d => d.source === mapUrl)
-    if (copy) toast(`You have a copy of this example (${copy.title})`, { action: ['Continue your copy', () => (location.href = draftUrl(copy.id))], ms: 8000 })
+    if (copy) showBanner(`You already have a copy of this example (“${copy.title}”). Editing here starts another copy.`, [['Open your copy', () => (location.href = draftUrl(copy.id))]])
   }
   const msg = session.get('mindstr:toast')
   if (msg) {
