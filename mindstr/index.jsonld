@@ -21,8 +21,8 @@
     {
       "@id": "#35gtrs",
       "name": "README · 5",
-      "x": -194,
-      "y": -134,
+      "x": 217,
+      "y": -106,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#mindstr",
       "bgColor": "#acd5ff",
       "parent": "#this"
@@ -30,8 +30,8 @@
     {
       "@id": "#fiqrfa",
       "name": "Use",
-      "x": -488,
-      "y": -94,
+      "x": 321,
+      "y": -326,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#use",
       "bgColor": "#daeeff",
       "parent": "#35gtrs"
@@ -39,8 +39,8 @@
     {
       "@id": "#fad69b",
       "name": "Examples",
-      "x": -531,
-      "y": -219,
+      "x": 452,
+      "y": -322,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#examples",
       "bgColor": "#daeeff",
       "parent": "#35gtrs"
@@ -48,8 +48,8 @@
     {
       "@id": "#fnrzmm",
       "name": "Data format",
-      "x": -389,
-      "y": -267,
+      "x": 434,
+      "y": -212,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#data-format",
       "bgColor": "#daeeff",
       "parent": "#35gtrs"
@@ -57,8 +57,8 @@
     {
       "@id": "#3y3s3p",
       "name": "For agents",
-      "x": -363,
-      "y": -396,
+      "x": 555,
+      "y": -169,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#for-agents",
       "bgColor": "#daeeff",
       "parent": "#35gtrs"
@@ -66,35 +66,35 @@
     {
       "@id": "#ujs2ci",
       "name": "Develop",
-      "x": -210,
-      "y": -386,
+      "x": 493,
+      "y": -71,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/README.md#develop",
       "bgColor": "#daeeff",
       "parent": "#35gtrs"
     },
     {
       "@id": "#442pm7",
-      "name": "SKILL.md · 7",
-      "x": -59,
-      "y": -212,
+      "name": "SKILL.md · 7 ›",
+      "x": 237,
+      "y": 67,
       "link": "./doc-skill.jsonld",
       "bgColor": "#d9c6fb",
       "parent": "#this"
     },
     {
       "@id": "#imr4n9",
-      "name": "SPEC.md · 12",
-      "x": 71,
-      "y": -224,
+      "name": "SPEC.md · 12 ›",
+      "x": 145,
+      "y": 173,
       "link": "./doc-spec.jsonld",
       "bgColor": "#f9bdd5",
       "parent": "#this"
     },
     {
       "@id": "#tpktj6",
-      "name": "Source · js/",
-      "x": 113,
-      "y": -180,
+      "name": "Source · js/ ›",
+      "x": -3,
+      "y": 212,
       "link": "./src.jsonld",
       "bgColor": "#fcc2a9",
       "parent": "#this"
@@ -102,8 +102,8 @@
     {
       "@id": "#u94rpy",
       "name": "Examples · 4",
-      "x": 231,
-      "y": -80,
+      "x": -174,
+      "y": 152,
       "link": "https://github.com/melvincarvalho/mindstr/tree/gh-pages/examples",
       "bgColor": "#e0d199",
       "parent": "#this"
@@ -111,8 +111,8 @@
     {
       "@id": "#7txfyn",
       "name": "nostr.json",
-      "x": 363,
-      "y": -292,
+      "x": -231,
+      "y": 375,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/examples/nostr.json",
       "bgColor": "#f2ecd2",
       "parent": "#u94rpy"
@@ -120,8 +120,8 @@
     {
       "@id": "#v5njcx",
       "name": "project-plan.json",
-      "x": 513,
-      "y": -247,
+      "x": -374,
+      "y": 390,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/examples/project-plan.json",
       "bgColor": "#f2ecd2",
       "parent": "#u94rpy"
@@ -129,8 +129,8 @@
     {
       "@id": "#z8kicz",
       "name": "solar-system.json",
-      "x": 483,
-      "y": -109,
+      "x": -369,
+      "y": 275,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/examples/solar-system.json",
       "bgColor": "#f2ecd2",
       "parent": "#u94rpy"
@@ -138,8 +138,8 @@
     {
       "@id": "#7348h9",
       "name": "welcome.json",
-      "x": 590,
-      "y": -9,
+      "x": -520,
+      "y": 248,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/examples/welcome.json",
       "bgColor": "#f2ecd2",
       "parent": "#u94rpy"
@@ -147,8 +147,8 @@
     {
       "@id": "#jtny2v",
       "name": "Open issues · 5",
-      "x": 52,
-      "y": 208,
+      "x": -212,
+      "y": -112,
       "link": "https://github.com/melvincarvalho/mindstr/issues",
       "bgColor": "#b1dfb5",
       "parent": "#this"
@@ -156,8 +156,8 @@
     {
       "@id": "#zvvi4r",
       "name": "#15 Modernize for solid-apps convention…",
-      "x": 402,
-      "y": 252,
+      "x": -500,
+      "y": 3,
       "link": "https://github.com/melvincarvalho/mindstr/issues/15",
       "bgColor": "#ddf2de",
       "parent": "#jtny2v"
@@ -165,8 +165,8 @@
     {
       "@id": "#ezqtt6",
       "name": "#12 Integration with Gamestr",
-      "x": 295,
-      "y": 443,
+      "x": -556,
+      "y": -167,
       "link": "https://github.com/melvincarvalho/mindstr/issues/12",
       "bgColor": "#ddf2de",
       "parent": "#jtny2v"
@@ -174,8 +174,8 @@
     {
       "@id": "#8edjsn",
       "name": "#8 Implement Pub/Sub Mechanism",
-      "x": 36,
-      "y": 423,
+      "x": -400,
+      "y": -255,
       "link": "https://github.com/melvincarvalho/mindstr/issues/8",
       "bgColor": "#ddf2de",
       "parent": "#jtny2v"
@@ -183,8 +183,8 @@
     {
       "@id": "#75s7ir",
       "name": "#6 Add AI Capabilities",
-      "x": -155,
-      "y": 484,
+      "x": -392,
+      "y": -399,
       "link": "https://github.com/melvincarvalho/mindstr/issues/6",
       "bgColor": "#ddf2de",
       "parent": "#jtny2v"
@@ -192,17 +192,17 @@
     {
       "@id": "#7x3k79",
       "name": "#5 NosDAV Storage Selector",
-      "x": -282,
-      "y": 351,
+      "x": -172,
+      "y": -393,
       "link": "https://github.com/melvincarvalho/mindstr/issues/5",
       "bgColor": "#ddf2de",
       "parent": "#jtny2v"
     },
     {
       "@id": "#4af2dc",
-      "name": "2026-11-03 · mindstr/: this repo as mi…",
-      "x": -239,
-      "y": 66,
+      "name": "2026-11-03 · mindstr/: README and doc…",
+      "x": 52,
+      "y": -208,
       "link": "https://github.com/melvincarvalho/mindstr/commits/gh-pages",
       "bgColor": "#ececec",
       "parent": "#this"

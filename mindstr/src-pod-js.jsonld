@@ -21,16 +21,16 @@
     {
       "@id": "#yykmee",
       "name": "exports",
-      "x": 237,
-      "y": -169,
+      "x": 248,
+      "y": 158,
       "bgColor": "#acd5ff",
       "parent": "#this"
     },
     {
       "@id": "#7kgwkb",
       "name": "MAP_PATH()",
-      "x": -387,
-      "y": -269,
+      "x": 420,
+      "y": -231,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/pod.js#L9",
       "bgColor": "#daeeff",
       "parent": "#yykmee"
@@ -38,8 +38,8 @@
     {
       "@id": "#x7t4w7",
       "name": "authFetch()",
-      "x": -174,
-      "y": -479,
+      "x": 582,
+      "y": -84,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/pod.js#L12",
       "bgColor": "#daeeff",
       "parent": "#yykmee"
@@ -47,8 +47,8 @@
     {
       "@id": "#dsw684",
       "name": "identity()",
-      "x": 141,
-      "y": -408,
+      "x": 486,
+      "y": 100,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/pod.js#L15",
       "bgColor": "#daeeff",
       "parent": "#yykmee"
@@ -56,8 +56,8 @@
     {
       "@id": "#v88t4a",
       "name": "ready()",
-      "x": 452,
-      "y": -322,
+      "x": 472,
+      "y": 301,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/pod.js#L18",
       "bgColor": "#daeeff",
       "parent": "#yykmee"
@@ -65,8 +65,8 @@
     {
       "@id": "#skzt29",
       "name": "login()",
-      "x": 497,
-      "y": -47,
+      "x": 249,
+      "y": 369,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/pod.js#L24",
       "bgColor": "#daeeff",
       "parent": "#yykmee"
@@ -74,8 +74,8 @@
     {
       "@id": "#t4pwzt",
       "name": "hostPod()",
-      "x": 525,
-      "y": 229,
+      "x": 67,
+      "y": 498,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/pod.js#L31",
       "bgColor": "#daeeff",
       "parent": "#yykmee"
@@ -83,8 +83,8 @@
     {
       "@id": "#jhaa84",
       "name": "myMapUrl()",
-      "x": 244,
-      "y": 371,
+      "x": -144,
+      "y": 407,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/pod.js#L79",
       "bgColor": "#daeeff",
       "parent": "#yykmee"
@@ -92,8 +92,8 @@
     {
       "@id": "#wavvy9",
       "name": "87 lines",
-      "x": -125,
-      "y": 184,
+      "x": -249,
+      "y": 17,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/pod.js",
       "bgColor": "#ececec",
       "parent": "#this"
@@ -101,8 +101,8 @@
     {
       "@id": "#i9w3v4",
       "name": "← js/",
-      "x": -235,
-      "y": 73,
+      "x": -50,
+      "y": -208,
       "link": "./src.jsonld",
       "bgColor": "#ececec",
       "parent": "#this"

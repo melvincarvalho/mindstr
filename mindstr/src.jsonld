@@ -21,17 +21,17 @@
     {
       "@id": "#imr4n9",
       "name": "app.js",
-      "x": -238,
-      "y": -66,
+      "x": 198,
+      "y": -129,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/app.js",
       "bgColor": "#acd5ff",
       "parent": "#this"
     },
     {
       "@id": "#tpktj6",
-      "name": "colors.js · 5",
-      "x": -147,
-      "y": -172,
+      "name": "colors.js · 5 ›",
+      "x": 248,
+      "y": 28,
       "link": "./src-colors-js.jsonld",
       "bgColor": "#d9c6fb",
       "parent": "#this"
@@ -39,8 +39,8 @@
     {
       "@id": "#u94rpy",
       "name": "layout.js",
-      "x": 77,
-      "y": -202,
+      "x": 152,
+      "y": 169,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/layout.js",
       "bgColor": "#f9bdd5",
       "parent": "#this"
@@ -48,8 +48,8 @@
     {
       "@id": "#7txfyn",
       "name": "radialLayout()",
-      "x": 25,
-      "y": -424,
+      "x": 365,
+      "y": 290,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/layout.js#L6",
       "bgColor": "#ffe2ed",
       "parent": "#u94rpy"
@@ -57,8 +57,8 @@
     {
       "@id": "#v5njcx",
       "name": "fanLayout()",
-      "x": 322,
-      "y": -420,
+      "x": 277,
+      "y": 443,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/layout.js#L60",
       "bgColor": "#ffe2ed",
       "parent": "#u94rpy"
@@ -66,8 +66,8 @@
     {
       "@id": "#z8kicz",
       "name": "live.js",
-      "x": 238,
-      "y": -66,
+      "x": -33,
+      "y": 211,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/live.js",
       "bgColor": "#fcc2a9",
       "parent": "#this"
@@ -75,8 +75,8 @@
     {
       "@id": "#7348h9",
       "name": "watch()",
-      "x": 476,
-      "y": -131,
+      "x": -65,
+      "y": 421,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/live.js#L5",
       "bgColor": "#ffe4d9",
       "parent": "#z8kicz"
@@ -84,8 +84,8 @@
     {
       "@id": "#jtny2v",
       "name": "outline.js",
-      "x": 202,
-      "y": 125,
+      "x": -198,
+      "y": 129,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/outline.js",
       "bgColor": "#e0d199",
       "parent": "#this"
@@ -93,8 +93,8 @@
     {
       "@id": "#zvvi4r",
       "name": "parseOutline()",
-      "x": 467,
-      "y": 151,
+      "x": -341,
+      "y": 311,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/outline.js#L6",
       "bgColor": "#f2ecd2",
       "parent": "#jtny2v"
@@ -102,26 +102,26 @@
     {
       "@id": "#ezqtt6",
       "name": "toMarkdown()",
-      "x": 370,
-      "y": 390,
+      "x": -521,
+      "y": 236,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/js/outline.js#L36",
       "bgColor": "#f2ecd2",
       "parent": "#jtny2v"
     },
     {
       "@id": "#8edjsn",
-      "name": "pod.js · 7",
-      "x": 0,
-      "y": 213,
+      "name": "pod.js · 7 ›",
+      "x": -248,
+      "y": -28,
       "link": "./src-pod-js.jsonld",
       "bgColor": "#b1dfb5",
       "parent": "#this"
     },
     {
       "@id": "#75s7ir",
-      "name": "render.js · 7",
-      "x": -147,
-      "y": 172,
+      "name": "render.js · 7 ›",
+      "x": -152,
+      "y": -169,
       "link": "./src-render-js.jsonld",
       "bgColor": "#95e1e3",
       "parent": "#this"
@@ -129,8 +129,8 @@
     {
       "@id": "#7x3k79",
       "name": "← mindstr",
-      "x": -238,
-      "y": 66,
+      "x": 33,
+      "y": -211,
       "link": "./index.jsonld",
       "bgColor": "#ececec",
       "parent": "#this"

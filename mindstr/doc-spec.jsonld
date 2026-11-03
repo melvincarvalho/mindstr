@@ -21,8 +21,8 @@
     {
       "@id": "#yykmee",
       "name": "Files and transport",
-      "x": -236,
-      "y": -71,
+      "x": 213,
+      "y": -112,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#files-and-transport",
       "bgColor": "#acd5ff",
       "parent": "#this"
@@ -30,8 +30,8 @@
     {
       "@id": "#7kgwkb",
       "name": "0.1",
-      "x": 58,
-      "y": -207,
+      "x": 205,
+      "y": 121,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#01",
       "bgColor": "#e0c4f6",
       "parent": "#this"
@@ -39,8 +39,8 @@
     {
       "@id": "#x7t4w7",
       "name": "Top level",
-      "x": -230,
-      "y": -377,
+      "x": 491,
+      "y": 80,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#top-level",
       "bgColor": "#f2e5fd",
       "parent": "#7kgwkb"
@@ -48,8 +48,8 @@
     {
       "@id": "#dsw684",
       "name": "Nodes",
-      "x": -6,
-      "y": -501,
+      "x": 527,
+      "y": 226,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#nodes",
       "bgColor": "#f2e5fd",
       "parent": "#7kgwkb"
@@ -57,8 +57,8 @@
     {
       "@id": "#v88t4a",
       "name": "Structure rules",
-      "x": 223,
-      "y": -380,
+      "x": 367,
+      "y": 289,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#structure-rules",
       "bgColor": "#f2e5fd",
       "parent": "#7kgwkb"
@@ -66,8 +66,8 @@
     {
       "@id": "#skzt29",
       "name": "@context in 0.1",
-      "x": 476,
-      "y": -296,
+      "x": 306,
+      "y": 429,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#context-in-01",
       "bgColor": "#f2e5fd",
       "parent": "#7kgwkb"
@@ -75,8 +75,8 @@
     {
       "@id": "#t4pwzt",
       "name": "0.2",
-      "x": 202,
-      "y": 125,
+      "x": -49,
+      "y": 208,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#02",
       "bgColor": "#febdc6",
       "parent": "#this"
@@ -84,8 +84,8 @@
     {
       "@id": "#jhaa84",
       "name": "The context",
-      "x": 494,
-      "y": 66,
+      "x": 40,
+      "y": 424,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#the-context",
       "bgColor": "#ffe2e6",
       "parent": "#t4pwzt"
@@ -93,8 +93,8 @@
     {
       "@id": "#wavvy9",
       "name": "parent",
-      "x": 479,
-      "y": 293,
+      "x": -117,
+      "y": 492,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#parent",
       "bgColor": "#ffe2e6",
       "parent": "#t4pwzt"
@@ -102,8 +102,8 @@
     {
       "@id": "#i9w3v4",
       "name": "Which edges win",
-      "x": 229,
-      "y": 378,
+      "x": -230,
+      "y": 377,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#which-edges-win",
       "bgColor": "#ffe2e6",
       "parent": "#t4pwzt"
@@ -111,8 +111,8 @@
     {
       "@id": "#e9sufn",
       "name": "Compatibility",
-      "x": -44,
-      "y": 209,
+      "x": -232,
+      "y": 79,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#compatibility",
       "bgColor": "#f1c99c",
       "parent": "#this"
@@ -120,8 +120,8 @@
     {
       "@id": "#g45zx9",
       "name": "Outlines",
-      "x": -168,
-      "y": 158,
+      "x": -205,
+      "y": -122,
       "link": "https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md#outlines",
       "bgColor": "#c1dba8",
       "parent": "#this"
@@ -129,8 +129,8 @@
     {
       "@id": "#vz8rhu",
       "name": "← mindstr",
-      "x": -240,
-      "y": 58,
+      "x": 7,
+      "y": -212,
       "link": "./index.jsonld",
       "bgColor": "#ececec",
       "parent": "#this"
