@@ -5,150 +5,149 @@
       "@id": "#this",
       "name": "Launch a website",
       "x": 0,
-      "y": 0,
-      "bgColor": "#FFF3C4"
+      "y": 0
     },
     {
       "@id": "#452y5w",
       "name": "Goals",
-      "x": -187,
-      "y": -93,
+      "x": -196,
+      "y": -97,
       "bgColor": "#D9F2DC"
     },
     {
       "@id": "#yyjnxk",
       "name": "Who is it for?",
-      "x": -423,
-      "y": -63
+      "x": -442,
+      "y": -66
     },
     {
       "@id": "#hrvxpy",
       "name": "What should they do?",
-      "x": -434,
-      "y": -215
+      "x": -383,
+      "y": -190
     },
     {
       "@id": "#hzsqn4",
       "name": "How will we measure it?",
-      "x": -259,
-      "y": -275
+      "x": -271,
+      "y": -287
     },
     {
       "@id": "#dttxwc",
       "name": "Content",
-      "x": 60,
-      "y": -169,
+      "x": 63,
+      "y": -177,
       "bgColor": "#D6E8FF"
     },
     {
       "@id": "#p8ysyk",
       "name": "Home page",
-      "x": -118,
-      "y": -331
+      "x": -123,
+      "y": -346
     },
     {
       "@id": "#9c2qhr",
       "name": "About",
-      "x": 47,
-      "y": -406
+      "x": 42,
+      "y": -358
     },
     {
       "@id": "#h59t8f",
       "name": "Blog",
-      "x": 192,
-      "y": -308
+      "x": 201,
+      "y": -322
     },
     {
       "@id": "#rfby2g",
       "name": "First three posts",
-      "x": 285,
-      "y": -458
+      "x": 299,
+      "y": -480
     },
     {
       "@id": "#arxjt8",
       "name": "Contact",
-      "x": 377,
-      "y": -275
+      "x": 333,
+      "y": -243
     },
     {
       "@id": "#jtyjdw",
       "name": "Build",
-      "x": 216,
-      "y": 32,
+      "x": 226,
+      "y": 34,
       "bgColor": "#FFE1CC"
     },
     {
       "@id": "#dtqx4z",
       "name": "Pick a static host",
-      "x": 401,
-      "y": -124
+      "x": 420,
+      "y": -130
     },
     {
       "@id": "#u2s2vv",
       "name": "Design",
-      "x": 510,
+      "x": 450,
       "y": 0
     },
     {
       "@id": "#vx2z65",
       "name": "Accessibility check",
-      "x": 401,
-      "y": 124
+      "x": 420,
+      "y": 130
     },
     {
       "@id": "#xwei9g",
       "name": "Performance check",
-      "x": 377,
-      "y": 275
+      "x": 333,
+      "y": 243
     },
     {
       "@id": "#6bzs4i",
       "name": "Launch",
-      "x": 20,
-      "y": 175,
+      "x": 21,
+      "y": 183,
       "bgColor": "#FFD6E8"
     },
     {
       "@id": "#fkywkd",
       "name": "Domain + HTTPS",
-      "x": 192,
-      "y": 308
+      "x": 201,
+      "y": 322
     },
     {
       "@id": "#j8deiz",
       "name": "Announce",
-      "x": 47,
-      "y": 406
+      "x": 42,
+      "y": 358
     },
     {
       "@id": "#aya9s9",
       "name": "Collect feedback",
-      "x": -118,
-      "y": 331
+      "x": -128,
+      "y": 361
     },
     {
       "@id": "#vn2imx",
       "name": "Risks",
-      "x": -163,
-      "y": 119
+      "x": -170,
+      "y": 124
     },
     {
       "@id": "#2tznvh",
       "name": "Scope creep",
-      "x": -259,
-      "y": 275
+      "x": -271,
+      "y": 287
     },
     {
       "@id": "#cnh2fk",
       "name": "Content late",
-      "x": -434,
-      "y": 215
+      "x": -383,
+      "y": 190
     },
     {
       "@id": "#dk76uz",
       "name": "← Back to welcome",
-      "x": -216,
-      "y": 32,
+      "x": -226,
+      "y": 34,
       "link": "./welcome.json"
     }
   ],

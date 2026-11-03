@@ -29,7 +29,7 @@ function build(file, tree) {
   const add = (t, parent, a0, a1, depth, nth = 0) => {
     const mid = (a0 + a1) / 2
     const r =
-      depth === 0 ? 0 : 220 + (depth - 1) * 210 + (depth >= 2 && nth % 2 ? 80 : 0)
+      depth === 0 ? 0 : 230 + (depth - 1) * 220
     nodes.push({
       '@id': depth === 0 ? '#this' : newId(),
       name: t.name,
@@ -48,6 +48,16 @@ function build(file, tree) {
     })
   }
   add(tree, null, -Math.PI, Math.PI, 0)
+  // settle overlaps using rendered sizes (≈ 8.5px per character + padding, 18px for a link icon)
+  const w = n => Math.max(8.5 * [...n.name].length + 40 + (n.link ? 18 : 0), 56)
+  const clash = (a, b) => Math.abs(a.x - b.x) < (w(a) + w(b)) / 2 + 24 && Math.abs(a.y - b.y) < 36 + 12
+  nodes.forEach((n, i) => {
+    const a = Math.atan2(n.y / 0.8, n.x)
+    for (let t = 0; i > 0 && t < 60 && nodes.slice(0, i).some(m => clash(n, m)); t++) {
+      n.x = Math.round(n.x + 20 * Math.cos(a))
+      n.y = Math.round(n.y + 16 * Math.sin(a))
+    }
+  })
   const data = { version: '0.1', nodes, connections, selectedNode: 0 }
   writeFileSync(new URL(file + '.json', OUT), JSON.stringify(data, null, 2) + '\n')
   console.log(`${file}.json  ${nodes.length} nodes`)
@@ -57,7 +67,7 @@ const P = '#FFD6E8', B = '#D6E8FF', G = '#D9F2DC', Y = '#FFF3C4', O = '#FFE1CC'
 const back = N('← Back to welcome', { link: './welcome.json' })
 const nip = n => ({ link: `https://github.com/nostr-protocol/nips/blob/master/${n}.md` })
 
-build('welcome', N('Welcome to Mindstr', { bgColor: Y },
+build('welcome', N('Welcome to Mindstr', {},
   N('Add ideas', { bgColor: B },
     N('Tab: add a child'), N('Enter: add a sibling'), N('Double-click: rename'), N('Paste a list: adds a branch')),
   N('Arrange', { bgColor: G },
@@ -73,7 +83,7 @@ build('welcome', N('Welcome to Mindstr', { bgColor: Y },
     N('Plan a project', { link: './project-plan.json' }),
     N('Learn Nostr', { link: './nostr.json' }))))
 
-build('solar-system', N('Sun', { bgColor: '#FFE08A' },
+build('solar-system', N('Sun', {},
   N('Inner planets', { bgColor: O },
     N('Mercury'), N('Venus'), N('Earth', { bgColor: B }, N('Moon')), N('Mars', {}, N('Phobos'), N('Deimos'))),
   N('Asteroid belt', {}, N('Ceres'), N('Vesta')),
@@ -85,7 +95,7 @@ build('solar-system', N('Sun', { bgColor: '#FFE08A' },
     N('Kuiper belt', {}, N('Pluto')), N('Oort cloud')),
   back))
 
-build('project-plan', N('Launch a website', { bgColor: Y },
+build('project-plan', N('Launch a website', {},
   N('Goals', { bgColor: G }, N('Who is it for?'), N('What should they do?'), N('How will we measure it?')),
   N('Content', { bgColor: B }, N('Home page'), N('About'), N('Blog', {}, N('First three posts')), N('Contact')),
   N('Build', { bgColor: O }, N('Pick a static host'), N('Design'), N('Accessibility check'), N('Performance check')),
@@ -93,7 +103,7 @@ build('project-plan', N('Launch a website', { bgColor: Y },
   N('Risks', {}, N('Scope creep'), N('Content late')),
   back))
 
-build('nostr', N('Nostr', { bgColor: '#E6E0FF' },
+build('nostr', N('Nostr', {},
   N('Keys', { bgColor: Y }, N('Private key signs'), N('Public key = identity'), N('NIP-19: npub / nsec', nip('19'))),
   N('Events', { bgColor: B }, N('NIP-01: the protocol', nip('01')), N('kind 0: profile'), N('kind 1: note'), N('id = sha256 of content'), N('sig = schnorr')),
   N('Relays', { bgColor: G }, N('Store and forward events'), N('Pick your own'), N('NIP-65: relay lists', nip('65'))),

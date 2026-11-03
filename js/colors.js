@@ -63,6 +63,6 @@ export function tones(color, dark) {
   const [h, s0] = rgbToHsl(toRgb(color))
   const s = s0 < 8 ? 0 : Math.max(s0, 45)
   return dark
-    ? { fill: hsl(h, s * 0.45, 21), border: hsl(h, s * 0.7, 58), edge: hsl(h, s * 0.75, 64), tint: hsl(h, s * 0.4, 17) }
-    : { fill: color, border: hsl(h, s * 0.6, 62), edge: hsl(h, s * 0.65, 46), tint: hsl(h, s, 97) }
+    ? { fill: hsl(h, s * 0.45, 21), border: hsl(h, s * 0.7, 62), edge: hsl(h, s * 0.75, 64), tint: hsl(h, s * 0.4, 17) }
+    : { fill: color, border: hsl(h, s * 0.6, 46), edge: hsl(h, s * 0.65, 44), tint: hsl(h, s, 97) }
 }

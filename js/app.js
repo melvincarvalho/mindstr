@@ -1,8 +1,8 @@
 import { authFetch, hostPod, identity, login as openLogin, MAP_PATH, myMapUrl, ready } from './pod.js'
 import { watch } from './live.js'
-import { BRANCH_COLORS } from './colors.js'
-import { badgeAt, drawMap, linkIconAt, makeMeasure, THEMES } from './render.js'
-import { radialLayout } from './layout.js'
+import { BRANCH_COLORS, readableText } from './colors.js'
+import { badgeAt, colorsFor, drawMap, linkIconAt, makeMeasure, THEMES } from './render.js'
+import { fanLayout, radialLayout } from './layout.js'
 import { parseOutline, toMarkdown } from './outline.js'
 
 const DOC_VIEWER = 'https://nosdav.com/doc/?uri='
@@ -32,6 +32,9 @@ const linkDialog = $('#linkDialog')
 const linkInput = $('#linkInput')
 const importDialog = $('#importDialog')
 const importText = $('#importText')
+const signinDialog = $('#signinDialog')
+const mapsDialog = $('#mapsDialog')
+const mapsList = $('#mapsList')
 const menu = $('#menu')
 const menuBtn = $('#menuBtn')
 const findBar = $('#find')
@@ -131,6 +134,8 @@ const state = {
   extra: {} // unknown top-level fields (e.g. @context) round-trip untouched
 }
 let info = { parent: [], kids: [], depth: [], branchColor: [], visible: [], hidden: [] }
+const peek = new Set() // ids of folded nodes shown open for find, without changing the map
+const folded = n => n.collapsed && !peek.has(n['@id'])
 let undoStack = []
 let redoStack = []
 
@@ -201,7 +206,7 @@ function analyze() {
       visible[i] = vis
       const own = d === 1 ? state.nodes[i].bgColor || BRANCH_COLORS[kids[0].indexOf(i) % BRANCH_COLORS.length] || BRANCH_COLORS[0] : col
       branchColor[i] = own
-      for (const k of kids[i]) stack.push([k, d + 1, own, vis && !state.nodes[i].collapsed])
+      for (const k of kids[i]) stack.push([k, d + 1, own, vis && !folded(state.nodes[i])])
     }
   }
   walk(0, 0, BRANCH_COLORS[0])
@@ -210,7 +215,7 @@ function analyze() {
   }
   for (let i = 0; i < n; i++) if (depth[i] === -1) walk(i, 1, null) // cycles
   const countBelow = i => kids[i].reduce((s, k) => s + 1 + countBelow(k), 0)
-  for (let i = 0; i < n; i++) if (state.nodes[i].collapsed && kids[i].length) hidden[i] = countBelow(i)
+  for (let i = 0; i < n; i++) if (folded(state.nodes[i]) && kids[i].length) hidden[i] = countBelow(i)
   info = { parent, kids, depth, branchColor, visible, hidden }
 }
 
@@ -246,6 +251,7 @@ function checkpoint() {
 const syncIsland = () => (island.textContent = JSON.stringify(serialize()))
 
 function changed() {
+  if (session.get('mindstr:afterLogin')) clearLoginIntent()
   analyze()
   state.dirty = true
   syncIsland()
@@ -254,8 +260,11 @@ function changed() {
   invalidate()
 }
 
+const hideToast = () => (toastEl.hidden = true)
+
 function undo() {
   if (!undoStack.length) return
+  hideToast()
   commitEdit()
   redoStack.push(snapshot())
   restore(undoStack.pop())
@@ -266,6 +275,7 @@ function undo() {
 
 function redo() {
   if (!redoStack.length) return
+  hideToast()
   commitEdit()
   undoStack.push(snapshot())
   restore(redoStack.pop())
@@ -340,7 +350,7 @@ function badgeHit(p) {
   for (let i = state.nodes.length - 1; i >= 0; i--) {
     if (!info.visible[i] || !info.kids[i].length) continue
     const n = state.nodes[i]
-    if (!n.collapsed && state.selected !== i && state.hover !== i) continue
+    if (!(info.hidden[i] > 0) && state.selected !== i && state.hover !== i) continue
     const b = badgeAt(i, scene())
     if (Math.hypot(p.x - b.x, p.y - b.y) <= Math.max(b.r + 2, 16 / state.view.scale)) return i
   }
@@ -491,6 +501,8 @@ function scene(over = {}) {
     selected: state.selected,
     hover: state.hover,
     drop: state.drop,
+    dragging: gesture?.type === 'node' && gesture.moved ? new Set(gesture.items.map(it => it.j)) : null,
+    badgeR: coarse.matches ? 13 : 11,
     editing: state.editing?.index ?? null,
     flash: flashing.until > now ? { ids: flashing.ids, t: (flashing.until - now) / FLASH_MS } : null,
     matches: find.set,
@@ -544,7 +556,7 @@ function describe(i) {
   const sibs = parent === null ? [i] : info.kids[parent]
   const parts = [n.name || 'Untitled', `level ${info.depth[i] + 1}`, `${sibs.indexOf(i) + 1} of ${sibs.length}`]
   const k = info.kids[i].length
-  if (k) parts.push(n.collapsed ? `folded, ${info.hidden[i]} hidden` : `${k} ${k === 1 ? 'child' : 'children'}`)
+  if (k) parts.push(info.hidden[i] > 0 ? `folded, ${info.hidden[i]} hidden` : `${k} ${k === 1 ? 'child' : 'children'}`)
   if (n.link) parts.push('has link')
   return parts.join(', ')
 }
@@ -574,6 +586,7 @@ function addChild(parentIndex = state.selected ?? 0) {
   if (!reducedMotion.matches) anims.set(node['@id'], { x: from.x, y: from.y, t0: performance.now() })
   ensureVisible(index)
   startEdit(index, true)
+  announce(`New idea under ${state.nodes[parentIndex].name || 'Untitled'}. Type a name, Enter to finish.`)
 }
 
 function addSibling() {
@@ -583,31 +596,60 @@ function addSibling() {
   addChild(parent === null ? sel : parent)
 }
 
-function deleteSelected() {
+// Undo for a specific action: only if nothing else has happened since.
+function undoTo(mark) {
+  return () => {
+    if (undoStack.length === mark) undo()
+    else toast('Other changes came after that — use Ctrl+Z to step back')
+  }
+}
+
+// Delete the selected branch (or, with nodeOnly, just the node: its children move up).
+function deleteSelected({ nodeOnly = false, quiet = false } = {}) {
   const del = state.selected
   if (del === null) return
   if (del === 0) return toast('The central idea can’t be deleted')
   commitEdit()
   checkpoint()
+  const mark = undoStack.length
   const name = state.nodes[del].name || 'Untitled'
-  const moved = info.kids[del].length
   const parent = info.parent[del]
+  const kids = info.kids[del].slice()
+  const gone = new Set(nodeOnly ? [del] : subtree(del))
+  const ids = state.nodes.map(n => n['@id'])
+  const keep = state.nodes.map((_, i) => i).filter(i => !gone.has(i))
+  const newIndex = new Map(keep.map((old, k) => [old, k]))
   const conns = []
   for (const c of state.connections) {
-    if (c.end === del) continue
     let { start, end } = c
-    if (start === del) {
-      if (parent === null) continue
+    if (gone.has(end)) continue
+    if (gone.has(start)) {
+      if (!nodeOnly || parent === null) continue
       start = parent // children move up to the deleted node's parent
     }
-    conns.push({ start: start > del ? start - 1 : start, end: end > del ? end - 1 : end })
+    conns.push({ start: newIndex.get(start), end: newIndex.get(end) })
   }
-  state.nodes.splice(del, 1)
+  state.nodes = keep.map(i => state.nodes[i])
   state.connections = conns
-  state.selected = parent === null ? 0 : parent > del ? parent - 1 : parent
+  state.selected = parent === null ? 0 : newIndex.get(parent)
+  analyze()
+  if (nodeOnly && parent !== null) {
+    // re-place the lifted children next to their new parent
+    const before = positions()
+    for (const k of kids) {
+      const j = state.nodes.findIndex(n => n['@id'] === ids[k])
+      if (j >= 0) placeBranch(j)
+    }
+    animateFrom(before)
+  }
   changed()
-  const msg = `Deleted “${name}”` + (moved ? ` · ${moved} moved up` : '')
-  toast(msg, { action: ['Undo', undo], ms: 6000 })
+  if (quiet) return
+  const extra = gone.size - 1
+  const msg = nodeOnly
+    ? `Deleted “${name}”` + (kids.length ? ` · ${kids.length} moved up` : '')
+    : `Deleted “${name}”` + (extra ? ` and ${extra} more` : '')
+  toast(msg, { action: ['Undo', undoTo(mark)], ms: 6000 })
+  announce(msg + '. Press Control Z to undo.')
 }
 
 function toggleCollapse(i = state.selected) {
@@ -615,7 +657,8 @@ function toggleCollapse(i = state.selected) {
   commitEdit()
   checkpoint()
   const n = state.nodes[i]
-  const collapsing = !n.collapsed
+  const collapsing = !(info.hidden[i] > 0)
+  peek.delete(n['@id'])
   state.nodes[i] = { ...n, collapsed: collapsing || undefined }
   if (collapsing && state.selected !== null && state.selected !== i && subtree(i).includes(state.selected)) state.selected = i
   changed()
@@ -647,15 +690,84 @@ function reparent(i, target) {
     state.connections.push({ start: target, end: i })
   }
   if (state.nodes[target].collapsed) state.nodes[target] = { ...state.nodes[target], collapsed: undefined }
-  const moving = new Set(subtree(i))
-  const at = placeChild(target, moving)
-  const dx = at.x - state.nodes[i].x
-  const dy = at.y - state.nodes[i].y
-  for (const j of moving) {
-    state.nodes[j].x = Math.round(state.nodes[j].x + dx)
-    state.nodes[j].y = Math.round(state.nodes[j].y + dy)
-  }
+  analyze()
+  placeBranch(i)
   return true
+}
+
+// Put node i and its branch beside its parent, fanned outward and clear of other nodes.
+function placeBranch(i) {
+  const parent = info.parent[i]
+  if (parent === null || parent === undefined) return
+  const moving = new Set(subtree(i))
+  const at = placeChild(parent, moving)
+  state.nodes[i].x = at.x
+  state.nodes[i].y = at.y
+  const p = state.nodes[parent]
+  const angle = Math.atan2((at.y - p.y) / 0.8, at.x - p.x)
+  fanLayout(i, j => info.kids[j], size, j => state.nodes[j], angle)
+  const others = state.nodes.map((_, j) => j).filter(j => !moving.has(j) && info.visible[j])
+  const clash = () =>
+    [...moving].some(a => {
+      if (!info.visible[a]) return false
+      const na = state.nodes[a]
+      const ma = size(a)
+      return others.some(b => {
+        const nb = state.nodes[b]
+        const mb = size(b)
+        return Math.abs(na.x - nb.x) < (ma.w + mb.w) / 2 + 20 && Math.abs(na.y - nb.y) < (ma.h + mb.h) / 2 + 10
+      })
+    })
+  for (let t = 0; t < 40 && clash(); t++) {
+    for (const j of moving) {
+      state.nodes[j].x += Math.round(40 * Math.cos(angle))
+      state.nodes[j].y += Math.round(32 * Math.sin(angle))
+    }
+  }
+}
+
+// Keyboard restructuring: Alt+↑/↓ reorder, Alt+← promote, Alt+→ demote.
+function moveNode(dir) {
+  const i = state.selected
+  if (i === null || i === 0) return
+  const parent = info.parent[i]
+  if (parent === null) return
+  const sibs = info.kids[parent]
+  const k = sibs.indexOf(i)
+  const name = state.nodes[i].name || 'Untitled'
+  commitEdit()
+  const before = positions()
+  if (dir === 'up' || dir === 'down') {
+    const j = sibs[k + (dir === 'up' ? -1 : 1)]
+    if (j === undefined) return announce(dir === 'up' ? 'Already first' : 'Already last')
+    checkpoint()
+    // swap their order and their places on the canvas
+    const ci = state.connections.findIndex(c => c.end === i)
+    const cj = state.connections.findIndex(c => c.end === j)
+    ;[state.connections[ci], state.connections[cj]] = [state.connections[cj], state.connections[ci]]
+    const dx = state.nodes[j].x - state.nodes[i].x
+    const dy = state.nodes[j].y - state.nodes[i].y
+    for (const a of subtree(i)) Object.assign(state.nodes[a], { x: state.nodes[a].x + dx, y: state.nodes[a].y + dy })
+    for (const b of subtree(j)) Object.assign(state.nodes[b], { x: state.nodes[b].x - dx, y: state.nodes[b].y - dy })
+    changed()
+    announce(`${name} moved ${dir}, ${k + (dir === 'up' ? 0 : 2)} of ${sibs.length}`)
+  } else if (dir === 'left') {
+    const gp = info.parent[parent]
+    if (gp === null || gp === undefined) return announce('Already at the top level')
+    checkpoint()
+    reparent(i, gp)
+    changed()
+    announce(`${name} moved up a level, under ${state.nodes[gp].name || 'Untitled'}`)
+  } else {
+    const prev = sibs[k - 1] ?? sibs[k + 1]
+    if (prev === undefined) return announce('No sibling to move under')
+    checkpoint()
+    reparent(i, prev)
+    changed()
+    announce(`${name} moved under ${state.nodes[prev].name || 'Untitled'}`)
+  }
+  animateFrom(before)
+  ensureVisible(state.selected)
 }
 
 function tidy() {
@@ -693,6 +805,7 @@ function editLink() {
   linkInput.value = state.nodes[i].link || ''
   $('#linkRemove').hidden = !state.nodes[i].link
   linkDialog.returnValue = ''
+  hideToast()
   linkDialog.showModal()
   linkInput.select()
   linkDialog.onclose = () => {
@@ -766,25 +879,28 @@ function insertTrees(parent, trees) {
   checkpoint()
   let first = null
   let count = 0
-  const add = (t, pi) => {
-    const at = placeChild(pi)
-    const node = { '@id': newId(), name: t.name, ...at }
+  const roots = []
+  const add = (t, pi, top) => {
+    const node = { '@id': newId(), name: t.name, x: state.nodes[pi].x, y: state.nodes[pi].y }
     if (t.link) node.link = t.link
     if (t.bgColor) node.bgColor = t.bgColor
     state.nodes.push(node)
     const i = state.nodes.length - 1
     state.connections.push({ start: pi, end: i })
-    analyze()
     count++
     if (first === null) first = i
-    for (const k of t.kids || []) add(k, i)
+    if (top) roots.push(i)
+    for (const k of t.kids || []) add(k, i, false)
   }
   if (state.nodes[parent].collapsed) state.nodes[parent] = { ...state.nodes[parent], collapsed: undefined }
-  for (const t of trees) add(t, parent)
+  for (const t of trees) add(t, parent, true)
+  analyze()
+  for (const r of roots) placeBranch(r)
   state.selected = first
   changed()
   ensureVisible(first)
-  toast(`Added ${count} ${count === 1 ? 'idea' : 'ideas'}`, { action: ['Undo', undo] })
+  toast(`Added ${count} ${count === 1 ? 'idea' : 'ideas'}`, { action: ['Undo', undoTo(undoStack.length)] })
+  announce(`Added ${count} ideas`)
 }
 
 let clip = null
@@ -797,8 +913,13 @@ function onCopy(e, cut) {
   e.clipboardData.setData('text/plain', md)
   e.preventDefault()
   clip = { md, tree: t }
-  if (cut && state.selected !== 0) deleteSelected()
-  else toast('Copied branch')
+  const count = subtree(state.selected).length
+  if (cut && state.selected !== 0) {
+    const mark = undoStack.length + 1
+    const name = state.nodes[state.selected].name || 'Untitled'
+    deleteSelected({ quiet: true })
+    toast(`Cut “${name}”` + (count > 1 ? ` (${count} ideas)` : ''), { action: ['Undo', undoTo(mark)] })
+  } else toast(`Copied ${count === 1 ? 'idea' : `branch (${count} ideas)`}`)
 }
 document.addEventListener('paste', e => {
   if (isField(e.target) || anyDialogOpen()) return
@@ -812,6 +933,7 @@ document.addEventListener('paste', e => {
 function openImport() {
   importText.value = ''
   importDialog.returnValue = ''
+  hideToast()
   importDialog.showModal()
   importDialog.onclose = () => {
     if (importDialog.returnValue === 'add') insertTrees(state.selected ?? 0, parseOutline(importText.value))
@@ -854,7 +976,7 @@ function exportPng() {
   out.height = Math.round(h * scale)
   drawMap(
     out.getContext('2d'),
-    scene({ view: { x: 24 - minX, y: 24 - minY, scale: 1 }, width: w, height: h, dpr: scale, grid: false, selected: null, hover: null, drop: null, flash: null, matches: null, editing: null, pos: i => state.nodes[i] })
+    scene({ view: { x: 24 - minX, y: 24 - minY, scale: 1 }, width: w, height: h, dpr: scale, grid: false, selected: null, hover: null, drop: null, dragging: null, flash: null, matches: null, editing: null, pos: i => state.nodes[i] })
   )
   out.toBlob(b => download(b, slug() + '.png'), 'image/png')
   toast('Image downloaded')
@@ -888,6 +1010,15 @@ function closeFind() {
   find.matches = []
   find.set = null
   findCount.textContent = ''
+  if (peek.size) {
+    peek.clear()
+    analyze()
+    // if the selection went back into a folded branch, select its visible ancestor
+    let i = state.selected
+    while (i !== null && !info.visible[i]) i = info.parent[i]
+    if (i !== state.selected) select(i, { speak: false })
+    updateUi()
+  }
   invalidate()
   focusMap()
 }
@@ -904,7 +1035,8 @@ function stepFind(dir) {
   if (!find.matches.length) return
   find.index = (find.index + dir + find.matches.length) % find.matches.length
   const i = find.matches[find.index]
-  reveal(i)
+  for (let p = info.parent[i]; p !== null && p !== undefined; p = info.parent[p]) if (state.nodes[p].collapsed) peek.add(state.nodes[p]['@id'])
+  analyze()
   select(i)
   ensureVisible(i)
   findCount.textContent = `${find.index + 1} of ${find.matches.length}`
@@ -935,11 +1067,15 @@ function startEdit(index, isNew = false) {
   positionEditor()
   editor.focus({ preventScroll: true })
   editor.select()
-  if (coarse.matches) {
-    // keep the node above the on-screen keyboard
-    const s = toScreen(node.x, node.y)
-    const target = (window.visualViewport?.height || height) * 0.28
-    setView({ ...state.view, y: state.view.y + (target - s.y) })
+  {
+    // make sure the box is on screen (and above the on-screen keyboard on touch)
+    const v = viewAnim?.to ?? state.view
+    const sx = node.x * v.scale + v.x
+    const sy = node.y * v.scale + v.y
+    const half = (Math.max(size(index).w * v.scale + 28, 170)) / 2
+    const ty = coarse.matches ? (window.visualViewport?.height || height) * 0.28 : sy < 60 || sy > height - 90 ? height / 2 : sy
+    const tx = coarse.matches || sx - half < 8 || sx + half > width - 8 ? width / 2 : sx
+    if (tx !== sx || ty !== sy) setView({ scale: v.scale, x: v.x + (tx - sx), y: v.y + (ty - sy) })
   }
   updateUi()
   invalidate()
@@ -957,9 +1093,13 @@ function positionEditor() {
   editor.style.left = s.x + 'px'
   editor.style.top = s.y + 'px'
   editor.style.font = m.font.replace(/\d+px/, Math.max(coarse.matches ? 16 : 13, Math.min(fontPx * k, 30)) + 'px')
-  editor.style.width = Math.max(m.w * k + 28, 170) + 'px'
+  editor.style.width = Math.max(m.w * k + 24, 140) + 'px'
   editor.style.height = Math.max(m.h * k, coarse.matches ? 44 : 34) + 'px'
   editor.style.borderRadius = Math.min(m.r * k, 22) + 'px'
+  const sc = scene()
+  const c = colorsFor(i, sc)
+  editor.style.background = c.fill
+  editor.style.color = readableText(c.fill)
 }
 
 function commitEdit() {
@@ -980,6 +1120,7 @@ function commitEdit() {
     if (!e.isNew) checkpoint()
     state.nodes[e.index] = { ...state.nodes[e.index], name }
     changed()
+    announce(e.isNew ? `Added ${name}` : `Renamed to ${name}`)
   } else {
     invalidate()
     updateUi()
@@ -1004,9 +1145,11 @@ editor.addEventListener('keydown', e => {
     cancelEdit()
   } else if (e.key === 'Tab') {
     e.preventDefault()
-    const i = state.editing.index
+    if (!editor.value.trim()) return cancelEdit()
+    const id = state.nodes[state.editing.index]['@id']
     commitEdit()
-    if (state.nodes[i]) addChild(i)
+    const i = state.nodes.findIndex(n => n['@id'] === id)
+    if (i >= 0) addChild(i)
   }
 })
 editor.addEventListener('blur', () => commitEdit())
@@ -1057,16 +1200,18 @@ canvas.addEventListener('pointerdown', e => {
   if (pointers.size > 2) return
 
   const w = toWorld(p.x, p.y)
-  const badge = badgeHit(w)
+  const hit = hitTest(w)
+  const insideNode = hit >= 0 && Math.abs(w.x - state.nodes[hit].x) <= size(hit).w / 2 && Math.abs(w.y - state.nodes[hit].y) <= size(hit).h / 2
+  const badge = insideNode ? -1 : badgeHit(w)
   if (badge >= 0) {
     gesture = { type: 'badge', index: badge, start: p, moved: false }
     return
   }
-  const hit = hitTest(w)
   if (hit >= 0) {
+    const wasSelected = state.selected === hit
     select(hit)
     const items = (e.altKey ? [hit] : subtree(hit)).map(j => ({ j, dx: state.nodes[j].x - w.x, dy: state.nodes[j].y - w.y }))
-    gesture = { type: 'node', index: hit, start: p, items, moved: false, onLink: onLinkIcon(hit, w) }
+    gesture = { type: 'node', index: hit, start: p, items, moved: false, onLink: onLinkIcon(hit, w) && (e.pointerType === 'mouse' || wasSelected) }
   } else {
     gesture = { type: 'pan', start: p, last: p, moved: false }
   }
@@ -1113,9 +1258,10 @@ canvas.addEventListener('pointermove', e => {
       state.nodes[j].y = Math.round(w.y + dy)
     }
     // drop target: a node under the pointer that isn't part of what we're dragging
-    const moving = new Set(gesture.items.map(it => it.j))
+    const moving = new Set(subtree(gesture.index))
     const t = hitTest(w, moving)
-    state.drop = t >= 0 && t !== info.parent[gesture.index] && gesture.index !== 0 ? t : null
+    const inside = t >= 0 && Math.abs(w.x - state.nodes[t].x) <= size(t).w / 2 && Math.abs(w.y - state.nodes[t].y) <= size(t).h / 2
+    state.drop = inside && t !== info.parent[gesture.index] && gesture.index !== 0 ? t : null
     invalidate()
   } else if (gesture.type === 'pan') {
     if (far) gesture.moved = true
@@ -1215,7 +1361,7 @@ canvas.addEventListener(
 // ---------- keyboard ----------
 
 const isField = t => t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t?.isContentEditable
-const anyDialogOpen = () => helpDialog.open || linkDialog.open || importDialog.open
+const anyDialogOpen = () => [helpDialog, linkDialog, importDialog, signinDialog, mapsDialog].some(d => d.open)
 
 document.addEventListener('keydown', e => {
   if (anyDialogOpen()) return
@@ -1239,7 +1385,15 @@ document.addEventListener('keydown', e => {
     return // Ctrl+C / X / V fall through to the clipboard events
   }
   const onMap = t === tree || t === canvas || t === document.body
-  if (!onMap || e.altKey) return
+  if (!onMap) return
+  if (e.altKey) {
+    const dir = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }[key]
+    if (dir) {
+      e.preventDefault()
+      moveNode(dir)
+    }
+    return
+  }
   const sel = state.selected
   const handled = (() => {
     switch (key) {
@@ -1254,10 +1408,13 @@ document.addEventListener('keydown', e => {
         return sel !== null && startEdit(sel), true
       case 'Delete':
       case 'Backspace':
-        return deleteSelected(), true
+        return deleteSelected({ nodeOnly: e.shiftKey }), true
       case 'Escape':
         if (!findBar.hidden) return closeFind(), true
-        return select(null), true
+        if (sel === null) return false
+        select(null)
+        announce('Nothing selected. Tab leaves the map; Insert adds an idea.')
+        return true
       case 'ArrowLeft':
         return navigate(-1, 0), true
       case 'ArrowRight':
@@ -1292,6 +1449,8 @@ document.addEventListener('keydown', e => {
 
 function showHelp() {
   closeMenu()
+  $('#kbdHelp').open = !coarse.matches
+  hideToast()
   helpDialog.showModal()
   helpDialog.querySelector('.dlg-body').scrollTop = 0
   helpDialog.onclose = focusMap
@@ -1312,11 +1471,15 @@ function closeMenu(refocus) {
   if (refocus) menuBtn.focus()
 }
 menu.addEventListener('keydown', e => {
-  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
-  e.preventDefault()
   const items = [...menu.querySelectorAll('button')].filter(b => b.offsetParent)
   const k = items.indexOf(document.activeElement)
-  items[(k + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus()
+  const go = { ArrowDown: k + 1, ArrowUp: k - 1, Home: 0, End: items.length - 1 }[e.key]
+  if (go === undefined) return
+  e.preventDefault()
+  items[(go + items.length) % items.length]?.focus()
+})
+menu.addEventListener('focusout', e => {
+  if (!menu.contains(e.relatedTarget) && e.relatedTarget !== menuBtn) closeMenu()
 })
 document.addEventListener('pointerdown', e => {
   if (!menu.hidden && !menu.contains(e.target) && !menuBtn.contains(e.target)) closeMenu()
@@ -1335,6 +1498,8 @@ const actions = {
   zoomIn: () => zoomAt(width / 2, height / 2, 1.25),
   zoomOut: () => zoomAt(width / 2, height / 2, 0.8),
   find: openFind,
+  maps: openMaps,
+  newMap,
   findNext: () => stepFind(1),
   findPrev: () => stepFind(-1),
   findClose: closeFind,
@@ -1363,6 +1528,17 @@ for (const btn of document.querySelectorAll('[data-action]')) {
   })
 }
 
+tree.addEventListener('click', e => {
+  const li = e.target.closest('[role=treeitem]')
+  if (!li) return
+  const i = Number(li.id.slice(3))
+  if (state.selected === i) startEdit(i)
+  else {
+    select(i)
+    ensureVisible(i)
+  }
+})
+
 function renderTree() {
   // A screen-reader mirror of the map: a flat ARIA tree with levels.
   const items = []
@@ -1379,7 +1555,7 @@ function renderTree() {
     li.setAttribute('aria-setsize', sibs.length)
     li.setAttribute('aria-posinset', sibs.indexOf(i) + 1)
     li.setAttribute('aria-selected', String(i === sel))
-    if (info.kids[i].length) li.setAttribute('aria-expanded', String(!n.collapsed))
+    if (info.kids[i].length) li.setAttribute('aria-expanded', String(!(info.hidden[i] > 0)))
     li.textContent = (n.name || 'Untitled') + (n.link ? ' (link)' : '')
     items.push(li)
     for (const k of info.kids[i]) walk(k)
@@ -1587,15 +1763,147 @@ function startLive(updatesVia) {
 
 let leaving = false
 
+const STASH_MS = 15 * 60 * 1000
 function stashForLogin(next) {
-  session.set('mindstr:afterLogin', next)
-  session.set('mindstr:stash', JSON.stringify({ href: location.href, data: serialize(), dirty: state.dirty }))
+  session.set('mindstr:afterLogin', JSON.stringify({ next, at: Date.now() }))
+  // scratch maps already live in localStorage; only pod/example maps need carrying across a redirect
+  if (mapUrl) session.set('mindstr:stash', JSON.stringify({ href: location.href, data: serialize(), dirty: state.dirty, at: Date.now() }))
+}
+function clearLoginIntent() {
+  session.set('mindstr:afterLogin', null)
+  session.set('mindstr:stash', null)
+}
+function loginIntent() {
+  try {
+    const v = JSON.parse(session.get('mindstr:afterLogin') || 'null')
+    return v && Date.now() - v.at < STASH_MS ? v.next : null
+  } catch {
+    return null
+  }
 }
 
 function askToSignIn(next, why) {
-  stashForLogin(next)
-  if (openLogin()) toast(why, { ms: 5000 })
-  else toast('Sign-in couldn’t load. Check your connection and try again.', { ms: 6000 })
+  hideToast()
+  $('#signinTitle').textContent = why
+  signinDialog.returnValue = ''
+  signinDialog.showModal()
+  signinDialog.onclose = () => {
+    const v = signinDialog.returnValue
+    if (v === 'signin') {
+      stashForLogin(next)
+      if (!openLogin()) toast('Sign-in couldn’t load. Check your connection and try again.', { ms: 6000 })
+    } else if (v === 'download') {
+      exportJson()
+      focusMap()
+    } else focusMap()
+  }
+}
+
+// ---------- your maps ----------
+
+const RECENT_KEY = 'mindstr:recent'
+function recentMaps() {
+  try {
+    return JSON.parse(store.get(RECENT_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
+function remember(url, title) {
+  const list = recentMaps().filter(m => m.url !== url)
+  list.unshift({ url, title: title || 'Untitled', at: Date.now() })
+  store.set(RECENT_KEY, JSON.stringify(list.slice(0, 12)))
+}
+
+function mapLink(url, title, note) {
+  const li = document.createElement('li')
+  const a = document.createElement('a')
+  a.href = appUrlFor(url)
+  a.textContent = title
+  const span = document.createElement('span')
+  span.textContent = note
+  a.append(span)
+  li.append(a)
+  return li
+}
+
+async function openMaps() {
+  closeMenu()
+  hideToast()
+  mapsList.replaceChildren()
+  const section = (title, items) => {
+    if (!items.length) return
+    const h = document.createElement('h3')
+    h.textContent = title
+    const ul = document.createElement('ul')
+    ul.className = 'maplist'
+    ul.append(...items)
+    mapsList.append(h, ul)
+  }
+  const draft = store.get(SCRATCH_KEY)
+  if (draft) {
+    let name = 'Draft'
+    try {
+      name = JSON.parse(draft).nodes[0].name || name
+    } catch {}
+    const li = document.createElement('li')
+    const a = document.createElement('a')
+    a.href = './'
+    a.textContent = name
+    const span = document.createElement('span')
+    span.textContent = 'draft in this browser'
+    a.append(span)
+    li.append(a)
+    section('Draft', [li])
+  }
+  const when = t => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  section('Recent', recentMaps().map(m => mapLink(m.url, m.title, new URL(m.url).host + ' · ' + when(m.at))))
+  const status = document.createElement('p')
+  status.className = 'muted'
+  mapsList.append(status)
+  mapsDialog.showModal()
+  mapsDialog.onclose = focusMap
+  if (!identity() && !hostPod) {
+    status.textContent = 'Sign in to see the maps in your pod.'
+    return
+  }
+  status.textContent = 'Looking in your pod…'
+  try {
+    const dir = new URL('./', await myMapUrl()).href
+    const res = await authFetch(dir, { headers: { Accept: 'application/ld+json' } })
+    if (res.status === 404) return (status.textContent = 'No maps in your pod yet.')
+    const listing = await res.json()
+    const graph = [].concat(listing['@graph'] || listing)
+    const items = graph.flatMap(g => [].concat(g['ldp:contains'] || g.contains || []))
+    const urls = items
+      .map(it => new URL(typeof it === 'string' ? it : it['@id'], dir).href)
+      .filter(u => /\.jsonld?$/i.test(u))
+    status.remove()
+    section('In your pod', urls.map(u => mapLink(u, decodeURIComponent(u.split('/').pop().replace(/\.jsonld?$/i, '')), new URL(u).pathname)))
+    if (!urls.length) mapsList.append(Object.assign(document.createElement('p'), { className: 'muted', textContent: 'No maps in your pod yet.' }))
+  } catch {
+    status.textContent = 'Couldn’t list your pod.'
+  }
+}
+
+let confirmNew = false
+function newMap() {
+  const draft = store.get(SCRATCH_KEY)
+  let hasDraft = false
+  try {
+    const d = JSON.parse(draft)
+    hasDraft = d.nodes.length > 1 || d.nodes[0].name !== 'Central idea'
+  } catch {}
+  if (hasDraft && !confirmNew) {
+    confirmNew = true
+    if (!mapsDialog.open) openMaps()
+    $('#newMapBtn').lastChild.textContent = 'Discard draft and start new'
+    toast('You have an unsaved draft in this browser. Save it first, or press the button again to discard it.', { ms: 7000 })
+    return
+  }
+  store.set(SCRATCH_KEY, null)
+  leaving = !mapUrl || !state.dirty
+  location.href = './'
 }
 
 async function save() {
@@ -1626,6 +1934,7 @@ async function save() {
     }
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     state.dirty = false
+    remember(mapUrl, state.nodes[0].name)
     remote.exists = true
     remote.etag = null // JSS doesn't return the new ETag; checkRemote learns it
     hideBanner()
@@ -1668,6 +1977,7 @@ async function saveCopy() {
       body: JSON.stringify(serialize(), null, 2)
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    remember(target, state.nodes[0].name)
     if (!mapUrl) store.set(SCRATCH_KEY, null)
     session.set('mindstr:toast', 'Saved to your pod')
     leaving = true
@@ -1691,9 +2001,9 @@ async function openMine() {
 }
 
 function continueAfterLogin() {
-  const next = session.get('mindstr:afterLogin')
+  const next = loginIntent()
   if (!next || !identity()) return
-  session.set('mindstr:afterLogin', null)
+  clearLoginIntent()
   if (next === 'copy') saveCopy()
   else if (next === 'save') save()
   else if (next === 'mine') openMine()
@@ -1737,6 +2047,7 @@ async function load() {
       } else {
         data = await res.json()
         isNew = false
+        if (!isExample) remember(mapUrl, data?.nodes?.[0]?.name)
         remote.etag = res.headers.get('ETag')
         remote.exists = true
       }
@@ -1759,7 +2070,7 @@ async function load() {
     stash = JSON.parse(session.get('mindstr:stash') || 'null')
   } catch {}
   session.set('mindstr:stash', null)
-  const fromStash = stash && stash.href === location.href
+  const fromStash = Boolean(mapUrl) && stash?.href === location.href && Date.now() - stash.at < STASH_MS
   if (fromStash) data = stash.data
 
   const { nodes, connections, selected, extra } = normalize(data)
@@ -1783,7 +2094,7 @@ async function load() {
   }
   if (!mapUrl && !restored && !fromStash && !coarse.matches) startEdit(0)
   else if (!coarse.matches) focusMap()
-  if (session.get('mindstr:afterLogin')) ready().then(continueAfterLogin)
+  if (loginIntent()) ready().then(continueAfterLogin)
 }
 
 new ResizeObserver(resize).observe(stage)

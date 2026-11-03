@@ -17,7 +17,7 @@ export function radialLayout(root, children, size, origin = { x: 0, y: 0 }) {
   const order = []
   const place = (i, a0, a1, depth, nth) => {
     const mid = (a0 + a1) / 2
-    const r = depth === 0 ? 0 : 230 + (depth - 1) * 220 + (depth >= 2 && nth % 2 ? 80 : 0)
+    const r = depth === 0 ? 0 : 230 + (depth - 1) * 220
     pos.set(i, { x: origin.x + r * Math.cos(mid), y: origin.y + r * Math.sin(mid) * 0.8, a: mid })
     order.push(i)
     const kids = children(i)
@@ -53,4 +53,32 @@ export function radialLayout(root, children, size, origin = { x: 0, y: 0 }) {
     delete p.a
   }
   return pos
+}
+
+// Lay out the descendants of node i as a fan pointing away from its parent
+// (angle in radians; y is squashed by 0.8 like the radial layout). Mutates pos(j).
+export function fanLayout(i, children, size, pos, angle) {
+  const leaves = j => {
+    const k = children(j)
+    return k.length ? k.reduce((s, c) => s + leaves(c), 0) : 1
+  }
+  const place = (j, a) => {
+    const kids = children(j)
+    if (!kids.length) return
+    const total = kids.reduce((s, c) => s + leaves(c), 0)
+    const spread = Math.min(Math.PI * 0.95, 0.42 * total)
+    const p = pos(j)
+    let a0 = a - spread / 2
+    for (const c of kids) {
+      const span = (spread * leaves(c)) / total
+      const mid = a0 + span / 2
+      const r = 170 + (size(j).w / 2 + size(c).w / 2) * Math.abs(Math.cos(mid)) * 0.7
+      const q = pos(c)
+      q.x = Math.round(p.x + Math.cos(mid) * r)
+      q.y = Math.round(p.y + Math.sin(mid) * r * 0.8)
+      place(c, mid)
+      a0 += span
+    }
+  }
+  place(i, angle)
 }

@@ -5,172 +5,171 @@
       "@id": "#this",
       "name": "Welcome to Mindstr",
       "x": 0,
-      "y": 0,
-      "bgColor": "#FFF3C4"
+      "y": 0
     },
     {
       "@id": "#ab9ysn",
       "name": "Add ideas",
-      "x": -178,
-      "y": -103,
+      "x": -186,
+      "y": -108,
       "bgColor": "#D6E8FF"
     },
     {
       "@id": "#qhtzie",
       "name": "Tab: add a child",
-      "x": -425,
-      "y": -54
+      "x": -444,
+      "y": -56
     },
     {
       "@id": "#2sgmjt",
       "name": "Enter: add a sibling",
-      "x": -454,
-      "y": -185
+      "x": -401,
+      "y": -163
     },
     {
       "@id": "#j9h6ge",
       "name": "Double-click: rename",
-      "x": -304,
-      "y": -243
+      "x": -318,
+      "y": -255
     },
     {
       "@id": "#ejt2c7",
       "name": "Paste a list: adds a branch",
-      "x": -232,
-      "y": -364
+      "x": -204,
+      "y": -321
     },
     {
       "@id": "#tvx8v7",
       "name": "Arrange",
-      "x": 68,
-      "y": -167,
+      "x": 71,
+      "y": -175,
       "bgColor": "#D9F2DC"
     },
     {
       "@id": "#4bfmpa",
       "name": "Drag a branch to move it",
-      "x": -67,
-      "y": -340
+      "x": -73,
+      "y": -372
     },
     {
       "@id": "#c2mpq8",
       "name": "Drop on a node to re-parent",
-      "x": 80,
-      "y": -403
+      "x": 82,
+      "y": -420
     },
     {
       "@id": "#yykmee",
       "name": "Space folds a branch",
-      "x": 195,
-      "y": -307
+      "x": 204,
+      "y": -321
     },
     {
       "@id": "#7kgwkb",
       "name": "L tidies the layout",
-      "x": 361,
-      "y": -288
+      "x": 318,
+      "y": -255
     },
     {
       "@id": "#x7t4w7",
       "name": "Get around",
-      "x": 217,
-      "y": -28,
+      "x": 227,
+      "y": -29,
       "bgColor": "#FFE1CC"
     },
     {
       "@id": "#dsw684",
       "name": "Scroll or drag to pan",
-      "x": 383,
-      "y": -156
+      "x": 401,
+      "y": -163
     },
     {
       "@id": "#v88t4a",
       "name": "Pinch or Ctrl+scroll to zoom",
-      "x": 504,
-      "y": -64
+      "x": 464,
+      "y": -58
     },
     {
       "@id": "#skzt29",
       "name": "Ctrl+F finds anything",
-      "x": 425,
-      "y": 54
+      "x": 444,
+      "y": 56
     },
     {
       "@id": "#t4pwzt",
       "name": "Links",
-      "x": 156,
-      "y": 124,
+      "x": 163,
+      "y": 130,
       "bgColor": "#D4F1F4"
     },
     {
       "@id": "#jhaa84",
       "name": "Ctrl+K sets a link",
-      "x": 383,
-      "y": 156
+      "x": 401,
+      "y": 163
     },
     {
       "@id": "#wavvy9",
       "name": "Click ↗ to open it",
-      "x": 361,
-      "y": 288
+      "x": 318,
+      "y": 255
     },
     {
       "@id": "#i9w3v4",
       "name": "./other.json opens a map",
-      "x": 195,
-      "y": 307
+      "x": 204,
+      "y": 321
     },
     {
       "@id": "#e9sufn",
       "name": "Keep it",
-      "x": -34,
-      "y": 174,
+      "x": -36,
+      "y": 182,
       "bgColor": "#FFD6E8"
     },
     {
       "@id": "#g45zx9",
       "name": "Save stores it in your pod",
-      "x": 67,
-      "y": 340
+      "x": 73,
+      "y": 372
     },
     {
       "@id": "#vz8rhu",
       "name": "Sign in with Nostr or Solid",
-      "x": -80,
-      "y": 403
+      "x": -82,
+      "y": 420
     },
     {
       "@id": "#35gtrs",
       "name": "Edits sync live",
-      "x": -195,
-      "y": 307
+      "x": -204,
+      "y": 321
     },
     {
       "@id": "#fiqrfa",
       "name": "More examples",
-      "x": -196,
-      "y": 80,
+      "x": -205,
+      "y": 84,
       "bgColor": "#E6E0FF"
     },
     {
       "@id": "#fad69b",
       "name": "Solar system",
-      "x": -304,
-      "y": 243,
+      "x": -318,
+      "y": 255,
       "link": "./solar-system.json"
     },
     {
       "@id": "#fnrzmm",
       "name": "Plan a project",
-      "x": -454,
-      "y": 185,
+      "x": -401,
+      "y": 163,
       "link": "./project-plan.json"
     },
     {
       "@id": "#3y3s3p",
       "name": "Learn Nostr",
-      "x": -425,
-      "y": 54,
+      "x": -444,
+      "y": 56,
       "link": "./nostr.json"
     }
   ],

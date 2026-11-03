@@ -93,9 +93,12 @@
         padding: 6px max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left));
         background: var(--bar);
         border-bottom: 1px solid var(--border);
+        overflow: hidden;
       }
+      ::selection { background: rgb(109 74 255 / 0.32); }
       .brand {
         display: flex; align-items: center; gap: 8px;
+        min-height: 44px; min-width: 44px; padding: 0 4px;
         margin-right: 8px;
         font-weight: 750; font-size: 16px; letter-spacing: -0.2px;
         color: var(--text); text-decoration: none;
@@ -126,7 +129,10 @@
       .primary {
         background: var(--accent); color: var(--accent-text);
         padding: 0 14px; font-weight: 600;
+        white-space: nowrap; flex-shrink: 0;
       }
+      .lbl { display: none; }
+      @media (min-width: 1100px) { .lbl { display: inline; } }
       .primary:disabled { background: var(--hover); color: var(--muted); }
       #status { color: var(--muted); font-size: 12.5px; margin-right: 6px; white-space: nowrap; }
       #status[data-state='dirty'] { color: var(--accent); font-weight: 600; }
@@ -134,12 +140,12 @@
       /* ---------- menus, banner, toast ---------- */
       .menu {
         position: fixed; z-index: 20;
-        min-width: 220px; padding: 6px;
+        width: max-content; min-width: 220px; max-width: 300px; padding: 6px;
         background: var(--raised); color: var(--text);
         border: 1px solid var(--border); border-radius: 12px;
         box-shadow: var(--shadow);
       }
-      .menu button { width: 100%; justify-content: flex-start; padding: 0 10px; gap: 10px; }
+      .menu button { width: 100%; justify-content: flex-start; padding: 0 10px; gap: 10px; white-space: nowrap; }
       .menu hr { border: 0; border-top: 1px solid var(--border); margin: 6px 4px; }
       #banner {
         display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
@@ -148,7 +154,7 @@
         border-bottom: 1px solid var(--border);
         overflow-wrap: anywhere;
       }
-      .banner-btn { height: 30px; border: 1px solid currentColor; color: inherit; font-weight: 600; }
+      .banner-btn { height: var(--target); border: 1px solid currentColor; color: inherit; font-weight: 600; }
       #toast {
         position: fixed; z-index: 30;
         left: 50%; bottom: max(24px, env(safe-area-inset-bottom));
@@ -160,8 +166,8 @@
         background: #1b1f27; color: #fff;
         box-shadow: var(--shadow);
       }
-      @media (prefers-color-scheme: dark) { #toast { background: #e8eaee; color: #14161c; } }
-      #toast button { height: 30px; color: inherit; font-weight: 650; border: 1px solid currentColor; }
+      @media (prefers-color-scheme: dark) { #toast { background: var(--raised); color: var(--text); border: 1px solid var(--border); } }
+      #toast button { height: var(--target); color: inherit; font-weight: 650; border: 1px solid currentColor; }
 
       /* ---------- stage ---------- */
       #stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
@@ -225,7 +231,9 @@
       .dlg-head h2 { margin: 0; font-size: 18px; }
       .dlg-body { padding: 8px 20px 20px; max-height: 70dvh; overflow: auto; }
       .dlg-body h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 18px 0 8px; }
-      .dlg-body table { border-collapse: collapse; width: 100%; }
+      .dlg-body table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+      .dlg-body td:first-child { width: 44%; }
+      details summary { cursor: pointer; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; margin: 18px 0 8px; }
       .dlg-body td { padding: 5px 0; vertical-align: top; }
       .dlg-body td:first-child { padding-right: 16px; white-space: nowrap; color: var(--muted); }
       .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
@@ -249,6 +257,15 @@
         display: block; padding: 12px; border: 1px solid var(--border); border-radius: 12px;
         color: var(--text); text-decoration: none; font-weight: 600;
       }
+      .maplist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+      .maplist a {
+        display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+        padding: 10px 12px; min-height: var(--target);
+        border: 1px solid var(--border); border-radius: 10px;
+        color: var(--text); text-decoration: none; font-weight: 600;
+      }
+      .maplist a span { color: var(--muted); font-weight: 400; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50%; }
+      @media (hover: hover) { .maplist a:hover { border-color: var(--accent); } }
       .examples a span { display: block; color: var(--muted); font-weight: 400; font-size: 12.5px; }
       @media (hover: hover) { .examples a:hover { border-color: var(--accent); } }
       .touch-only { display: none; }
@@ -256,9 +273,11 @@
 
       /* ---------- narrow screens ---------- */
       .narrow-only { display: none !important; }
-      @media (max-width: 760px) {
+      @media (max-width: 1000px) {
         .wide-only { display: none !important; }
         .narrow-only { display: flex !important; }
+      }
+      @media (max-width: 760px) {
         .brand span { display: none; }
         header { gap: 2px; }
         #status { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
@@ -270,9 +289,11 @@
           box-shadow: var(--shadow);
         }
         body:not(.has-selection) .node-actions { display: none; }
-        #toast { bottom: auto; top: 64px; }
-        #hint { bottom: 16px; }
-        #zoom { bottom: 72px; right: 12px; }
+        #toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
+        #hint { bottom: calc(84px + env(safe-area-inset-bottom)); }
+        #zoom { top: 10px; right: 10px; bottom: auto; flex-direction: row; }
+        #find { left: 8px; right: 8px; transform: none; }
+        #find input { width: auto; flex: 1; min-width: 0; }
       }
     </style>
   </head>
@@ -297,13 +318,15 @@
       <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.4M12 17h.01" /></symbol>
       <symbol id="i-find" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.3-4.3" /></symbol>
       <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2" /><circle cx="12" cy="12" r="1.2" /><circle cx="19" cy="12" r="1.2" /></symbol>
-      <symbol id="i-tidy" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="5.5" r="2.5" /><circle cx="18" cy="18.5" r="2.5" /><path d="M8.5 12h2.5c2 0 2-6.5 4.5-6.5M11 12c2 0 2 6.5 4.5 6.5" /></symbol>
+      <symbol id="i-tidy" viewBox="0 0 24 24"><path d="M4 20L15 9M13 7l4 4" /><path d="M18 3v3M16.5 4.5h3M20 9v2M19 10h2M10 3v2M9 4h2" /></symbol>
       <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
       <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" /></symbol>
       <symbol id="i-image" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2" /><circle cx="9" cy="10" r="1.5" /><path d="M20 16l-5-5-8 8" /></symbol>
       <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" /></symbol>
       <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></symbol>
       <symbol id="i-paste" viewBox="0 0 24 24"><path d="M9 4h6v3H9z" /><path d="M15 5h3v15H6V5h3" /><path d="M9 12h6M9 16h4" /></symbol>
+      <symbol id="i-maps" viewBox="0 0 24 24"><path d="M4 6h6l2 2h8v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" /></symbol>
+      <symbol id="i-new" viewBox="0 0 24 24"><path d="M14 4H6v16h12V8z" /><path d="M14 4v4h4M12 11v6M9 14h6" /></symbol>
       <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></symbol>
       <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6" /></symbol>
       <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></symbol>
@@ -318,8 +341,8 @@
     <header>
       <a class="brand" href="./" aria-label="Mindstr home"><svg aria-hidden="true"><use href="#logo" /></svg><span>Mindstr</span></a>
       <div class="group node-actions" role="toolbar" aria-label="Node">
-        <button data-action="child" title="Add child (Tab)" aria-label="Add child"><svg class="icon" aria-hidden="true"><use href="#i-child" /></svg></button>
-        <button data-action="sibling" title="Add sibling (Enter)" aria-label="Add sibling"><svg class="icon" aria-hidden="true"><use href="#i-sibling" /></svg></button>
+        <button data-action="child" title="Add child (Tab)" aria-label="Add child"><svg class="icon" aria-hidden="true"><use href="#i-child" /></svg><span class="lbl">Child</span></button>
+        <button data-action="sibling" title="Add sibling (Enter)" aria-label="Add sibling"><svg class="icon" aria-hidden="true"><use href="#i-sibling" /></svg><span class="lbl">Sibling</span></button>
         <button data-action="edit" title="Rename (F2 / double-click)" aria-label="Rename"><svg class="icon" aria-hidden="true"><use href="#i-edit" /></svg></button>
         <button data-action="link" title="Set link (Ctrl+K)" aria-label="Set link"><svg class="icon" aria-hidden="true"><use href="#i-link" /></svg></button>
         <button data-action="open" class="wide-only" title="Open link (O)" aria-label="Open link"><svg class="icon" aria-hidden="true"><use href="#i-open" /></svg></button>
@@ -344,6 +367,9 @@
     </header>
 
     <div class="menu" id="menu" role="menu" aria-label="More" hidden>
+      <button role="menuitem" data-action="maps"><svg class="icon" aria-hidden="true"><use href="#i-maps" /></svg>Your maps…</button>
+      <button role="menuitem" data-action="newMap"><svg class="icon" aria-hidden="true"><use href="#i-new" /></svg>New map</button>
+      <hr />
       <button role="menuitem" data-action="find" class="narrow-only"><svg class="icon" aria-hidden="true"><use href="#i-find" /></svg>Find</button>
       <button role="menuitem" data-action="tidy" class="narrow-only"><svg class="icon" aria-hidden="true"><use href="#i-tidy" /></svg>Tidy layout</button>
       <button role="menuitem" data-action="import"><svg class="icon" aria-hidden="true"><use href="#i-paste" /></svg>Add from outline…</button>
@@ -360,11 +386,12 @@
 
     <main id="stage">
       <canvas id="canvas" aria-hidden="true"></canvas>
-      <ul id="tree" role="tree" tabindex="0" aria-label="Mind map. Arrow keys move, Tab adds a child, Enter a sibling, F2 renames, Space folds, question mark for help."></ul>
+      <ul id="tree" role="tree" tabindex="0" aria-label="Mind map" aria-describedby="treeHelp"></ul>
+      <p id="treeHelp" class="sr-only">Arrow keys move between ideas. Tab or Insert adds a child, Enter a sibling, F2 renames, Space folds, Delete removes, Alt with arrows moves an idea. Press Escape, then Tab, to leave the map.</p>
       <input id="editor" type="text" aria-label="Node name" autocomplete="off" spellcheck="false" enterkeyhint="done" hidden />
       <div id="find" role="search" hidden>
         <svg class="icon" aria-hidden="true"><use href="#i-find" /></svg>
-        <input id="findInput" type="search" placeholder="Find in map" aria-label="Find in map" enterkeyhint="search" />
+        <input id="findInput" type="text" placeholder="Find in map" aria-label="Find in map" enterkeyhint="search" />
         <span id="findCount" aria-live="polite"></span>
         <button data-action="findPrev" aria-label="Previous match"><svg class="icon" aria-hidden="true"><use href="#i-up" /></svg></button>
         <button data-action="findNext" aria-label="Next match"><svg class="icon" aria-hidden="true"><use href="#i-down" /></svg></button>
@@ -377,7 +404,7 @@
       </div>
       <div id="hint" hidden>
         <span class="fine-only"><kbd>Tab</kbd> adds an idea · <kbd>Enter</kbd> a sibling · double-click to rename</span>
-        <span class="touch-only">Tap ＋ to add an idea · double-tap to rename</span>
+        <span class="touch-only">Tap <svg class="icon" style="vertical-align:-4px" aria-label="Add child"><use href="#i-child" /></svg> to add an idea · double-tap to rename</span>
         <a class="btn" href="?uri=examples/welcome.json">Take the tour</a>
         <button data-action="hintClose" aria-label="Dismiss tips"><svg class="icon" aria-hidden="true"><use href="#i-close" /></svg></button>
       </div>
@@ -392,7 +419,18 @@
         <form method="dialog"><button aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-close" /></svg></button></form>
       </div>
       <div class="dlg-body">
-        <h3>Mouse and touch</h3>
+        <div class="touch-only">
+          <h3>On a touch screen</h3>
+          <table>
+            <tr><td>Tap</td><td>Select an idea; the bar at the bottom adds, renames, links or deletes</td></tr>
+            <tr><td>Double-tap</td><td>Rename</td></tr>
+            <tr><td>Drag an idea</td><td>Move it with its branch; drop it on another idea to re-parent</td></tr>
+            <tr><td>Tap ↗ on a selected idea</td><td>Open its link</td></tr>
+            <tr><td>Drag · pinch</td><td>Pan · zoom (or use the zoom buttons)</td></tr>
+            <tr><td>⋯ menu</td><td>Find, tidy, your maps, export</td></tr>
+          </table>
+        </div>
+        <h3 class="fine-only">Mouse</h3>
         <table>
           <tr><td>Drag a node</td><td>Move it with its branch (hold Alt for just the node)</td></tr>
           <tr><td>Drop on a node</td><td>Make it a child of that node</td></tr>
@@ -402,21 +440,26 @@
           <tr><td>Drag background · scroll</td><td>Pan</td></tr>
           <tr><td>Pinch · Ctrl+scroll · ＋ −</td><td>Zoom</td></tr>
         </table>
-        <h3>Keyboard</h3>
+        <details id="kbdHelp" open>
+        <summary>Keyboard</summary>
         <table>
-          <tr><td><kbd>Tab</kbd> / <kbd>Insert</kbd></td><td>Add child (Esc then Tab leaves the map)</td></tr>
+          <tr><td><kbd>Tab</kbd> / <kbd>Insert</kbd></td><td>Add child</td></tr>
+          <tr><td><kbd>Esc</kbd> then <kbd>Tab</kbd></td><td>Leave the map</td></tr>
           <tr><td><kbd>Enter</kbd></td><td>Add sibling</td></tr>
           <tr><td><kbd>F2</kbd></td><td>Rename</td></tr>
           <tr><td>Arrow keys</td><td>Move between nodes</td></tr>
           <tr><td><kbd>Space</kbd></td><td>Fold / unfold</td></tr>
-          <tr><td><kbd>Delete</kbd></td><td>Delete node (children move up)</td></tr>
+          <tr><td><kbd>Delete</kbd></td><td>Delete the idea and its branch</td></tr>
           <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd> · <kbd>O</kbd></td><td>Set link · open link</td></tr>
           <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>V</kbd></td><td>Copy branch · paste a branch or any text outline</td></tr>
           <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Find</td></tr>
           <tr><td><kbd>L</kbd> · <kbd>F</kbd></td><td>Tidy layout · fit to screen</td></tr>
           <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Undo / redo</td></tr>
+          <tr><td><kbd>Alt</kbd>+arrows</td><td>Reorder (↑↓), promote (←), move under previous (→)</td></tr>
+          <tr><td><kbd>Shift</kbd>+<kbd>Delete</kbd></td><td>Delete just the node; its children move up</td></tr>
           <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save</td></tr>
         </table>
+        </details>
         <h3>Examples</h3>
         <div class="examples">
           <a href="?uri=examples/welcome.json">Welcome tour<span>How Mindstr works</span></a>
@@ -459,6 +502,34 @@
           </div>
         </div>
       </form>
+    </dialog>
+
+    <dialog id="signinDialog" aria-labelledby="signinTitle">
+      <form method="dialog">
+        <div class="dlg-head"><h2 id="signinTitle">Save your map</h2></div>
+        <div class="dlg-body">
+          <p>Mindstr saves maps to a <strong>pod</strong>: storage you control on the web, so the map stays yours and you can share a link to it.</p>
+          <p class="muted">Sign in with a Nostr browser extension (such as nos2x or Alby) or your Solid provider. Your map will be saved in <code>public/mindstr/</code> in your pod. You only need to paste a key if you know what you're doing.</p>
+          <div class="dlg-actions">
+            <button value="download" class="left">Download instead</button>
+            <button value="cancel">Not now</button>
+            <button value="signin" class="primary">Sign in</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="mapsDialog" aria-labelledby="mapsTitle">
+      <div class="dlg-head">
+        <h2 id="mapsTitle">Your maps</h2>
+        <form method="dialog"><button aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-close" /></svg></button></form>
+      </div>
+      <div class="dlg-body">
+        <div id="mapsList"></div>
+        <div class="dlg-actions">
+          <button id="newMapBtn" class="primary" data-action="newMap"><svg class="icon" aria-hidden="true"><use href="#i-new" /></svg>New map</button>
+        </div>
+      </div>
     </dialog>
 
     <!-- Data island: always holds the current map as JSON -->

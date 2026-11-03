@@ -22,7 +22,7 @@ well is part of the job; see *Layout* below.
 {
   "version": "0.1",
   "nodes": [
-    { "@id": "#this",  "name": "Trip",    "x": 0,    "y": 0, "bgColor": "#FFF3C4" },
+    { "@id": "#this",  "name": "Trip",    "x": 0,    "y": 0 },
     { "@id": "#k3x9q2", "name": "Travel", "x": 220,  "y": 0 },
     { "@id": "#p7m2wd", "name": "Guide",  "x": 430,  "y": -40, "link": "https://example.com/guide" }
   ],
@@ -40,9 +40,10 @@ well is part of the job; see *Layout* below.
 | `@id` | Unique fragment: `#` + 6 random lowercase letters/digits (e.g. `#k3x9q2`). Never reuse or change an existing one; the app uses them to keep selection and highlight changes. |
 | `name` | Node text. Keep it short: 1–4 words. Long names make wide ovals that collide. |
 | `x`, `y` | Centre of the node in map units (≈ CSS px at 100% zoom). `y` grows **downward**. Any origin; the app fits the map to the screen on load. |
-| `bgColor` | Optional CSS colour; keep it a soft pastel so the dark text stays readable. Convention: root `#FFF3C4`; top-level branches cycle `#D6E8FF` `#D9F2DC` `#FFD6E8` `#FFE1CC` `#E6E0FF` `#D4F1F4` (repeats are fine past six); leaves stay uncoloured. |
+| `bgColor` | Optional CSS colour; keep it a soft pastel so the dark text stays readable. The app always draws the root in brand violet, so don't colour it. Top-level branches cycle `#D6E8FF` `#D9F2DC` `#FFD6E8` `#FFE1CC` `#E6E0FF` `#D4F1F4` (repeats are fine past six); leaves stay uncoloured. |
 | `link` | Optional. `http(s)` URL opens in a new tab; a `.md` URL opens in the NosDAV doc viewer; a relative link to `.json`/`.jsonld` (`./other.json`) opens that map in mindstr. Other schemes are blocked. |
 | `connections[]` | Parent → child edges. **`start` and `end` are array indices into `nodes`, not `@id`s.** Each non-root node should have exactly one parent, forming a tree under the root. |
+| `collapsed` | Optional `true` on a node whose branch is folded in the app. Leave it alone unless asked. |
 | `selectedNode` | Index of the selected node. Use `0` in a new map; leave it as is when editing. |
 | `version` | `"0.1"`. |
 
@@ -76,7 +77,7 @@ People may have the map open. The app subscribes to changes and shows yours live
 3. **Add nodes at the end of `nodes`** so existing indices in `connections` stay valid.
    Viewers see added nodes selected and highlighted.
 4. **When removing node *i***: drop it from `nodes`, drop connections touching it,
-   re-attach its children to its parent (as the app does), then **decrement every
+   either remove its whole branch too (what the app's Delete does) or re-attach its children to its parent (the app's Shift+Delete), then **decrement every
    `start`/`end` greater than *i***. Never delete the root.
 5. Keep every other node's `@id`, position and unknown fields untouched.
 
@@ -94,8 +95,7 @@ function layout(tree) {
   function add(t, parent, a0, a1, depth, nth) {
     const mid = (a0 + a1) / 2                      // centre of this node's wedge (radians)
     const r = depth === 0 ? 0                      // root at the origin
-      : 220 + (depth - 1) * 210                    // ring radius: 220, 430, 640…
-      + (depth >= 2 && nth % 2 ? 80 : 0)           // stagger every other sibling outward
+      : 230 + (depth - 1) * 220                    // ring radius: 230, 450, 670…
     nodes.push({ '@id': depth ? id() : '#this', name: t.name,
       x: Math.round(r * Math.cos(mid)), y: Math.round(r * Math.sin(mid) * 0.8), ...(t.extra || {}) })
     const i = nodes.length - 1
@@ -123,7 +123,7 @@ function layout(tree) {
 
 // usage
 const N = (name, extra, ...kids) => ({ name, extra, kids })
-const map = layout(N('Trip', { bgColor: '#FFF3C4' },
+const map = layout(N('Trip', {},
   N('Travel', { bgColor: '#D6E8FF' }, N('Train'), N('Packing')),
   N('Stay', { bgColor: '#D9F2DC' }, N('Hotel'))))
 ```
@@ -135,9 +135,8 @@ How it works, if you can't run code:
 - Each child gets a share of its parent's wedge proportional to its **leaf count**: the
   number of descendants with no children of their own, counting a childless node as 1.
 - A node sits at the middle angle of its wedge on a shared ellipse around the root:
-  `x = r·cos(angle)`, `y = 0.8·r·sin(angle)`, with `r = 220` for top-level branches,
-  `430` for the next level, `640` after that, and every odd-numbered sibling (2nd, 4th…)
-  at depth 2 or more pushed `80` farther out.
+  `x = r·cos(angle)`, `y = 0.8·r·sin(angle)`, with `r = 230` for top-level branches,
+  `450` for the next level and `670` after that.
 
 **Node size.** The app draws ovals 36 high and `text width + 32` wide (minimum 56), with
 text in a 15 px sans-serif. `8 × characters + 32` slightly overestimates that, which is
@@ -172,7 +171,7 @@ into separate maps and connect them with relative links.
 {
   "version": "0.1",
   "nodes": [
-    {"@id": "#this", "name": "Weekend trip", "x": 0, "y": 0, "bgColor": "#FFF3C4"},
+    {"@id": "#this", "name": "Weekend trip", "x": 0, "y": 0},
     {"@id": "#zyf9qd", "name": "Travel", "x": -110, "y": -152, "bgColor": "#D6E8FF"},
     {"@id": "#j5dew5", "name": "Train tickets", "x": -372, "y": -172},
     {"@id": "#m6xefa", "name": "Packing list", "x": 0, "y": -408, "link": "./packing.json"},

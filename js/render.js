@@ -79,8 +79,9 @@ export function badgeAt(i, s) {
   const p = s.pos(i)
   const m = s.size(i)
   const [ox, oy] = outward(i, s)
-  const d = exit(m, ox, oy) + 13
-  return { x: p.x + ox * d, y: p.y + oy * d, r: 10 }
+  const r = s.badgeR || 11
+  const d = exit(m, ox, oy) + r + 4
+  return { x: p.x + ox * d, y: p.y + oy * d, r }
 }
 
 // Centre of the ↗ link icon for node i (world units), or null.
@@ -96,18 +97,12 @@ export function colorsFor(i, s) {
   const d = s.info.depth[i]
   const branch = s.info.branchColor[i] || BRANCH_COLORS[0]
   const bt = tones(branch, s.dark)
-  if (d === 0) {
-    if (n.bgColor) {
-      const t = tones(n.bgColor, s.dark)
-      return { fill: t.fill, border: t.border, lw: 2, edge: bt.edge }
-    }
-    return { fill: ROOT_FILL, border: null, lw: 0, edge: bt.edge }
-  }
+  if (d === 0) return { fill: ROOT_FILL, border: null, lw: 0, edge: s.theme.accent }
   if (d === 1 || n.bgColor) {
     const t = tones(n.bgColor || branch, s.dark)
     return { fill: t.fill, border: t.border, lw: 1.5, edge: bt.edge }
   }
-  return { fill: s.theme.leaf, border: bt.border, lw: 1, borderAlpha: s.dark ? 0.55 : 0.5, edge: bt.edge }
+  return { fill: s.theme.leaf, border: bt.border, lw: 1, edge: bt.edge }
 }
 
 function box(ctx, x, y, w, h, r) {
@@ -169,23 +164,28 @@ export function drawMap(ctx, s) {
     ctx.stroke()
   }
 
-  // nodes
-  nodes.forEach((n, i) => {
-    if (!info.visible[i]) return
+  // nodes: everything else first, then the branch being dragged on top
+  const dimming = s.matches && s.matches.size > 0
+  const drawNode = (i, lifted) => {
+    const n = nodes[i]
     const p = s.pos(i)
     const m = s.size(i)
     const c = colorsFor(i, s)
     const x = p.x - m.w / 2
     const y = p.y - m.h / 2
+    const editing = s.editing === i
 
-    if (s.drop === i) ring(ctx, p, m, 7, 2, theme.accent, [5, 4])
-    if (s.selected === i) {
-      ring(ctx, p, m, 6, 5, theme.accentSoft)
-      ring(ctx, p, m, 3, 2, theme.accent)
-    } else if (s.matches?.has(i)) {
-      ring(ctx, p, m, 4, 3, theme.accent)
-    } else if (s.hover === i) {
-      ring(ctx, p, m, 3, 2, theme.accentSoft)
+    ctx.save()
+    if (dimming && !s.matches.has(i) && s.selected !== i) ctx.globalAlpha = 0.35
+    if (!editing) {
+      if (s.selected === i && !lifted) {
+        ring(ctx, p, m, 6, 5, theme.accentSoft)
+        ring(ctx, p, m, 3, 2, theme.accent)
+      } else if (s.matches?.has(i)) {
+        ring(ctx, p, m, 3, 2, `rgba(${theme.accentRgb},0.45)`)
+      } else if (s.hover === i && !lifted) {
+        ring(ctx, p, m, 3, 2, theme.accentSoft)
+      }
     }
     if (s.flash && s.flash.ids.has(n['@id'])) {
       const t = s.flash.t
@@ -193,7 +193,12 @@ export function drawMap(ctx, s) {
     }
 
     ctx.save()
-    if (!s.dark) {
+    if (lifted) {
+      ctx.globalAlpha *= 0.92
+      ctx.shadowColor = 'rgba(20,20,50,0.28)'
+      ctx.shadowBlur = 24
+      ctx.shadowOffsetY = 8
+    } else if (!s.dark) {
       ctx.shadowColor = theme.shadow
       ctx.shadowBlur = 8
       ctx.shadowOffsetY = 1.5
@@ -203,16 +208,13 @@ export function drawMap(ctx, s) {
     ctx.fill()
     ctx.restore()
     if (c.border) {
-      ctx.save()
-      ctx.globalAlpha = c.borderAlpha ?? 1
       box(ctx, x + 0.5, y + 0.5, m.w - 1, m.h - 1, m.r)
       ctx.lineWidth = c.lw
       ctx.strokeStyle = c.border
       ctx.stroke()
-      ctx.restore()
     }
 
-    if (s.editing !== i) {
+    if (!editing) {
       const text = readableText(c.fill)
       ctx.font = m.font
       ctx.textAlign = 'left'
@@ -221,10 +223,9 @@ export function drawMap(ctx, s) {
       ctx.fillText(n.name, x + m.padX, p.y + 1)
       const li = linkIconAt(i, s)
       if (li) {
-        // ↗ icon
         ctx.save()
         ctx.strokeStyle = s.dark && c.fill === theme.leaf ? theme.accent : text
-        ctx.globalAlpha = 0.8
+        ctx.globalAlpha *= 0.8
         ctx.lineWidth = 1.6
         ctx.beginPath()
         ctx.moveTo(li.x - 4, li.y + 4)
@@ -237,22 +238,43 @@ export function drawMap(ctx, s) {
       }
     }
 
-    // collapse / expand badge
-    const collapsed = n.collapsed && info.kids[i].length
-    if (collapsed || ((s.selected === i || s.hover === i) && info.kids[i].length)) {
+    // fold badge: a count when folded, a minus on the selected / hovered node
+    const collapsed = info.hidden[i] > 0
+    if (!lifted && (collapsed || ((s.selected === i || s.hover === i) && info.kids[i].length))) {
       const b = badgeAt(i, s)
+      const col = c.edge
       ctx.beginPath()
       ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2)
-      ctx.fillStyle = collapsed ? c.edge : theme.badgeBg
+      ctx.fillStyle = collapsed ? col : theme.badgeBg
       ctx.fill()
-      ctx.lineWidth = 1.5
-      ctx.strokeStyle = c.edge
+      ctx.lineWidth = 1.75
+      ctx.strokeStyle = col
       ctx.stroke()
-      ctx.fillStyle = collapsed ? readableText(c.edge) : c.edge
-      ctx.font = `700 11px ${STACK}`
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(collapsed ? String(Math.min(info.hidden[i], 99)) : '−', b.x, b.y + 0.5)
+      if (collapsed) {
+        ctx.fillStyle = readableText(col)
+        ctx.font = `700 11px ${STACK}`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(String(Math.min(info.hidden[i], 99)), b.x, b.y + 0.5)
+      } else {
+        ctx.beginPath()
+        ctx.moveTo(b.x - 4.5, b.y)
+        ctx.lineTo(b.x + 4.5, b.y)
+        ctx.stroke()
+      }
     }
-  })
+    ctx.restore()
+  }
+
+  const lifted = s.dragging || null
+  nodes.forEach((_, i) => info.visible[i] && !lifted?.has(i) && drawNode(i, false))
+  if (s.drop !== null && s.drop !== undefined && info.visible[s.drop]) {
+    const p = s.pos(s.drop)
+    const m = s.size(s.drop)
+    box(ctx, p.x - m.w / 2 - 6, p.y - m.h / 2 - 6, m.w + 12, m.h + 12, m.r + 6)
+    ctx.fillStyle = theme.accentSoft
+    ctx.fill()
+    ring(ctx, p, m, 6, 2.5, theme.accent)
+  }
+  if (lifted) for (const i of lifted) if (info.visible[i]) drawNode(i, true)
 }
