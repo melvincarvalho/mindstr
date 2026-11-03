@@ -58,7 +58,10 @@ const store = {
   set: (k, v) => {
     try {
       v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v)
-    } catch {}
+      return true
+    } catch {
+      return false
+    }
   }
 }
 const session = {
@@ -101,7 +104,6 @@ if (mapUrl && !/^https?:$/.test(new URL(mapUrl).protocol)) {
 const isJsonLd = Boolean(mapUrl) && /\.jsonld$/i.test(new URL(mapUrl).pathname)
 // Maps bundled with the app (examples/): the first edit turns them into a draft of your own.
 let isExample = Boolean(mapUrl) && mapUrl.startsWith(new URL('./', location.href).href)
-const exampleTitle = isExample ? decodeURIComponent(mapUrl.split('/').pop().replace(/\.jsonld?$/, '')) : ''
 
 // ---------- drafts: maps kept in this browser until saved to a pod ----------
 
@@ -116,23 +118,43 @@ function drafts() {
     return []
   }
 }
+let draftSource = null // file name or example a draft came from
+let storageFailed = false
 function saveDraft() {
   if (!draftId) return
-  store.set(draftKey(draftId), JSON.stringify(serialize()))
-  const list = drafts().filter(d => d.id !== draftId)
-  list.unshift({ id: draftId, title: state.nodes[0]?.name || 'Untitled', at: Date.now(), count: state.nodes.length })
-  store.set(DRAFTS_KEY, JSON.stringify(list.slice(0, 50)))
+  if (new URLSearchParams(location.search).get('draft') !== draftId) history.replaceState(null, '', draftUrl(draftId))
+  const prev = drafts().find(d => d.id === draftId)
+  const ok =
+    store.set(draftKey(draftId), JSON.stringify(serialize())) &&
+    store.set(
+      DRAFTS_KEY,
+      JSON.stringify([
+        { id: draftId, title: state.nodes[0]?.name || 'Untitled', at: Date.now(), count: state.nodes.length, source: prev?.source || draftSource || undefined },
+        ...drafts().filter(d => d.id !== draftId)
+      ])
+    )
+  if (!ok && !storageFailed) {
+    storageFailed = true
+    showBanner('This browser can’t store your draft (storage is full or blocked). Download it or sign in to save it to your pod.', [
+      ['Download', exportJson],
+      ['Save to pod', () => saveCopy()]
+    ])
+  } else if (ok && storageFailed) {
+    storageFailed = false
+    hideBanner()
+  }
+  updateUi()
 }
 function deleteDraft(id) {
   store.set(draftKey(id), null)
   store.set(DRAFTS_KEY, JSON.stringify(drafts().filter(d => d.id !== id)))
 }
-function createDraft(data, title) {
+function createDraft(data, title, source) {
   const id = newDraftId()
-  store.set(draftKey(id), JSON.stringify(data))
-  const list = drafts()
-  list.unshift({ id, title: title || data?.nodes?.[0]?.name || 'Untitled', at: Date.now(), count: data?.nodes?.length || 1 })
-  store.set(DRAFTS_KEY, JSON.stringify(list.slice(0, 50)))
+  const ok =
+    store.set(draftKey(id), JSON.stringify(data)) &&
+    store.set(DRAFTS_KEY, JSON.stringify([{ id, title: title || data?.nodes?.[0]?.name || 'Untitled', at: Date.now(), count: data?.nodes?.length || 1, source }, ...drafts()]))
+  if (!ok) throw new Error('this browser can’t store it (storage full or blocked)')
   return id
 }
 // one-time move of the old single scratch slot into the drafts list
@@ -266,11 +288,25 @@ function analyze() {
       if (depth[i] !== -1) continue
       depth[i] = d
       visible[i] = vis
-      const own = d === 1 ? state.nodes[i].bgColor || hashColor(state.nodes[i]['@id']) : col
+      const own = d === 1 ? branchOf(i) : col
       branchColor[i] = own
       for (const k of kids[i]) stack.push([k, d + 1, own, vis && !folded(state.nodes[i])])
     }
   }
+  // top-level branch colours: explicit ones are kept; the rest take their hashed colour,
+  // or the next palette colour no sibling is using
+  const rootKids = kids[0]
+  const taken = new Set(rootKids.map(k => state.nodes[k].bgColor).filter(Boolean).map(c => c.toUpperCase()))
+  const assigned = new Map()
+  for (const k of rootKids) {
+    if (state.nodes[k].bgColor) continue
+    let c = hashColor(state.nodes[k]['@id'])
+    const start = BRANCH_COLORS.indexOf(c)
+    for (let t = 0; t < BRANCH_COLORS.length && taken.has(c.toUpperCase()); t++) c = BRANCH_COLORS[(start + t + 1) % BRANCH_COLORS.length]
+    taken.add(c.toUpperCase())
+    assigned.set(k, c)
+  }
+  const branchOf = i => state.nodes[i].bgColor || assigned.get(i) || hashColor(state.nodes[i]['@id'])
   walk(0, 0, BRANCH_COLORS[0])
   for (let i = 0; i < n; i++) {
     if (depth[i] === -1 && (parent[i] === null || depth[parent[i]] === -1)) walk(i, 1, null)
@@ -312,19 +348,33 @@ function checkpoint() {
 
 const syncIsland = () => (island.textContent = JSON.stringify(serialize()))
 
-function changed() {
+function changed({ view = false } = {}) {
   if (session.get('mindstr:afterLogin')) clearLoginIntent()
   analyze()
+  if (view && (isExample || (mapUrl && !state.canSave))) {
+    // folding / tidying an example or unloadable map is just looking: no fork, no dirty
+    syncIsland()
+    updateUi()
+    invalidate()
+    return
+  }
   state.dirty = true
   syncIsland()
-  if (isExample) forkExample()
+  if (isExample || (mapUrl && !state.canSave)) forkToDraft()
   if (!mapUrl) saveDraft()
   updateUi()
   invalidate()
 }
 
 const hideToast = () => (toastEl.hidden = true)
+let lastInput = 'pointer'
+document.addEventListener('pointerdown', () => (lastInput = 'pointer'), true)
+document.addEventListener('keydown', e => {
+  lastInput = 'key'
+  document.querySelectorAll('dialog.quiet').forEach(d => d.classList.remove('quiet'))
+}, true)
 function openDialog(d) {
+  d.classList.toggle('quiet', lastInput === 'pointer')
   hideToast()
   const pill = document.getElementById('xlogin-widget')
   if (pill) pill.style.visibility = 'hidden'
@@ -387,6 +437,13 @@ function animateFrom(before) {
   invalidate()
 }
 const positions = () => new Map(state.nodes.map(n => [n['@id'], { x: n.x, y: n.y }]))
+
+// while hovering a drop target, draw the dragged branch offset from the pointer
+function dragPos(i) {
+  const p = pos(i)
+  if (!gesture?.items?.some(it => it.j === i)) return p
+  return { x: p.x + 26 / state.view.scale, y: p.y + 22 / state.view.scale }
+}
 
 const toWorld = (sx, sy) => ({ x: (sx - state.view.x) / state.view.scale, y: (sy - state.view.y) / state.view.scale })
 const toScreen = (wx, wy) => ({ x: wx * state.view.scale + state.view.x, y: wy * state.view.scale + state.view.y })
@@ -583,6 +640,7 @@ function scene(over = {}) {
     hover: state.hover,
     drop: state.drop,
     dragging: gesture?.type === 'node' && gesture.moved ? new Set(gesture.items.map(it => it.j)) : null,
+    pos: gesture?.type === 'node' && gesture.moved && state.drop !== null ? dragPos : pos,
     badgeR: coarse.matches ? 13 : 11,
     editing: state.editing?.index ?? null,
     flash: flashing.until > now ? { ids: flashing.ids, t: (flashing.until - now) / FLASH_MS } : null,
@@ -616,8 +674,11 @@ function draw() {
   if (viewAnim || anims.size || flashing.until > now) invalidate()
 }
 
+let userMoved = false
+let loaded = false
 function resize() {
   const rect = stage.getBoundingClientRect()
+  const changedSize = Math.abs(rect.height - height) > 1 || Math.abs(rect.width - width) > 1
   dpr = window.devicePixelRatio || 1
   width = rect.width
   height = rect.height
@@ -626,6 +687,7 @@ function resize() {
   canvas.style.width = width + 'px'
   canvas.style.height = height + 'px'
   positionEditor()
+  if (loaded && !userMoved && changedSize && !state.editing) fitView(false, true)
   invalidate()
 }
 
@@ -744,7 +806,7 @@ function toggleCollapse(i = state.selected) {
   peek.delete(n['@id'])
   state.nodes[i] = { ...n, collapsed: collapsing || undefined }
   if (collapsing && state.selected !== null && state.selected !== i && subtree(i).includes(state.selected)) state.selected = i
-  changed()
+  changed({ view: true })
   announce(describe(i))
 }
 
@@ -854,7 +916,7 @@ function moveNode(dir) {
   const before = positions()
   if (dir === 'up' || dir === 'down') {
     const j = sibs[k + (dir === 'up' ? -1 : 1)]
-    if (j === undefined) return announce(dir === 'up' ? 'Already first' : 'Already last')
+    if (j === undefined) return say(dir === 'up' ? 'Already first' : 'Already last')
     checkpoint()
     // swap their order and their places on the canvas
     const ci = state.connections.findIndex(c => c.end === i)
@@ -868,14 +930,14 @@ function moveNode(dir) {
     announce(`${name} moved ${dir}, ${k + (dir === 'up' ? 0 : 2)} of ${sibs.length}`)
   } else if (dir === 'left') {
     const gp = info.parent[parent]
-    if (gp === null || gp === undefined) return announce('Already at the top level')
+    if (gp === null || gp === undefined) return say('Already at the top level')
     checkpoint()
     reparent(i, gp)
     changed()
     announce(`${name} moved up a level, under ${state.nodes[gp].name || 'Untitled'}`)
   } else {
     const prev = sibs[k - 1]
-    if (prev === undefined) return announce('No previous sibling to move under')
+    if (prev === undefined) return say('No previous sibling to move under')
     checkpoint()
     reparent(i, prev)
     changed()
@@ -892,7 +954,7 @@ function tidy() {
   const root = state.nodes[0]
   const placed = radialLayout(0, i => info.kids[i], size, { x: root.x, y: root.y })
   for (const [i, p] of placed) Object.assign(state.nodes[i], p)
-  changed()
+  changed({ view: true })
   animateFrom(before)
   fitView()
   announce('Layout tidied')
@@ -1124,6 +1186,11 @@ function exportJson() {
 // ---------- find ----------
 
 function openFind() {
+  if (findBar.hidden) {
+    let top = Infinity
+    state.nodes.forEach((n, i) => info.visible[i] && (top = Math.min(top, toScreen(n.x, n.y).y - (size(i).h * state.view.scale) / 2)))
+    if (top < 72) setView({ ...state.view, y: state.view.y + (72 - top) })
+  }
   findBar.hidden = false
   findInput.focus()
   findInput.select()
@@ -1306,6 +1373,7 @@ const focusMap = () => {
 }
 
 canvas.addEventListener('pointerdown', e => {
+  userMoved = true
   if (e.pointerType === 'mouse' && e.button !== 0) return
   commitEdit()
   closeMenu()
@@ -1482,6 +1550,7 @@ canvas.addEventListener(
   e => {
     e.preventDefault()
     viewAnim = null
+    userMoved = true
     const k = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? height : 1
     if (e.ctrlKey || e.metaKey) {
       // pinch on a trackpad, or Ctrl+wheel
@@ -1696,10 +1765,12 @@ function placeTreeItems() {
     if (!n) continue
     const p = pos(i)
     const m = size(i)
-    li.style.left = p.x * k + state.view.x - (m.w * k) / 2 + 'px'
-    li.style.top = p.y * k + state.view.y - (m.h * k) / 2 + 'px'
-    li.style.width = m.w * k + 'px'
-    li.style.height = m.h * k + 'px'
+    const w = Math.max(m.w * k, 44)
+    const h = Math.max(m.h * k, 44)
+    li.style.left = p.x * k + state.view.x - w / 2 + 'px'
+    li.style.top = p.y * k + state.view.y - h / 2 + 'px'
+    li.style.width = w + 'px'
+    li.style.height = h + 'px'
   }
 }
 
@@ -1748,11 +1819,13 @@ function updateUi() {
   const copy = !mapUrl || isExample
   set('save', !state.saving && (copy || state.canSave))
   saveLabel.textContent = copy ? (isExample ? 'Save copy' : 'Save') : 'Save'
-  document.body.classList.toggle('has-selection', has)
+  document.body.classList.toggle('has-selection', has || width < 760 || coarse.matches)
 
   statusEl.textContent = state.saving
     ? 'Saving…'
-    : !mapUrl
+    : storageFailed
+      ? 'Not saved'
+      : !mapUrl
       ? 'Draft · in this browser'
       : isExample
         ? state.dirty
@@ -1789,6 +1862,11 @@ function toast(msg, { ms = 3200, action } = {}) {
   toastEl.hidden = false
   clearTimeout(toastTimer)
   toastTimer = setTimeout(() => (toastEl.hidden = true), ms)
+}
+
+function say(msg) {
+  toast(msg, { ms: 2000 })
+  announce(msg)
 }
 
 function announce(msg) {
@@ -1964,30 +2042,66 @@ function askToSignIn(next, why) {
   }
 }
 
-// The first edit to an example makes it your own draft.
-function forkExample() {
+// The first edit to an example (or a map that couldn't be loaded) makes it your own draft.
+function forkToDraft() {
+  const from = mapUrl
+  const wasExample = isExample
   isExample = false
   mapUrl = null
   state.canSave = false
   draftId = newDraftId()
+  draftSource = from
   saveDraft()
-  history.replaceState(null, '', draftUrl(draftId))
-  toast(`Editing your own copy of “${exampleTitle}” — kept in this browser until you save it`, { ms: 5000 })
+  hideBanner()
+  toast(`Editing your own copy · kept in this browser`, { ms: 4000 })
+  announce(`Editing your own copy of ${state.nodes[0].name}, kept in this browser`)
+  if (!wasExample) remote.live = false
 }
 
 function openFile() {
   const input = document.createElement('input')
   input.type = 'file'
-  input.accept = '.json,.jsonld,application/json,application/ld+json'
+  input.accept = '.json,.jsonld,.md,.markdown,.txt,application/json,application/ld+json,text/markdown,text/plain'
   input.onchange = () => input.files[0] && importFile(input.files[0])
   input.click()
 }
+// Turn outline trees into a laid-out map document.
+function mapFromTrees(trees, fallbackTitle) {
+  const root = trees.length === 1 ? trees[0] : { name: fallbackTitle, kids: trees }
+  const nodes = []
+  const connections = []
+  const add = (t, parent) => {
+    nodes.push({ '@id': nodes.length ? newId() : '#this', name: t.name, x: 0, y: 0, ...(t.link ? { link: t.link } : {}) })
+    const i = nodes.length - 1
+    if (parent !== null) connections.push({ start: parent, end: i })
+    for (const k of t.kids || []) add(k, i)
+  }
+  add(root, null)
+  const kidsOf = i => connections.filter(c => c.start === i).map(c => c.end)
+  const depthOf = i => (i === 0 ? 0 : 1 + depthOf(connections.find(c => c.end === i).start))
+  const placed = radialLayout(0, kidsOf, i => measure(nodes[i], depthOf(i)))
+  for (const [i, p] of placed) Object.assign(nodes[i], p)
+  return { version: '0.1', nodes, connections }
+}
+
 async function importFile(file) {
   try {
-    const data = JSON.parse(await file.text())
-    if (!Array.isArray(data?.nodes)) throw new Error('not a mind map')
-    leaving = true
-    location.href = draftUrl(createDraft(data))
+    const text = await file.text()
+    let data
+    if (/\.(md|markdown|txt|opml)$/i.test(file.name) || /^text\/(markdown|plain)/.test(file.type)) {
+      const trees = parseOutline(text)
+      if (!trees.length) throw new Error('no outline found')
+      data = mapFromTrees(trees, file.name.replace(/\.[^.]+$/, ''))
+    } else {
+      try {
+        data = JSON.parse(text)
+      } catch {
+        throw new Error('Mindstr opens .json / .jsonld maps and text or Markdown outlines')
+      }
+      if (!Array.isArray(data?.nodes)) throw new Error('that JSON isn’t a Mindstr map')
+    }
+    if (!(mapUrl && state.dirty && state.canSave)) leaving = true
+    location.href = draftUrl(createDraft(data, null, file.name))
   } catch (err) {
     toast(`Couldn’t open ${file.name}: ${err.message}`, { ms: 6000 })
   }
@@ -2056,7 +2170,8 @@ async function openMaps() {
       a.href = draftUrl(d.id)
       a.textContent = d.title
       const span = document.createElement('span')
-      span.textContent = (d.id === draftId ? 'open now · ' : '') + ago(d.at) + (d.count ? ` · ${d.count} ${d.count === 1 ? 'idea' : 'ideas'}` : '')
+      const from = d.source ? ` · from ${decodeURIComponent(String(d.source).split('/').pop())}` : ''
+      span.textContent = (d.id === draftId ? 'open now · ' : '') + ago(d.at) + (d.count ? ` · ${d.count} ${d.count === 1 ? 'idea' : 'ideas'}` : '') + from
       a.append(span)
       const del = document.createElement('button')
       del.className = 'danger-ghost'
@@ -2074,7 +2189,12 @@ async function openMaps() {
           }],
           ms: 7000
         })
-        if (d.id === draftId) draftId = newDraftId()
+        if (d.id === draftId) {
+          // the map is still on screen: keep it as a fresh draft so nothing is lost
+          draftId = newDraftId()
+          saveDraft()
+          openMaps()
+        }
       })
       li.append(a, del)
       return li
@@ -2114,7 +2234,7 @@ async function openMaps() {
 function newMap() {
   closeMenu()
   if (!mapUrl && state.nodes.length === 1 && state.nodes[0].name === 'Central idea') return startEdit(0)
-  if (!(isExample && state.dirty)) leaving = true
+  if (!(mapUrl && state.dirty && state.canSave)) leaving = true
   location.href = draftUrl(newDraftId())
 }
 
@@ -2299,9 +2419,14 @@ async function load() {
   syncIsland()
   resize()
   fitView(false, true)
+  loaded = true
   updateUi()
   if (state.canSave || remote.exists) startLive(updatesVia)
 
+  if (isExample) {
+    const copy = drafts().find(d => d.source === mapUrl)
+    if (copy) toast(`You have a copy of this example (${copy.title})`, { action: ['Continue your copy', () => (location.href = draftUrl(copy.id))], ms: 8000 })
+  }
   const msg = session.get('mindstr:toast')
   if (msg) {
     session.set('mindstr:toast', null)

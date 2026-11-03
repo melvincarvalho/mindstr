@@ -6,7 +6,7 @@ const STACK = 'system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif'
 export const STYLES = [
   { font: `800 18px Manrope, ${STACK}`, padX: 22, h: 46, r: 23 },
   { font: `700 15px Manrope, ${STACK}`, padX: 16, h: 36, r: 12 },
-  { font: `450 14px ${STACK}`, padX: 14, h: 32, r: 10 }
+  { font: `600 14px Manrope, ${STACK}`, padX: 14, h: 32, r: 10 }
 ]
 const LINK_W = 18 // room for the ↗ icon
 const ROOT_FILL = '#6d4aff'

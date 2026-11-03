@@ -25,7 +25,7 @@
     <link rel="icon" href="favicon.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
     <style>
       :root {
         --bg: #f7f7fa;
@@ -102,7 +102,7 @@
       .brand {
         display: flex; align-items: center; gap: 8px;
         min-height: 44px; min-width: 44px; padding: 0 4px;
-        margin-right: 8px;
+        margin-right: 8px; flex: none;
         font: 800 17px/1 Manrope, system-ui, sans-serif; letter-spacing: -0.3px;
         color: var(--text); text-decoration: none;
       }
@@ -162,7 +162,7 @@
         position: fixed; z-index: 30;
         left: 16px; bottom: max(16px, env(safe-area-inset-bottom));
         display: flex; align-items: center; gap: 12px;
-        max-width: calc(100vw - 32px);
+        max-width: min(440px, calc(100vw - 32px));
         padding: 10px 12px 10px 16px;
         border-radius: 12px;
         background: #1b1f27; color: #fff;
@@ -218,7 +218,7 @@
         position: absolute; right: 16px; bottom: 76px; z-index: 4;
         display: flex; flex-direction: column;
         background: var(--raised); border: 1px solid var(--border); border-radius: 12px;
-        box-shadow: var(--shadow); overflow: hidden;
+        box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); overflow: hidden;
       }
       #zoom button { border-radius: 0; }
 
@@ -229,6 +229,7 @@
         padding: 0; width: min(480px, calc(100vw - 32px));
         box-shadow: var(--shadow);
       }
+      dialog.quiet :focus-visible { outline: none !important; }
       dialog::backdrop { background: rgb(10 10 25 / 0.45); }
       .dlg-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 0 20px; }
       .dlg-head h2 { margin: 0; font-size: 18px; font-family: Manrope, system-ui, sans-serif; font-weight: 800; }
@@ -263,8 +264,16 @@
         color: var(--text); text-decoration: none; font-weight: 600;
       }
       .maplist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-      .maplist .row { display: flex; gap: 6px; align-items: stretch; }
-      .maplist .row a { flex: 1; min-width: 0; }
+      .maplist .row { position: relative; display: flex; align-items: stretch; }
+      .maplist .row a { flex: 1; min-width: 0; padding-right: 52px; }
+      .maplist a::after { content: '›'; color: var(--muted); font-size: 18px; line-height: 1; margin-left: 4px; }
+      .maplist .row a::after { position: absolute; right: 44px; top: 50%; transform: translateY(-50%); }
+      .maplist .row .danger-ghost { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); }
+      @media (hover: hover) {
+        .maplist a:hover { background: var(--hover); }
+        .maplist .row .danger-ghost { opacity: 0; }
+        .maplist .row:hover .danger-ghost, .maplist .row .danger-ghost:focus-visible { opacity: 1; }
+      }
       .danger-ghost { color: #c0362c; }
       @media (prefers-color-scheme: dark) { .danger-ghost { color: #f97066; } }
       .maplist a {
@@ -283,6 +292,7 @@
       /* ---------- narrow screens ---------- */
       .narrow-only { display: none !important; }
       @media (max-width: 1000px) {
+        .brand span { display: none; }
         #status { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
       }
       @media (max-width: 800px) {
@@ -313,7 +323,7 @@
           box-shadow: var(--shadow);
         }
         body:not(.has-selection) .node-actions { display: none; }
-        #toast { left: 12px; right: 12px; bottom: calc(84px + env(safe-area-inset-bottom)); }
+        #toast { left: 12px; right: 12px; max-width: none; bottom: calc(84px + env(safe-area-inset-bottom)); }
         #hint { width: min(360px, calc(100vw - 32px)); justify-content: space-between; gap: 6px 10px; }
         #hint { bottom: calc(84px + env(safe-area-inset-bottom)); }
         #zoom { top: 10px; right: 10px; bottom: auto; flex-direction: row; }

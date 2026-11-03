@@ -1,7 +1,7 @@
 // Colour helpers: branch palette, dark-mode variants and readable text.
 
 // Pastels for top-level branches, used when a branch has no bgColor of its own.
-export const BRANCH_COLORS = ['#D6E8FF', '#D9F2DC', '#FFD6E8', '#FFE1CC', '#E6E0FF', '#D4F1F4']
+export const BRANCH_COLORS = ['#D6E8FF', '#D9F2DC', '#FFD6E8', '#FFE1CC', '#E6E0FF', '#D4F1F4', '#FFF1B8', '#E3E8EF']
 
 const probe = document.createElement('canvas').getContext('2d')
 const cache = new Map()
