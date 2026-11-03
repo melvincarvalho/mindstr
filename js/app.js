@@ -1,4 +1,5 @@
 import { authFetch, hostPod, identity, login as openLogin, MAP_PATH, myMapUrl, ready } from './pod.js'
+import { watch } from './live.js'
 
 const DOC_VIEWER = 'https://nosdav.com/doc/?uri='
 const NODE_H = 36
@@ -837,6 +838,7 @@ function updateUi() {
         : state.dirty
           ? 'Unsaved'
           : 'Saved'
+  if (remote.live) statusEl.textContent += ' · live'
   statusEl.dataset.state = state.dirty && state.canSave ? 'dirty' : ''
   document.title = 'Mindstr – ' + (state.nodes[0]?.name || 'untitled')
 }
@@ -851,10 +853,130 @@ function toast(msg, ms = 3200) {
   toastTimer = setTimeout(() => (toastEl.hidden = true), ms)
 }
 
-function showBanner(msg) {
-  banner.textContent = msg
+function showBanner(msg, actions = []) {
+  banner.replaceChildren(msg)
+  for (const [label, fn] of actions) {
+    const b = document.createElement('button')
+    b.textContent = label
+    b.className = 'banner-btn'
+    b.addEventListener('click', fn)
+    banner.append(' ', b)
+  }
   banner.hidden = false
   requestAnimationFrame(resize)
+}
+
+function hideBanner() {
+  if (banner.hidden) return
+  banner.hidden = true
+  requestAnimationFrame(resize)
+}
+
+// ---------- live sync ----------
+
+const ACCEPT = 'application/ld+json, application/json;q=0.9, */*;q=0.1'
+const remote = {
+  etag: null, // version we last loaded or saved; sent as If-Match
+  exists: false, // whether the map exists on the server
+  live: false, // subscribed to change notifications
+  pending: null, // remote version waiting while we have local edits
+  checking: false,
+  again: false
+}
+
+// Key-order-independent JSON, so reformatting by the server doesn't count as a change.
+const stable = v =>
+  Array.isArray(v)
+    ? '[' + v.map(stable).join(',') + ']'
+    : v && typeof v === 'object'
+      ? '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + stable(v[k])).join(',') + '}'
+      : JSON.stringify(v)
+const content = d => stable({ ...d, selectedNode: undefined, version: undefined })
+const sameAsLocal = data => content(data) === content(serialize())
+
+function applyRemote(data, etag) {
+  const selId = state.nodes[state.selected]?.['@id']
+  if (state.editing) cancelEdit()
+  const { nodes, connections, selected, extra } = normalize(data)
+  state.nodes = nodes
+  state.connections = connections
+  state.extra = extra
+  const keep = nodes.findIndex(n => n['@id'] === selId)
+  state.selected = keep >= 0 ? keep : selected
+  undoStack = []
+  redoStack = []
+  remote.etag = etag
+  remote.exists = true
+  remote.pending = null
+  state.dirty = false
+  hideBanner()
+  syncIsland()
+  updateUi()
+  invalidate()
+}
+
+function showConflict(message) {
+  showBanner(message, [
+    ['Load theirs', () => remote.pending && applyRemote(remote.pending.data, remote.pending.etag)],
+    [
+      'Keep mine',
+      () => {
+        // next save deliberately replaces their version
+        if (remote.pending) remote.etag = remote.pending.etag
+        remote.pending = null
+        remote.exists = true
+        hideBanner()
+      }
+    ]
+  ])
+}
+
+async function checkRemote() {
+  if (!mapUrl) return
+  if (remote.checking || state.saving) {
+    remote.again = true
+    return
+  }
+  remote.checking = true
+  try {
+    const res = await authFetch(mapUrl, { cache: 'no-cache', headers: { Accept: ACCEPT } })
+    if (!res.ok) return
+    const etag = res.headers.get('ETag')
+    if (etag && etag === remote.etag) return
+    const data = await res.json()
+    if (sameAsLocal(data)) {
+      // our own save, or an identical change
+      remote.etag = etag
+      remote.exists = true
+      return
+    }
+    if (state.dirty || state.editing || gesture) {
+      remote.pending = { data, etag }
+      showConflict('Someone else changed this map while you were editing.')
+    } else {
+      applyRemote(data, etag)
+      toast('Map updated by someone else')
+    }
+  } catch {
+    // offline or bad JSON: try again on the next notification
+  } finally {
+    remote.checking = false
+    if (remote.again) {
+      remote.again = false
+      checkRemote()
+    }
+  }
+}
+
+function startLive(updatesVia) {
+  if (!updatesVia || !mapUrl || typeof WebSocket === 'undefined') return
+  watch(mapUrl, updatesVia, {
+    onChange: checkRemote,
+    onStatus: on => {
+      remote.live = on
+      updateUi()
+    }
+  })
 }
 
 // ---------- persistence ----------
@@ -871,11 +993,23 @@ async function save() {
   state.saving = true
   updateUi()
   try {
+    const headers = { 'Content-Type': isJsonLd ? 'application/ld+json' : 'application/json' }
+    if (remote.etag) headers['If-Match'] = remote.etag
+    else if (!remote.exists) headers['If-None-Match'] = '*'
     const res = await authFetch(mapUrl, {
       method: 'PUT',
-      headers: { 'Content-Type': isJsonLd ? 'application/ld+json' : 'application/json' },
+      headers,
       body: JSON.stringify(serialize(), null, 2)
     })
+    if (res.status === 412) {
+      // someone saved first: fetch their version and let the user choose
+      const theirs = await authFetch(mapUrl, { cache: 'no-cache', headers: { Accept: ACCEPT } })
+      remote.pending = theirs.ok ? { data: await theirs.json(), etag: theirs.headers.get('ETag') } : null
+      remote.exists = theirs.ok
+      if (!theirs.ok) remote.etag = null
+      showConflict('Someone else saved this map since you loaded it.')
+      throw new Error('it changed on the server')
+    }
     if ((res.status === 401 || res.status === 403) && !identity()) {
       openLogin()
       throw new Error('sign in, then save again')
@@ -885,6 +1019,9 @@ async function save() {
       throw new Error(`HTTP ${res.status}${hint}`)
     }
     state.dirty = false
+    remote.exists = true
+    remote.etag = null // JSS doesn't return the new ETag; checkRemote learns it
+    hideBanner()
     toast('Saved')
     new Audio('./audio/save.ogg').play().catch(() => {})
   } catch (err) {
@@ -892,6 +1029,7 @@ async function save() {
   } finally {
     state.saving = false
     updateUi()
+    if (remote.exists && !remote.etag) checkRemote()
   }
 }
 
@@ -956,12 +1094,17 @@ async function load() {
     state.canSave = false
     showBanner(`Can’t open “${mapParam}”: use an http(s) URL to a .json or .jsonld map, absolute or relative.`)
   }
+  let updatesVia = null
   if (mapUrl) {
+    statusEl.textContent = 'Loading…'
     try {
-      const res = await fetch(mapUrl, {
-        cache: 'no-cache',
-        headers: { Accept: 'application/ld+json, application/json;q=0.9, */*;q=0.1' }
-      })
+      const get = () => authFetch(mapUrl, { cache: 'no-cache', headers: { Accept: ACCEPT } })
+      let res = await get()
+      if (res.status === 401 || res.status === 403) {
+        await ready() // private map: wait for xlogin to restore the session, then retry
+        res = await get()
+      }
+      updatesVia = res.headers.get('Updates-Via')
       if (res.status === 404) {
         data = takePending() || data
         toast('New map — press Ctrl+S to create it', 5000)
@@ -970,6 +1113,8 @@ async function load() {
       } else {
         data = await res.json()
         isNew = false
+        remote.etag = res.headers.get('ETag')
+        remote.exists = true
       }
     } catch (err) {
       state.canSave = false
@@ -989,6 +1134,7 @@ async function load() {
   resize()
   fitView()
   updateUi()
+  if (state.canSave || remote.exists) startLive(updatesVia)
 }
 
 new ResizeObserver(resize).observe(stage)

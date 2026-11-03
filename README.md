@@ -36,6 +36,14 @@ anyone you share the link with and writable only by you:
 If a map can't be loaded, saving is disabled so the original isn't overwritten.
 A 404 is treated as a new map.
 
+### Live editing
+
+When the server advertises `Updates-Via` (JSS does with `--notifications`),
+mindstr subscribes to the map and shows **· live**. Changes saved by anyone
+else appear straight away. If you have unsaved edits you get a choice instead:
+**Load theirs** or **Keep mine**. Saves send `If-Match`, so nobody silently
+overwrites a newer version.
+
 ### Shortcuts
 
 | Key | Action |
@@ -96,6 +104,7 @@ No build step. Serve the folder (`npx serve .`) and open it. Pushing to
 - `index.html`: markup and styles
 - `js/app.js`: canvas, interaction, load/save
 - `js/pod.js`: xlogin sign-in, `authFetch`, and finding your pod / default map
+- `js/live.js`: solid-0.1 WebSocket notifications
 - `scripts/build-examples.js`: regenerates `examples/` (Node, no dependencies)
 
 MIT licensed.
