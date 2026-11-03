@@ -18,42 +18,25 @@ well is part of the job; see *Layout* below.
 
 ## Document shape
 
-```json
-{
-  "version": "0.1",
-  "nodes": [
-    { "@id": "#this",  "name": "Trip",    "x": 0,    "y": 0 },
-    { "@id": "#k3x9q2", "name": "Travel", "x": 220,  "y": 0 },
-    { "@id": "#p7m2wd", "name": "Guide",  "x": 430,  "y": -40, "link": "https://example.com/guide" }
-  ],
-  "connections": [
-    { "start": 0, "end": 1 },
-    { "start": 1, "end": 2 }
-  ],
-  "selectedNode": 0
-}
-```
+The full format is in **[SPEC.md](SPEC.md)** (also at `<pod>/public/apps/mindstr/SPEC.md`
+when installed, and https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md).
+Write **version 0.2**. The rules you must not get wrong:
 
-| Field | Rules |
-| --- | --- |
-| `nodes[]` | Required. **`nodes[0]` is the root**; its `@id` is always `#this`. |
-| `@id` | Unique fragment: `#` + 6 random lowercase letters/digits (e.g. `#k3x9q2`). Never reuse or change an existing one; the app uses them to keep selection and highlight changes. |
-| `name` | Node text. Keep it short: 1–4 words. Long names make wide ovals that collide. |
-| `x`, `y` | Centre of the node in map units (≈ CSS px at 100% zoom). `y` grows **downward**. Any origin; the app fits the map to the screen on load. |
-| `bgColor` | Optional CSS colour; keep it a soft pastel so the dark text stays readable. The app always draws the root in brand violet, so don't colour it. Top-level branches cycle `#D6E8FF` `#D9F2DC` `#FFD6E8` `#FFE1CC` `#E6E0FF` `#D4F1F4` (repeats are fine past six); leaves stay uncoloured. |
-| `link` | Optional. `http(s)` URL opens in a new tab; a `.md` URL opens in the NosDAV doc viewer; a relative link to `.json`/`.jsonld` (`./other.json`) opens that map in mindstr. Other schemes are blocked. |
-| `connections[]` | Parent → child edges. **`start` and `end` are array indices into `nodes`, not `@id`s.** Each non-root node should have exactly one parent, forming a tree under the root. |
-| `collapsed` | Optional `true` on a node whose branch is folded in the app. Leave it alone unless asked. |
-| `selectedNode` | Index of the selected node. Use `0` in a new map; leave it as is when editing. |
-| `version` | `"0.1"`. |
-
-Unknown fields on nodes and at the top level (e.g. a JSON-LD `@context` or `@type`) are
-**preserved** by the app, so you can annotate a map without breaking it. There is no
-official mindstr vocabulary yet, so new maps don't need an `@context`; keep any that an
-existing map already has.
-
-In a new map, list nodes **depth-first** (root, first branch, its descendants, next
-branch…) and connections in the same order. The layout code below does this.
+- `nodes[0]` is the root and its `@id` is `#this`. Other ids are `#` + 6 characters
+  from `abcdefghijkmnpqrstuvwxyz23456789`, unique, never changed once written.
+- The tree is stored twice and **both must agree**: `connections` (`{ "start": i, "end": j }`,
+  **array indices** into `nodes`) and `parent` on every non-root node (the parent's `@id`).
+  If they disagree, readers trust `connections`.
+- Every node is reachable from the root, with exactly one parent: a tree.
+- Children are ordered as their connections appear.
+- Keep any `@context` and other fields you didn't write. A new map gets the 0.2 context:
+  `{ "@vocab": "https://mindstr.org/ns#", "link": { "@type": "@id" }, "parent": { "@type": "@id" } }`.
+- `bgColor`: soft pastels; the app draws the root in its own colour, so don't colour it.
+  Top-level branches cycle `#D6E8FF` `#D9F2DC` `#FFD6E8` `#FFE1CC` `#E6E0FF` `#D4F1F4`;
+  leaves stay uncoloured.
+- `link`: an `http(s)` URL, or a relative path to another map (`./other.jsonld`, or
+  `./other.jsonld#k3x9q2` for one node in it) or a `.md` document.
+- Names are one short line (1–4 words read best).
 
 ## Storage and viewing
 
@@ -74,11 +57,12 @@ People may have the map open. The app subscribes to changes and shows yours live
 2. **Write conditionally when you can.** Use the `ETag` from your GET as
    `If-Match` on the PUT; for a brand-new file send `If-None-Match: *`. A `412` means
    someone saved in between: re-read, re-apply your change, try again.
-3. **Add nodes at the end of `nodes`** so existing indices in `connections` stay valid.
+3. **Add nodes at the end of `nodes`** so existing indices in `connections` stay valid,
+   and give each new node its `parent`.
    Viewers see added nodes selected and highlighted.
 4. **When removing node *i***: drop it from `nodes`, drop connections touching it,
    either remove its whole branch too (what the app's Delete does) or re-attach its children to its parent (the app's Shift+Delete), then **decrement every
-   `start`/`end` greater than *i***. Never delete the root.
+   `start`/`end` greater than *i***, and update the moved children's `parent`. Never delete the root.
 5. Keep every other node's `@id`, position and unknown fields untouched.
 
 ## Layout
@@ -118,7 +102,11 @@ function layout(tree) {
       n.x = Math.round(n.x + 20 * Math.cos(a)); n.y = Math.round(n.y + 16 * Math.sin(a))
     }
   })
-  return { version: '0.1', nodes, connections, selectedNode: 0 }
+  for (const c of connections) nodes[c.end].parent = nodes[c.start]['@id']
+  return {
+    '@context': { '@vocab': 'https://mindstr.org/ns#', link: { '@type': '@id' }, parent: { '@type': '@id' } },
+    version: '0.2', nodes, connections, selectedNode: 0
+  }
 }
 
 // usage
@@ -158,10 +146,11 @@ into separate maps and connect them with relative links.
 
 ## Checklist before writing
 
+- [ ] `version` is `"0.2"` and the 0.2 `@context` is present
 - [ ] `nodes[0]` exists and has `"@id": "#this"`
 - [ ] every `@id` is unique; existing ones unchanged
 - [ ] every `start`/`end` is a valid index, and no node is its own parent
-- [ ] every node except the root is the `end` of exactly one connection
+- [ ] every node except the root is the `end` of exactly one connection, and its `parent` names that connection's `start`
 - [ ] `x`/`y` are finite numbers and no two nodes overlap (rule above)
 - [ ] links are `http(s)` or relative `./…`
 
@@ -169,18 +158,19 @@ into separate maps and connect them with relative links.
 
 ```json
 {
-  "version": "0.1",
+  "@context": { "@vocab": "https://mindstr.org/ns#", "link": { "@type": "@id" }, "parent": { "@type": "@id" } },
+  "version": "0.2",
   "nodes": [
     {"@id": "#this", "name": "Weekend trip", "x": 0, "y": 0},
-    {"@id": "#zyf9qd", "name": "Travel", "x": -110, "y": -152, "bgColor": "#D6E8FF"},
-    {"@id": "#j5dew5", "name": "Train tickets", "x": -372, "y": -172},
-    {"@id": "#m6xefa", "name": "Packing list", "x": 0, "y": -408, "link": "./packing.json"},
-    {"@id": "#zvmkg2", "name": "Stay", "x": 220, "y": 0, "bgColor": "#D9F2DC"},
-    {"@id": "#ibdxv5", "name": "Hotel", "x": 372, "y": -172},
-    {"@id": "#9khvdh", "name": "Breakfast", "x": 442, "y": 204},
-    {"@id": "#uxh998", "name": "Do", "x": -110, "y": 152, "bgColor": "#FFD6E8"},
-    {"@id": "#9eys32", "name": "Museum", "x": 0, "y": 344},
-    {"@id": "#zajc4z", "name": "Coast walk", "x": -442, "y": 204, "link": "https://example.com/walk"}
+    {"@id": "#zyf9qd", "name": "Travel", "x": -110, "y": -152, "bgColor": "#D6E8FF", "parent": "#this"},
+    {"@id": "#j5dew5", "name": "Train tickets", "x": -372, "y": -172, "parent": "#zyf9qd"},
+    {"@id": "#m6xefa", "name": "Packing list", "x": 0, "y": -408, "link": "./packing.json", "parent": "#zyf9qd"},
+    {"@id": "#zvmkg2", "name": "Stay", "x": 220, "y": 0, "bgColor": "#D9F2DC", "parent": "#this"},
+    {"@id": "#ibdxv5", "name": "Hotel", "x": 372, "y": -172, "parent": "#zvmkg2"},
+    {"@id": "#9khvdh", "name": "Breakfast", "x": 442, "y": 204, "parent": "#zvmkg2"},
+    {"@id": "#uxh998", "name": "Do", "x": -110, "y": 152, "bgColor": "#FFD6E8", "parent": "#this"},
+    {"@id": "#9eys32", "name": "Museum", "x": 0, "y": 344, "parent": "#uxh998"},
+    {"@id": "#zajc4z", "name": "Coast walk", "x": -442, "y": 204, "link": "https://example.com/walk", "parent": "#uxh998"}
   ],
   "connections": [
     {"start": 0, "end": 1},

@@ -82,24 +82,11 @@ read-only.
 
 ## Data format
 
-```json
-{
-  "version": "0.1",
-  "nodes": [
-    { "@id": "#this", "name": "Root", "x": 0, "y": 0, "bgColor": "#FFD6E8" },
-    { "@id": "#k3x9q2", "name": "Child", "x": 170, "y": 0, "link": "./child.json" }
-  ],
-  "connections": [{ "start": 0, "end": 1 }],
-  "selectedNode": 1
-}
-```
-
-- `nodes[0]` is the root and always has `@id` `#this`.
-- `connections` refer to nodes by array index.
-- `bgColor`, `link` and any other fields on a node are preserved, as are
-  extra top-level fields such as a JSON-LD `@context`. `.jsonld` maps are
-  saved as `application/ld+json`.
-- The current map is also kept in the page's `<script id="initialData">` data island.
+A map is one JSON / JSON-LD document. The format (versions 0.1 and 0.2, field rules,
+content types and compatibility) is specified in **[SPEC.md](SPEC.md)**. The app reads
+both versions, saves existing maps in the version they came in, and creates new maps as
+0.2. The current map is also mirrored in the page's `<script id="initialData">` data
+island.
 
 ## For agents
 

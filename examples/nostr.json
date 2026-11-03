@@ -1,5 +1,14 @@
 {
-  "version": "0.1",
+  "@context": {
+    "@vocab": "https://mindstr.org/ns#",
+    "link": {
+      "@type": "@id"
+    },
+    "parent": {
+      "@type": "@id"
+    }
+  },
+  "version": "0.2",
   "nodes": [
     {
       "@id": "#this",
@@ -12,137 +21,158 @@
       "name": "Keys",
       "x": -191,
       "y": -102,
-      "bgColor": "#FFF3C4"
+      "bgColor": "#FFF3C4",
+      "parent": "#this"
     },
     {
       "@id": "#eqmaaw",
       "name": "Private key signs",
       "x": -441,
-      "y": -70
+      "y": -70,
+      "parent": "#5aggpq"
     },
     {
       "@id": "#pjbq25",
       "name": "Public key = identity",
       "x": -374,
-      "y": -200
+      "y": -200,
+      "parent": "#5aggpq"
     },
     {
       "@id": "#tz98k5",
       "name": "NIP-19: npub / nsec",
       "x": -250,
       "y": -299,
-      "link": "https://github.com/nostr-protocol/nips/blob/master/19.md"
+      "link": "https://github.com/nostr-protocol/nips/blob/master/19.md",
+      "parent": "#5aggpq"
     },
     {
       "@id": "#437yyk",
       "name": "Events",
       "x": 128,
       "y": -153,
-      "bgColor": "#D6E8FF"
+      "bgColor": "#D6E8FF",
+      "parent": "#this"
     },
     {
       "@id": "#j3k2bu",
       "name": "NIP-01: the protocol",
       "x": -88,
       "y": -353,
-      "link": "https://github.com/nostr-protocol/nips/blob/master/01.md"
+      "link": "https://github.com/nostr-protocol/nips/blob/master/01.md",
+      "parent": "#437yyk"
     },
     {
       "@id": "#uhqx6j",
       "name": "kind 0: profile",
       "x": 100,
-      "y": -401
+      "y": -401,
+      "parent": "#437yyk"
     },
     {
       "@id": "#aurbbn",
       "name": "kind 1: note",
       "x": 250,
-      "y": -299
+      "y": -299,
+      "parent": "#437yyk"
     },
     {
       "@id": "#fxz322",
       "name": "id = sha256 of content",
       "x": 374,
-      "y": -200
+      "y": -200,
+      "parent": "#437yyk"
     },
     {
       "@id": "#s77s87",
       "name": "sig = schnorr",
       "x": 441,
-      "y": -70
+      "y": -70,
+      "parent": "#437yyk"
     },
     {
       "@id": "#k73rni",
       "name": "Relays",
       "x": 191,
       "y": 102,
-      "bgColor": "#D9F2DC"
+      "bgColor": "#D9F2DC",
+      "parent": "#this"
     },
     {
       "@id": "#r8zm2z",
       "name": "Store and forward events",
       "x": 441,
-      "y": 70
+      "y": 70,
+      "parent": "#k73rni"
     },
     {
       "@id": "#wzv4c3",
       "name": "Pick your own",
       "x": 374,
-      "y": 200
+      "y": 200,
+      "parent": "#k73rni"
     },
     {
       "@id": "#7fnz2s",
       "name": "NIP-65: relay lists",
       "x": 250,
       "y": 299,
-      "link": "https://github.com/nostr-protocol/nips/blob/master/65.md"
+      "link": "https://github.com/nostr-protocol/nips/blob/master/65.md",
+      "parent": "#k73rni"
     },
     {
       "@id": "#p89exh",
       "name": "Clients",
       "x": 0,
       "y": 184,
-      "bgColor": "#FFE1CC"
+      "bgColor": "#FFE1CC",
+      "parent": "#this"
     },
     {
       "@id": "#urtpxv",
       "name": "NIP-07: browser signer",
       "x": 88,
       "y": 353,
-      "link": "https://github.com/nostr-protocol/nips/blob/master/07.md"
+      "link": "https://github.com/nostr-protocol/nips/blob/master/07.md",
+      "parent": "#p89exh"
     },
     {
       "@id": "#4dg5c4",
       "name": "Many apps, one identity",
       "x": -100,
-      "y": 401
+      "y": 401,
+      "parent": "#p89exh"
     },
     {
       "@id": "#kwm3he",
       "name": "Beyond notes",
       "x": -163,
       "y": 130,
-      "bgColor": "#FFD6E8"
+      "bgColor": "#FFD6E8",
+      "parent": "#this"
     },
     {
       "@id": "#qvd9cw",
       "name": "NIP-98: HTTP auth",
       "x": -250,
       "y": 299,
-      "link": "https://github.com/nostr-protocol/nips/blob/master/98.md"
+      "link": "https://github.com/nostr-protocol/nips/blob/master/98.md",
+      "parent": "#kwm3he"
     },
     {
       "@id": "#sf37xb",
       "name": "Mindstr saves with NIP-98",
       "x": -374,
-      "y": 200
+      "y": 200,
+      "parent": "#kwm3he"
     },
     {
       "@id": "#fuhjpf",
       "name": "← Back to welcome",
       "x": -226,
       "y": 36,
-      "link": "./welcome.json"
+      "link": "./welcome.json",
+      "parent": "#this"
     }
   ],
   "connections": [

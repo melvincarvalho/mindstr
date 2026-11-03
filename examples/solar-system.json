@@ -1,5 +1,14 @@
 {
-  "version": "0.1",
+  "@context": {
+    "@vocab": "https://mindstr.org/ns#",
+    "link": {
+      "@type": "@id"
+    },
+    "parent": {
+      "@type": "@id"
+    }
+  },
+  "version": "0.2",
   "nodes": [
     {
       "@id": "#this",
@@ -12,173 +21,201 @@
       "name": "Inner planets",
       "x": -148,
       "y": -141,
-      "bgColor": "#FFE1CC"
+      "bgColor": "#FFE1CC",
+      "parent": "#this"
     },
     {
       "@id": "#442pm7",
       "name": "Mercury",
       "x": -443,
-      "y": -63
+      "y": -63,
+      "parent": "#ujs2ci"
     },
     {
       "@id": "#imr4n9",
       "name": "Venus",
       "x": -390,
-      "y": -180
+      "y": -180,
+      "parent": "#ujs2ci"
     },
     {
       "@id": "#tpktj6",
       "name": "Earth",
       "x": -289,
       "y": -276,
-      "bgColor": "#D6E8FF"
+      "bgColor": "#D6E8FF",
+      "parent": "#ujs2ci"
     },
     {
       "@id": "#u94rpy",
       "name": "Moon",
       "x": -431,
-      "y": -411
+      "y": -411,
+      "parent": "#tpktj6"
     },
     {
       "@id": "#7txfyn",
       "name": "Mars",
       "x": -78,
-      "y": -355
+      "y": -355,
+      "parent": "#ujs2ci"
     },
     {
       "@id": "#v5njcx",
       "name": "Phobos",
       "x": -229,
-      "y": -504
+      "y": -504,
+      "parent": "#7txfyn"
     },
     {
       "@id": "#z8kicz",
       "name": "Deimos",
       "x": 0,
-      "y": -536
+      "y": -536,
+      "parent": "#7txfyn"
     },
     {
       "@id": "#7348h9",
       "name": "Asteroid belt",
       "x": 115,
-      "y": -159
+      "y": -159,
+      "parent": "#this"
     },
     {
       "@id": "#jtny2v",
       "name": "Ceres",
       "x": 154,
-      "y": -338
+      "y": -338,
+      "parent": "#7348h9"
     },
     {
       "@id": "#zvvi4r",
       "name": "Vesta",
       "x": 289,
-      "y": -276
+      "y": -276,
+      "parent": "#7348h9"
     },
     {
       "@id": "#ezqtt6",
       "name": "Outer planets",
       "x": 176,
       "y": 118,
-      "bgColor": "#D6E8FF"
+      "bgColor": "#D6E8FF",
+      "parent": "#this"
     },
     {
       "@id": "#8edjsn",
       "name": "Jupiter",
       "x": 450,
-      "y": 0
+      "y": 0,
+      "parent": "#ezqtt6"
     },
     {
       "@id": "#75s7ir",
       "name": "Io",
       "x": 580,
-      "y": -268
+      "y": -268,
+      "parent": "#8edjsn"
     },
     {
       "@id": "#7x3k79",
       "name": "Europa",
       "x": 660,
-      "y": -93
+      "y": -93,
+      "parent": "#8edjsn"
     },
     {
       "@id": "#4af2dc",
       "name": "Ganymede",
       "x": 660,
-      "y": 93
+      "y": 93,
+      "parent": "#8edjsn"
     },
     {
       "@id": "#7iui3z",
       "name": "Callisto",
       "x": 580,
-      "y": 268
+      "y": 268,
+      "parent": "#8edjsn"
     },
     {
       "@id": "#bq9ccn",
       "name": "Saturn",
       "x": 225,
-      "y": 312
+      "y": 312,
+      "parent": "#ezqtt6"
     },
     {
       "@id": "#3yirdr",
       "name": "Titan",
       "x": 431,
-      "y": 411
+      "y": 411,
+      "parent": "#bq9ccn"
     },
     {
       "@id": "#ptf2jy",
       "name": "Enceladus",
       "x": 229,
-      "y": 504
+      "y": 504,
+      "parent": "#bq9ccn"
     },
     {
       "@id": "#4bfy6j",
       "name": "Uranus",
       "x": 0,
-      "y": 360
+      "y": 360,
+      "parent": "#ezqtt6"
     },
     {
       "@id": "#4wkdd9",
       "name": "Neptune",
       "x": -154,
-      "y": 338
+      "y": 338,
+      "parent": "#ezqtt6"
     },
     {
       "@id": "#yiscsp",
       "name": "Triton",
       "x": -229,
-      "y": 504
+      "y": 504,
+      "parent": "#4wkdd9"
     },
     {
       "@id": "#2fzfhg",
       "name": "Beyond",
       "x": -176,
       "y": 118,
-      "bgColor": "#E6E0FF"
+      "bgColor": "#E6E0FF",
+      "parent": "#this"
     },
     {
       "@id": "#6ab87r",
       "name": "Kuiper belt",
       "x": -289,
-      "y": 276
+      "y": 276,
+      "parent": "#2fzfhg"
     },
     {
       "@id": "#uyfscv",
       "name": "Pluto",
       "x": -431,
-      "y": 411
+      "y": 411,
+      "parent": "#6ab87r"
     },
     {
       "@id": "#z5cumb",
       "name": "Oort cloud",
       "x": -390,
-      "y": 180
+      "y": 180,
+      "parent": "#2fzfhg"
     },
     {
       "@id": "#7iejm3",
       "name": "← Back to welcome",
       "x": -227,
       "y": 32,
-      "link": "./welcome.json"
+      "link": "./welcome.json",
+      "parent": "#this"
     }
   ],
   "connections": [

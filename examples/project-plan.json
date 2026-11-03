@@ -1,5 +1,14 @@
 {
-  "version": "0.1",
+  "@context": {
+    "@vocab": "https://mindstr.org/ns#",
+    "link": {
+      "@type": "@id"
+    },
+    "parent": {
+      "@type": "@id"
+    }
+  },
+  "version": "0.2",
   "nodes": [
     {
       "@id": "#this",
@@ -12,143 +21,166 @@
       "name": "Goals",
       "x": -196,
       "y": -97,
-      "bgColor": "#D9F2DC"
+      "bgColor": "#D9F2DC",
+      "parent": "#this"
     },
     {
       "@id": "#yyjnxk",
       "name": "Who is it for?",
       "x": -442,
-      "y": -66
+      "y": -66,
+      "parent": "#452y5w"
     },
     {
       "@id": "#hrvxpy",
       "name": "What should they do?",
       "x": -383,
-      "y": -190
+      "y": -190,
+      "parent": "#452y5w"
     },
     {
       "@id": "#hzsqn4",
       "name": "How will we measure it?",
       "x": -271,
-      "y": -287
+      "y": -287,
+      "parent": "#452y5w"
     },
     {
       "@id": "#dttxwc",
       "name": "Content",
       "x": 63,
       "y": -177,
-      "bgColor": "#D6E8FF"
+      "bgColor": "#D6E8FF",
+      "parent": "#this"
     },
     {
       "@id": "#p8ysyk",
       "name": "Home page",
       "x": -123,
-      "y": -346
+      "y": -346,
+      "parent": "#dttxwc"
     },
     {
       "@id": "#9c2qhr",
       "name": "About",
       "x": 42,
-      "y": -358
+      "y": -358,
+      "parent": "#dttxwc"
     },
     {
       "@id": "#h59t8f",
       "name": "Blog",
       "x": 201,
-      "y": -322
+      "y": -322,
+      "parent": "#dttxwc"
     },
     {
       "@id": "#rfby2g",
       "name": "First three posts",
       "x": 299,
-      "y": -480
+      "y": -480,
+      "parent": "#h59t8f"
     },
     {
       "@id": "#arxjt8",
       "name": "Contact",
       "x": 333,
-      "y": -243
+      "y": -243,
+      "parent": "#dttxwc"
     },
     {
       "@id": "#jtyjdw",
       "name": "Build",
       "x": 226,
       "y": 34,
-      "bgColor": "#FFE1CC"
+      "bgColor": "#FFE1CC",
+      "parent": "#this"
     },
     {
       "@id": "#dtqx4z",
       "name": "Pick a static host",
       "x": 420,
-      "y": -130
+      "y": -130,
+      "parent": "#jtyjdw"
     },
     {
       "@id": "#u2s2vv",
       "name": "Design",
       "x": 450,
-      "y": 0
+      "y": 0,
+      "parent": "#jtyjdw"
     },
     {
       "@id": "#vx2z65",
       "name": "Accessibility check",
       "x": 420,
-      "y": 130
+      "y": 130,
+      "parent": "#jtyjdw"
     },
     {
       "@id": "#xwei9g",
       "name": "Performance check",
       "x": 333,
-      "y": 243
+      "y": 243,
+      "parent": "#jtyjdw"
     },
     {
       "@id": "#6bzs4i",
       "name": "Launch",
       "x": 21,
       "y": 183,
-      "bgColor": "#FFD6E8"
+      "bgColor": "#FFD6E8",
+      "parent": "#this"
     },
     {
       "@id": "#fkywkd",
       "name": "Domain + HTTPS",
       "x": 201,
-      "y": 322
+      "y": 322,
+      "parent": "#6bzs4i"
     },
     {
       "@id": "#j8deiz",
       "name": "Announce",
       "x": 42,
-      "y": 358
+      "y": 358,
+      "parent": "#6bzs4i"
     },
     {
       "@id": "#aya9s9",
       "name": "Collect feedback",
       "x": -128,
-      "y": 361
+      "y": 361,
+      "parent": "#6bzs4i"
     },
     {
       "@id": "#vn2imx",
       "name": "Risks",
       "x": -170,
-      "y": 124
+      "y": 124,
+      "parent": "#this"
     },
     {
       "@id": "#2tznvh",
       "name": "Scope creep",
       "x": -271,
-      "y": 287
+      "y": 287,
+      "parent": "#vn2imx"
     },
     {
       "@id": "#cnh2fk",
       "name": "Content late",
       "x": -383,
-      "y": 190
+      "y": 190,
+      "parent": "#vn2imx"
     },
     {
       "@id": "#dk76uz",
       "name": "← Back to welcome",
       "x": -226,
       "y": 34,
-      "link": "./welcome.json"
+      "link": "./welcome.json",
+      "parent": "#this"
     }
   ],
   "connections": [

@@ -58,7 +58,15 @@ function build(file, tree) {
       n.y = Math.round(n.y + 16 * Math.sin(a))
     }
   })
-  const data = { version: '0.1', nodes, connections, selectedNode: 0 }
+  // 0.2 (see SPEC.md): a JSON-LD context and parent links alongside connections
+  for (const { start, end } of connections) nodes[end].parent = nodes[start]['@id']
+  const data = {
+    '@context': { '@vocab': 'https://mindstr.org/ns#', link: { '@type': '@id' }, parent: { '@type': '@id' } },
+    version: '0.2',
+    nodes,
+    connections,
+    selectedNode: 0
+  }
   writeFileSync(new URL(file + '.json', OUT), JSON.stringify(data, null, 2) + '\n')
   console.log(`${file}.json  ${nodes.length} nodes`)
 }

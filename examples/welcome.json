@@ -1,5 +1,14 @@
 {
-  "version": "0.1",
+  "@context": {
+    "@vocab": "https://mindstr.org/ns#",
+    "link": {
+      "@type": "@id"
+    },
+    "parent": {
+      "@type": "@id"
+    }
+  },
+  "version": "0.2",
   "nodes": [
     {
       "@id": "#this",
@@ -12,165 +21,191 @@
       "name": "Add ideas",
       "x": -186,
       "y": -108,
-      "bgColor": "#D6E8FF"
+      "bgColor": "#D6E8FF",
+      "parent": "#this"
     },
     {
       "@id": "#qhtzie",
       "name": "Tab: add a child",
       "x": -444,
-      "y": -56
+      "y": -56,
+      "parent": "#ab9ysn"
     },
     {
       "@id": "#2sgmjt",
       "name": "Enter: add a sibling",
       "x": -401,
-      "y": -163
+      "y": -163,
+      "parent": "#ab9ysn"
     },
     {
       "@id": "#j9h6ge",
       "name": "Double-click: rename",
       "x": -318,
-      "y": -255
+      "y": -255,
+      "parent": "#ab9ysn"
     },
     {
       "@id": "#ejt2c7",
       "name": "Paste a list: adds a branch",
       "x": -204,
-      "y": -321
+      "y": -321,
+      "parent": "#ab9ysn"
     },
     {
       "@id": "#tvx8v7",
       "name": "Arrange",
       "x": 71,
       "y": -175,
-      "bgColor": "#D9F2DC"
+      "bgColor": "#D9F2DC",
+      "parent": "#this"
     },
     {
       "@id": "#4bfmpa",
       "name": "Drag a branch to move it",
       "x": -73,
-      "y": -372
+      "y": -372,
+      "parent": "#tvx8v7"
     },
     {
       "@id": "#c2mpq8",
       "name": "Drop on a node to re-parent",
       "x": 82,
-      "y": -420
+      "y": -420,
+      "parent": "#tvx8v7"
     },
     {
       "@id": "#yykmee",
       "name": "Space folds a branch",
       "x": 204,
-      "y": -321
+      "y": -321,
+      "parent": "#tvx8v7"
     },
     {
       "@id": "#7kgwkb",
       "name": "L tidies the layout",
       "x": 318,
-      "y": -255
+      "y": -255,
+      "parent": "#tvx8v7"
     },
     {
       "@id": "#x7t4w7",
       "name": "Get around",
       "x": 227,
       "y": -29,
-      "bgColor": "#FFE1CC"
+      "bgColor": "#FFE1CC",
+      "parent": "#this"
     },
     {
       "@id": "#dsw684",
       "name": "Scroll or drag to pan",
       "x": 401,
-      "y": -163
+      "y": -163,
+      "parent": "#x7t4w7"
     },
     {
       "@id": "#v88t4a",
       "name": "Pinch or Ctrl+scroll to zoom",
       "x": 464,
-      "y": -58
+      "y": -58,
+      "parent": "#x7t4w7"
     },
     {
       "@id": "#skzt29",
       "name": "Ctrl+F finds anything",
       "x": 444,
-      "y": 56
+      "y": 56,
+      "parent": "#x7t4w7"
     },
     {
       "@id": "#t4pwzt",
       "name": "Links",
       "x": 163,
       "y": 130,
-      "bgColor": "#D4F1F4"
+      "bgColor": "#D4F1F4",
+      "parent": "#this"
     },
     {
       "@id": "#jhaa84",
       "name": "Ctrl+K sets a link",
       "x": 401,
-      "y": 163
+      "y": 163,
+      "parent": "#t4pwzt"
     },
     {
       "@id": "#wavvy9",
       "name": "Click ↗ to open it",
       "x": 318,
-      "y": 255
+      "y": 255,
+      "parent": "#t4pwzt"
     },
     {
       "@id": "#i9w3v4",
       "name": "./other.json opens a map",
       "x": 204,
-      "y": 321
+      "y": 321,
+      "parent": "#t4pwzt"
     },
     {
       "@id": "#e9sufn",
       "name": "Keep it",
       "x": -36,
       "y": 182,
-      "bgColor": "#FFD6E8"
+      "bgColor": "#FFD6E8",
+      "parent": "#this"
     },
     {
       "@id": "#g45zx9",
       "name": "Save stores it in your pod",
       "x": 73,
-      "y": 372
+      "y": 372,
+      "parent": "#e9sufn"
     },
     {
       "@id": "#vz8rhu",
       "name": "Sign in with Nostr or Solid",
       "x": -82,
-      "y": 420
+      "y": 420,
+      "parent": "#e9sufn"
     },
     {
       "@id": "#35gtrs",
       "name": "Edits sync live",
       "x": -204,
-      "y": 321
+      "y": 321,
+      "parent": "#e9sufn"
     },
     {
       "@id": "#fiqrfa",
       "name": "More examples",
       "x": -205,
       "y": 84,
-      "bgColor": "#E6E0FF"
+      "bgColor": "#E6E0FF",
+      "parent": "#this"
     },
     {
       "@id": "#fad69b",
       "name": "Solar system",
       "x": -318,
       "y": 255,
-      "link": "./solar-system.json"
+      "link": "./solar-system.json",
+      "parent": "#fiqrfa"
     },
     {
       "@id": "#fnrzmm",
       "name": "Plan a project",
       "x": -401,
       "y": 163,
-      "link": "./project-plan.json"
+      "link": "./project-plan.json",
+      "parent": "#fiqrfa"
     },
     {
       "@id": "#3y3s3p",
       "name": "Learn Nostr",
       "x": -444,
       "y": 56,
-      "link": "./nostr.json"
+      "link": "./nostr.json",
+      "parent": "#fiqrfa"
     }
   ],
   "connections": [
