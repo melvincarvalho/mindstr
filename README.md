@@ -96,6 +96,12 @@ read-only.
   saved as `application/ld+json`.
 - The current map is also kept in the page's `<script id="initialData">` data island.
 
+## For agents
+
+[`SKILL.md`](SKILL.md) tells LLMs how to create and edit maps: the document
+shape, where maps live on a pod, safe concurrent edits and layout. When mindstr
+is installed in a JSS pod with `--mcp`, it is discoverable via `list_skills`.
+
 ## Develop
 
 No build step. Serve the folder (`npx serve .`) and open it. Pushing to
