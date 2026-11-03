@@ -1,5 +1,7 @@
 # Mindstr
 
+[![Mind map](https://mindstr.org/badge.svg)](https://mindstr.org/?uri=https://mindstr.org/mindstr/index.jsonld)
+
 A mind map you own. Mindstr is a single static page: it loads a JSON or
 JSON-LD map from any URL and saves it back to your Solid pod with an HTTP
 `PUT`. Sign-in is [xlogin](https://github.com/melvincarvalho/xlogin): Nostr
