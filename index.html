@@ -2,1024 +2,211 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mindstr - NosDAV</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-      rel="stylesheet"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Mindstr — a mind map you own, stored on your own Nostr/Solid storage." />
+    <meta name="color-scheme" content="light dark" />
+    <title>Mindstr</title>
+    <link rel="icon" href="favicon.ico" />
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-      body {
-        font-family: 'Inter', sans-serif;
+      :root {
+        --bg: #fafafa;
+        --bar: #ffffff;
+        --border: #e2e5ea;
+        --text: #1b1f27;
+        --muted: #687080;
+        --hover: #eef1f5;
+        --accent: #1a5fd0;
+        --warn-bg: #fff4d6;
+        --warn-text: #6b4b00;
+        --toast-bg: #1b1f27;
+        --toast-text: #ffffff;
       }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #15171c;
+          --bar: #1b1e25;
+          --border: #2c313b;
+          --text: #e8eaee;
+          --muted: #9aa2b1;
+          --hover: #262b35;
+          --accent: #7fb2ff;
+          --warn-bg: #3a2f10;
+          --warn-text: #f3d78a;
+          --toast-bg: #e8eaee;
+          --toast-text: #15171c;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        display: flex;
+        flex-direction: column;
+        height: 100dvh;
+        background: var(--bg);
+        color: var(--text);
+        font: 14px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        overflow: hidden;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left));
+        background: var(--bar);
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+      }
+      .brand { font-weight: 700; font-size: 16px; margin-right: 4px; }
+      .group { display: flex; align-items: center; gap: 2px; }
+      .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+      .spacer { flex: 1; }
+      button {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 36px;
+        height: 34px;
+        padding: 0 8px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: none;
+        color: var(--text);
+        font: inherit;
+        cursor: pointer;
+        justify-content: center;
+      }
+      button:hover:not(:disabled) { background: var(--hover); }
+      button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+      button:disabled { opacity: 0.35; cursor: default; }
+      button.primary { border-color: var(--border); }
+      .ico { font-size: 16px; line-height: 1; }
+      #status { color: var(--muted); font-size: 12px; min-width: 64px; text-align: right; }
+      #status[data-state='dirty'] { color: var(--accent); font-weight: 600; }
+      @media (max-width: 720px) {
+        .label { display: none; }
+        #status { display: none; }
+        .brand { display: none; }
+      }
+      #banner {
+        padding: 8px 12px;
+        background: var(--warn-bg);
+        color: var(--warn-text);
+        border-bottom: 1px solid var(--border);
+        overflow-wrap: anywhere;
+      }
+      #stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+      #canvas { display: block; touch-action: none; user-select: none; -webkit-user-select: none; }
+      #canvas.dragging { cursor: grabbing !important; }
+      #editor {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        padding: 6px 12px;
+        border: 2px solid var(--accent);
+        border-radius: 999px;
+        background: var(--bar);
+        color: var(--text);
+        font: 500 15px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        text-align: center;
+        outline: none;
+        box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
+      }
+      #toast {
+        position: fixed;
+        left: 50%;
+        bottom: max(20px, env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        max-width: calc(100vw - 32px);
+        padding: 10px 16px;
+        border-radius: 10px;
+        background: var(--toast-bg);
+        color: var(--toast-text);
+        box-shadow: 0 6px 24px rgb(0 0 0 / 0.25);
+        z-index: 10;
+      }
+      [hidden] { display: none !important; }
+      dialog {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bar);
+        color: var(--text);
+        padding: 20px 24px;
+        max-width: min(440px, calc(100vw - 32px));
+      }
+      dialog::backdrop { background: rgb(0 0 0 / 0.35); }
+      dialog h2 { margin: 0 0 12px; font-size: 18px; }
+      dialog table { border-collapse: collapse; width: 100%; }
+      dialog td { padding: 4px 0; vertical-align: top; }
+      dialog td:first-child { padding-right: 16px; white-space: nowrap; }
+      kbd {
+        font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+        padding: 1px 5px;
+        border: 1px solid var(--border);
+        border-bottom-width: 2px;
+        border-radius: 4px;
+      }
+      dialog p { color: var(--muted); margin: 12px 0 0; }
+      dialog form { margin-top: 16px; text-align: right; }
     </style>
   </head>
   <body>
-    <!-- Structured Data Island for initial data -->
+    <header>
+      <span class="brand">Mindstr</span>
+      <div class="group">
+        <button data-action="child" title="Add child (Tab)" aria-label="Add child"><span class="ico">＋</span><span class="label">Child</span></button>
+        <button data-action="sibling" title="Add sibling (Enter)" aria-label="Add sibling"><span class="ico">⇣</span><span class="label">Sibling</span></button>
+        <button data-action="edit" title="Rename (F2 / double-click)" aria-label="Rename"><span class="ico">✎</span></button>
+        <button data-action="link" title="Set link (Ctrl+K)" aria-label="Set link"><span class="ico">🔗</span></button>
+        <button data-action="open" title="Open link (O)" aria-label="Open link"><span class="ico">↗</span></button>
+        <button data-action="delete" title="Delete (Delete)" aria-label="Delete"><span class="ico">🗑</span></button>
+      </div>
+      <span class="sep"></span>
+      <div class="group">
+        <button data-action="undo" title="Undo (Ctrl+Z)" aria-label="Undo"><span class="ico">↶</span></button>
+        <button data-action="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><span class="ico">↷</span></button>
+        <button data-action="fit" title="Fit to screen (F)" aria-label="Fit to screen"><span class="ico">⤢</span></button>
+      </div>
+      <span class="spacer"></span>
+      <div class="group">
+        <span id="status" role="status"></span>
+        <button data-action="save" class="primary" title="Save (Ctrl+S)" aria-label="Save"><span class="ico">💾</span><span class="label">Save</span></button>
+        <button data-action="login" title="Open my map (sign in with Nostr)" aria-label="My map"><span class="ico">🔐</span></button>
+        <button data-action="help" title="Shortcuts (?)" aria-label="Help"><span class="ico">?</span></button>
+      </div>
+    </header>
+    <div id="banner" role="alert" hidden></div>
+    <main id="stage">
+      <canvas id="canvas" aria-label="Mind map canvas"></canvas>
+      <input id="editor" type="text" aria-label="Node name" autocomplete="off" spellcheck="false" hidden />
+    </main>
+    <div id="toast" role="status" hidden></div>
+
+    <dialog id="help">
+      <h2>Shortcuts</h2>
+      <table>
+        <tr><td><kbd>Tab</kbd> / <kbd>Insert</kbd></td><td>Add child</td></tr>
+        <tr><td><kbd>Enter</kbd></td><td>Add sibling</td></tr>
+        <tr><td><kbd>F2</kbd> / double-click</td><td>Rename</td></tr>
+        <tr><td><kbd>Delete</kbd></td><td>Delete node (children move up)</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Set link</td></tr>
+        <tr><td><kbd>O</kbd> / click link text</td><td>Open link</td></tr>
+        <tr><td>Arrow keys</td><td>Move selection</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Undo / redo</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save</td></tr>
+        <tr><td><kbd>F</kbd>, <kbd>+</kbd>, <kbd>−</kbd>, wheel</td><td>Fit / zoom</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Cancel edit / deselect</td></tr>
+      </table>
+      <p>Drag the background to pan, pinch to zoom, double-tap a node to rename. Load any JSON map with <code>?map=URL</code>.</p>
+      <form method="dialog"><button class="primary">Close</button></form>
+    </dialog>
+
+    <!-- Data island: always holds the current map as JSON -->
     <script type="application/json" id="initialData">
       {
         "version": "0.1",
-        "nodes": [{ "name": "New", "x": 250, "y": 250 }],
+        "nodes": [{ "@id": "#this", "name": "New", "x": 0, "y": 0 }],
         "connections": []
       }
     </script>
-    <script src="./js/nosdav-shim.js"></script>
-    <script src="./js/browser-cuid.js"></script>
-
-    <!-- App root -->
-    <div id="app"></div>
-
-    <script type="module">
-      import { html, render, Component } from './js/standalone.module.js'
-      import * as secp256k1 from 'https://cdn.jsdelivr.net/npm/@noble/secp256k1@1.7.1/+esm'
-
-      window.secp256k1 = secp256k1
-
-      class ActionButton extends Component {
-        constructor(props) {
-          super(props)
-          this.state = { showTooltip: false }
-        }
-
-        render({ icon, label }) {
-          return html`
-            <div
-              class="relative"
-              onMouseEnter=${() => this.setState({ showTooltip: true })}
-              onMouseLeave=${() => this.setState({ showTooltip: false })}
-            >
-              <button class="p-1 text-gray-700 hover:bg-gray-200 rounded">
-                ${icon}
-              </button>
-              ${this.state.showTooltip &&
-              html`
-                <div
-                  class="absolute z-10 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded-md shadow-sm -top-8 left-1/2 transform -translate-x-1/2"
-                >
-                  ${label}
-                </div>
-              `}
-            </div>
-          `
-        }
-      }
-
-      class MindMap extends Component {
-        constructor(props) {
-          super()
-
-          this.editInputRef = null
-          const data = props.data
-
-          this.state = {
-            nodes: data.nodes,
-            connections: data.connections,
-            newNodeName: '',
-            draggingNode: null,
-            canvasOffset: {
-              x: 0,
-              y: 0
-            },
-            panning: false,
-            editingNode: null,
-            points: 0,
-            selectedNode:
-              props.selectedNode !== undefined ? props.selectedNode : null,
-            lastTouchX: null,
-            lastTouchY: null,
-            scale: 1,
-            initialPinchDistance: null
-          }
-        }
-
-        componentDidUpdate() {
-          this.updateDocumentTitle()
-        }
-
-        updateDocumentTitle() {
-          if (this.state.nodes[0]) {
-            document.title = 'Mindstr - ' + this.state.nodes[0].name
-          }
-        }
-
-        componentDidMount() {
-          this.canvas = this.base.querySelector('canvas')
-          this.ctx = this.canvas.getContext('2d')
-          this.updateCanvasSize()
-          window.addEventListener('resize', () => this.updateCanvasSize())
-          document.addEventListener('keydown', this.handleGlobalKeyDown)
-          this.updateDocumentTitle()
-
-          this.redraw()
-
-          // Add touch event listeners
-          this.canvas.addEventListener(
-            'touchstart',
-            this.handleTouchStart.bind(this)
-          )
-          this.canvas.addEventListener(
-            'touchmove',
-            this.handleTouchMove.bind(this)
-          )
-          this.canvas.addEventListener(
-            'touchend',
-            this.handleTouchEnd.bind(this)
-          )
-        }
-
-        componentWillUnmount() {
-          document.removeEventListener('keydown', this.handleGlobalKeyDown)
-
-          // Remove touch event listeners
-          this.canvas.removeEventListener(
-            'touchstart',
-            this.handleTouchStart.bind(this)
-          )
-          this.canvas.removeEventListener(
-            'touchmove',
-            this.handleTouchMove.bind(this)
-          )
-          this.canvas.removeEventListener(
-            'touchend',
-            this.handleTouchEnd.bind(this)
-          )
-        }
-
-        openInNewWindowWithMap() {
-          const urlParams = new URLSearchParams(window.location.search)
-          const mapValue = urlParams.get('map')
-          if (mapValue) {
-            window.open(
-              `https://nosdav.com/pastebin/?uri=${mapValue}`,
-              '_blank'
-            )
-          } else {
-            alert('No map URL provided in query string.')
-          }
-        }
-
-        randomId() {
-          return Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000
-        }
-
-        updateCanvasSize() {
-          const margin = 16 // 16px margin on each side
-          this.canvas.width = window.innerWidth - margin * 2
-          this.canvas.height = window.innerHeight - 100 // Reduced height to account for header
-          this.canvas.style.margin = `${margin}px` // Add margin to the canvas
-          this.redraw()
-        }
-
-        updateDataIsland() {
-          const dataElement = document.querySelector('#initialData')
-          dataElement.textContent = JSON.stringify({
-            version: '0.1',
-            nodes: this.state.nodes,
-            connections: this.state.connections,
-            selectedNode: this.state.selectedNode
-          })
-        }
-
-        redraw() {
-          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-          this.ctx.font = '20px Roboto'
-
-          // Apply both translation and scaling
-          this.ctx.setTransform(
-            this.state.scale,
-            0,
-            0,
-            this.state.scale,
-            this.state.canvasOffset.x,
-            this.state.canvasOffset.y
-          )
-
-          // Draw connections
-          this.state.connections.forEach(conn => {
-            const startNode = this.state.nodes[conn.start]
-            const endNode = this.state.nodes[conn.end]
-            this.ctx.beginPath()
-            this.ctx.moveTo(startNode.x, startNode.y)
-            this.ctx.lineTo(endNode.x, endNode.y)
-            this.ctx.strokeStyle = '#000' // Resetting stroke color
-            this.ctx.stroke()
-          })
-
-          // Draw nodes
-          this.state.nodes.forEach((node, index) => {
-            const textWidth = this.ctx.measureText(node.name).width
-
-            // Calculate the width and height of the oval based on the text width
-            const ovalWidth = Math.max(textWidth + 10, 40) // 40 is the minimum width
-            const ovalHeight = 40 // fixed height
-
-            this.ctx.beginPath()
-            this.ctx.ellipse(
-              node.x,
-              node.y,
-              ovalWidth / 2,
-              ovalHeight / 2,
-              0,
-              0,
-              2 * Math.PI
-            )
-
-            if (this.state.selectedNode === index) {
-              this.ctx.fillStyle = 'lightblue'
-            } else {
-              this.ctx.fillStyle = node.bgColor || '#fff'
-            }
-            this.ctx.fill()
-            this.ctx.strokeStyle = '#000' // Resetting stroke color
-            this.ctx.stroke()
-
-            // If the node has a link, change the text color to blue and underline it
-            this.ctx.fillStyle = node.link ? 'blue' : '#000'
-            this.ctx.fillText(node.name, node.x - textWidth / 2, node.y + 5)
-            if (node.link) {
-              this.ctx.beginPath()
-              this.ctx.moveTo(node.x - textWidth / 2, node.y + 10)
-              this.ctx.lineTo(node.x + textWidth / 2, node.y + 10)
-              this.ctx.strokeStyle = 'blue'
-              this.ctx.stroke()
-              this.ctx.strokeStyle = '#000' // Resetting stroke color
-            }
-          })
-
-          // Reset transformation after drawing
-          this.ctx.setTransform(1, 0, 0, 1, 0, 0)
-
-          this.updateDataIsland()
-        }
-
-        handleGlobalKeyDown = e => {
-          if (e.key === 'Insert' && this.state.selectedNode !== null) {
-            const newNode = {
-              '@id': '#' + this.randomId(),
-              name: '',
-              x: this.state.nodes[this.state.selectedNode].x + 50,
-              y: this.state.nodes[this.state.selectedNode].y + 50
-            }
-
-            this.setState(
-              prevState => {
-                const newNodes = [...prevState.nodes, newNode]
-                const newConnections = [
-                  ...prevState.connections,
-                  {
-                    start: prevState.selectedNode,
-                    end: newNodes.length - 1
-                  }
-                ]
-
-                return {
-                  nodes: newNodes,
-                  connections: newConnections
-                }
-              },
-              () => {
-                this.redraw()
-                this.setState(
-                  { editingNode: this.state.nodes.length - 1 },
-                  () => {
-                    if (this.editInputRef) {
-                      this.editInputRef.focus()
-                      this.editInputRef.select()
-                    }
-                  }
-                )
-              }
-            )
-          }
-
-          if (
-            e.key === 'Enter' &&
-            this.state.selectedNode !== null &&
-            this.state.editingNode === null
-          ) {
-            // Identify the parent node of the currently selected node
-            const parentNodeConnection = this.state.connections.find(
-              conn => conn.end === this.state.selectedNode
-            )
-            let parentNodeIndex
-            if (parentNodeConnection) {
-              parentNodeIndex = parentNodeConnection.start
-            }
-
-            if (parentNodeIndex !== undefined) {
-              const newNode = {
-                '@id': '#' + this.randomId(),
-                name: '',
-                x:
-                  this.state.nodes[this.state.selectedNode].x +
-                  (Math.random() * 100 - 50), // Randomly position to the left or right
-                y: this.state.nodes[this.state.selectedNode].y + 50 // Below the current node
-              }
-
-              this.setState(
-                prevState => {
-                  const newNodes = [...prevState.nodes, newNode]
-                  const newConnections = [
-                    ...prevState.connections,
-                    {
-                      start: parentNodeIndex,
-                      end: newNodes.length - 1
-                    }
-                  ]
-
-                  return {
-                    nodes: newNodes,
-                    connections: newConnections
-                  }
-                },
-                () => {
-                  this.redraw()
-                  this.setState(
-                    { editingNode: this.state.nodes.length - 1 },
-                    () => {
-                      if (this.editInputRef) {
-                        this.editInputRef.focus()
-                        this.editInputRef.select()
-                      }
-                    }
-                  )
-                }
-              )
-            }
-          }
-
-          if (e.ctrlKey && e.shiftKey && e.key === 'K') {
-            this.openInNewWindowWithMap()
-          }
-
-          if (e.ctrlKey && e.key === 'm' && this.state.selectedNode !== null) {
-            const link = prompt('Enter a hyperlink for the selected node:')
-            if (link) {
-              const nodesCopy = [...this.state.nodes]
-              const updatedNode = {
-                ...nodesCopy[this.state.selectedNode], // Spread the current properties of the node
-                link: link
-              }
-              nodesCopy[this.state.selectedNode] = updatedNode
-              this.setState({ nodes: nodesCopy }, () => {
-                this.updateDataIsland() // Update the data island after adding the link
-              })
-            }
-          }
-
-          if (e.ctrlKey && e.key === 's') {
-            e.preventDefault() // Prevent the browser's save dialog
-            this.saveData()
-          }
-
-          if (e.key === 'Delete' && this.state.selectedNode !== null) {
-            const nodeToDelete = this.state.selectedNode
-
-            // Filter out connections associated with the node
-            const updatedConnections = this.state.connections.filter(
-              conn => conn.start !== nodeToDelete && conn.end !== nodeToDelete
-            )
-
-            // Adjust connection indices greater than nodeToDelete
-            const adjustedConnections = updatedConnections.map(conn => {
-              if (conn.start > nodeToDelete) conn.start -= 1
-              if (conn.end > nodeToDelete) conn.end -= 1
-              return conn
-            })
-
-            // Remove the node from the nodes array
-            const updatedNodes = [
-              ...this.state.nodes.slice(0, nodeToDelete),
-              ...this.state.nodes.slice(nodeToDelete + 1)
-            ]
-
-            this.setState(
-              {
-                nodes: updatedNodes,
-                connections: adjustedConnections,
-                selectedNode: null
-              },
-              () => this.redraw()
-            )
-          }
-        }
-
-        async saveData() {
-          const dataIslandContent =
-            document.getElementById('initialData').textContent
-          const data = JSON.parse(dataIslandContent)
-          const urlParams = new URLSearchParams(window.location.search)
-          const mapFile = urlParams.get('map')
-          if (mapFile) {
-            try {
-              const response = await fetch(mapFile, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-              })
-              if (response.ok) {
-                console.log('Data saved successfully!')
-                new Audio('./audio/save.ogg').play()
-                this.setState({ points: this.state.points + 500 })
-              } else {
-                alert('Error saving data.')
-              }
-            } catch (error) {
-              alert('Error saving data: ' + error.message)
-            }
-          } else {
-            alert('No map URL provided in query string.')
-          }
-        }
-
-        handleCanvasMouseDown(e) {
-          const rect = e.target.getBoundingClientRect() // Get canvas position
-          const mouseX =
-            (e.clientX - rect.left - this.state.canvasOffset.x) /
-            this.state.scale
-          const mouseY =
-            (e.clientY - rect.top - this.state.canvasOffset.y) /
-            this.state.scale
-
-          // Extract the link handling logic into a separate method
-          if (!this.handleNodeLink(mouseX, mouseY)) {
-            const clickedNodeIndex = this.state.nodes.findIndex(node => {
-              const distance = Math.sqrt(
-                (node.x - mouseX) ** 2 + (node.y - mouseY) ** 2
-              )
-              return distance <= 20
-            })
-
-            if (clickedNodeIndex > -1) {
-              this.setState(
-                {
-                  draggingNode: clickedNodeIndex,
-                  selectedNode: clickedNodeIndex
-                },
-                () => this.redraw()
-              )
-            } else {
-              this.setState({ panning: true })
-            }
-          }
-        }
-
-        // Add new method to handle node links
-        handleNodeLink(x, y) {
-          const clickedNode = this.state.nodes.find(node => {
-            const distance = Math.sqrt((node.x - x) ** 2 + (node.y - y) ** 2)
-            if (distance <= 20) {
-              const textWidth = this.ctx.measureText(node.name).width
-              return (
-                x >= node.x - textWidth / 2 &&
-                x <= node.x + textWidth / 2 &&
-                y >= node.y - 10 &&
-                y <= node.y + 10
-              )
-            }
-            return false
-          })
-
-          if (clickedNode?.link) {
-            let href = clickedNode.link
-
-            // Check if the link ends with .md
-            if (href.endsWith('.md')) {
-              if (href.startsWith('./') || href.startsWith('../')) {
-                const currentURL = new URL(window.location.href)
-                const oldMapValue = currentURL.searchParams.get('map')
-                const oldMapURL = new URL(oldMapValue)
-                href = new URL(href, oldMapURL).toString()
-              }
-              href = 'https://nosdav.com/doc/?uri=' + encodeURIComponent(href)
-            } else if (href.startsWith('./') || href.startsWith('../')) {
-              const currentURL = new URL(window.location.href)
-              const oldMapValue = currentURL.searchParams.get('map')
-              const oldMapURL = new URL(oldMapValue)
-              const combinedValue = new URL(href, oldMapURL).toString()
-              currentURL.searchParams.set('map', combinedValue)
-              href = currentURL.toString()
-            }
-
-            window.open(href, clickedNode.name.replace(/\s+/g, '_'))
-            return true
-          }
-          return false
-        }
-
-        handleCanvasMouseMove(e) {
-          if (this.state.draggingNode !== null) {
-            const rect = e.target.getBoundingClientRect()
-            const mouseX =
-              (e.clientX - rect.left - this.state.canvasOffset.x) /
-              this.state.scale
-            const mouseY =
-              (e.clientY - rect.top - this.state.canvasOffset.y) /
-              this.state.scale
-
-            const nodesCopy = [...this.state.nodes]
-            nodesCopy[this.state.draggingNode].x = mouseX
-            nodesCopy[this.state.draggingNode].y = mouseY
-            this.setState({ nodes: nodesCopy }, () => this.redraw())
-          } else if (this.state.panning) {
-            const deltaX = e.movementX
-            const deltaY = e.movementY
-            this.setState(
-              prevState => ({
-                canvasOffset: {
-                  x: prevState.canvasOffset.x + deltaX,
-                  y: prevState.canvasOffset.y + deltaY
-                },
-                lastTouchX: e.clientX,
-                lastTouchY: e.clientY
-              }),
-              () => this.redraw()
-            )
-          }
-        }
-        handleCanvasMouseUp(e) {
-          console.log('MouseUp event captured')
-          this.setState({ panning: false })
-          if (this.state.draggingNode !== null) {
-            this.setState({ draggingNode: null })
-          }
-        }
-
-        handleNodeCreation() {
-          if (this.state.newNodeName.trim()) {
-            const newNode = {
-              '@id': '#' + this.randomId(),
-              name: this.state.newNodeName.trim(),
-              x: 200 + Math.random() * 100, // Random position for demonstration
-              y: 200 + Math.random() * 100
-            }
-
-            this.setState(
-              prevState => {
-                const newNodes = [...prevState.nodes, newNode]
-                let newConnections = [...prevState.connections]
-
-                // Check if there's a selected node, if so, connect the new node to it
-                if (prevState.selectedNode !== null) {
-                  newConnections.push({
-                    start: prevState.selectedNode,
-                    end: newNodes.length - 1
-                  })
-                } else if (newNodes.length > 1) {
-                  // If no node is selected, but it's not the first node,
-                  // connect it to the first node (default behavior)
-                  newConnections.push({
-                    start: 0,
-                    end: newNodes.length - 1
-                  })
-                }
-
-                return {
-                  nodes: newNodes,
-                  connections: newConnections,
-                  newNodeName: ''
-                }
-              },
-              () => this.redraw()
-            )
-          }
-        }
-
-        handleCanvasDoubleClick(e) {
-          const rect = e.target.getBoundingClientRect()
-          const mouseX = e.clientX - rect.left - this.state.canvasOffset.x // Adjust for canvas offset
-          const mouseY = e.clientY - rect.top - this.state.canvasOffset.y // Adjust for canvas offset
-
-          const clickedNodeIndex = this.state.nodes.findIndex(
-            node =>
-              Math.sqrt((node.x - mouseX) ** 2 + (node.y - mouseY) ** 2) <= 20
-          )
-
-          if (clickedNodeIndex > -1) {
-            this.setState({ editingNode: clickedNodeIndex }, () => {
-              if (this.editInputRef) {
-                this.editInputRef.focus()
-                this.editInputRef.select()
-              }
-            })
-          }
-        }
-
-        handleInputChange(e) {
-          this.setState({ newNodeName: e.target.value })
-        }
-
-        showShortcutsList() {
-          const shortcuts = [
-            { key: 'Insert/Enter', action: 'Insert Node' },
-            { key: 'Double Click', action: 'Edit Node' },
-            { key: 'Ctrl+M', action: 'Add Link' },
-            { key: 'Delete', action: 'Delete Node' },
-            { key: 'Ctrl+S', action: 'Save Data' }
-            // Add more shortcuts here
-          ]
-
-          const shortcutsList = shortcuts
-            .map(s => `<li>${s.key}: ${s.action}</li>`)
-            .join('')
-
-          const modal = document.createElement('div')
-          modal.innerHTML = `
-            <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.3);">
-              <h3>Keyboard Shortcuts</h3>
-              <ul>${shortcutsList}</ul>
-              <button onclick="this.parentElement.remove()">Close</button>
-            </div>
-          `
-
-          document.body.appendChild(modal)
-        }
-
-        handleTouchStart(e) {
-          e.preventDefault()
-          if (e.touches.length === 2) {
-            // Initialize pinch-to-zoom
-            const distance = this.getTouchDistance(e.touches[0], e.touches[1])
-            this.setState({ initialPinchDistance: distance })
-          } else if (e.touches.length === 1) {
-            const touch = e.touches[0]
-            const rect = e.target.getBoundingClientRect()
-            // Adjust touch coordinates for current scale and offset
-            const touchX =
-              (touch.clientX - rect.left - this.state.canvasOffset.x) /
-              this.state.scale
-            const touchY =
-              (touch.clientY - rect.top - this.state.canvasOffset.y) /
-              this.state.scale
-
-            // Try to handle link first
-            if (!this.handleNodeLink(touchX, touchY)) {
-              // Check if we're touching a node
-              const touchedNodeIndex = this.state.nodes.findIndex(node => {
-                const distance = Math.sqrt(
-                  (node.x - touchX) ** 2 + (node.y - touchY) ** 2
-                )
-                return distance <= 20
-              })
-
-              if (touchedNodeIndex > -1) {
-                this.setState(
-                  {
-                    draggingNode: touchedNodeIndex,
-                    selectedNode: touchedNodeIndex
-                  },
-                  () => this.redraw()
-                )
-              } else {
-                this.setState({
-                  panning: true,
-                  lastTouchX: touch.clientX,
-                  lastTouchY: touch.clientY
-                })
-              }
-            }
-          }
-        }
-
-        handleTouchMove(e) {
-          e.preventDefault() // Prevent scrolling
-          if (
-            e.touches.length === 2 &&
-            this.state.initialPinchDistance !== null
-          ) {
-            // Handle pinch-to-zoom
-            const currentDistance = this.getTouchDistance(
-              e.touches[0],
-              e.touches[1]
-            )
-            const scale = Math.max(
-              0.1,
-              Math.min(
-                5,
-                this.state.scale *
-                  (currentDistance / this.state.initialPinchDistance)
-              )
-            )
-
-            this.setState(
-              prevState => ({
-                scale: scale,
-                initialPinchDistance: currentDistance
-              }),
-              () => this.redraw()
-            )
-          } else if (e.touches.length === 1 && this.state.panning) {
-            const touch = e.touches[0]
-            const deltaX = touch.clientX - this.state.lastTouchX
-            const deltaY = touch.clientY - this.state.lastTouchY
-
-            this.setState(
-              prevState => ({
-                canvasOffset: {
-                  x: prevState.canvasOffset.x + deltaX,
-                  y: prevState.canvasOffset.y + deltaY
-                },
-                lastTouchX: touch.clientX,
-                lastTouchY: touch.clientY
-              }),
-              () => this.redraw()
-            )
-          }
-        }
-
-        handleTouchEnd(e) {
-          e.preventDefault()
-          this.setState({
-            panning: false,
-            lastTouchX: null,
-            lastTouchY: null,
-            initialPinchDistance: null
-          })
-        }
-
-        getTouchDistance(touch1, touch2) {
-          return Math.hypot(
-            touch2.clientX - touch1.clientX,
-            touch2.clientY - touch1.clientY
-          )
-        }
-
-        render(_, { nodes, newNodeName, editingNode }) {
-          return html`
-            <div>
-              <nav class="bg-gray-100 p-4 shadow-md">
-                <div
-                  class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4"
-                >
-                  <div class="flex items-center space-x-2">
-                    <h1 class="text-xl font-bold text-gray-800">M</h1>
-                    <div class="flex space-x-1">
-                      <${ActionButton}
-                        icon="📌"
-                        label="Insert Node (INS/Enter)"
-                      />
-                      <${ActionButton}
-                        icon="✏️"
-                        label="Edit Node (Double Click)"
-                      />
-                      <${ActionButton} icon="🔗" label="Add Link (Ctrl+M)" />
-                      <${ActionButton} icon="🗑️" label="Delete Node (Delete)" />
-                    </div>
-                  </div>
-
-                  <div class="flex items-center space-x-2">
-                    <!-- Commenting out Show Data button for now
-                    <button
-                      class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                      onClick=${() => {
-                      const dataIslandContent =
-                        document.getElementById('initialData').textContent
-                      const parsedData = JSON.parse(dataIslandContent)
-                      alert(JSON.stringify(parsedData, null, 2))
-                      console.log(JSON.stringify(parsedData, null, 2))
-                    }}
-                    >
-                      👁️ Show Data
-                    </button>
-                    -->
-                    <button
-                      class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                      onClick=${async () => {
-                        var currentUser = null
-                        if (localStorage.getItem('nostr:privkey')) {
-                          // get public key from private key using secp256k1
-                          try {
-                            // add debug output
-                            console.log('Getting public key from private key')
-                            const privkey =
-                              localStorage.getItem('nostr:privkey')
-                            const pubkey = secp256k1.utils.bytesToHex(
-                              secp256k1.schnorr.getPublicKey(privkey)
-                            )
-                            currentUser = pubkey
-                          } catch (error) {
-                            console.error('Invalid private key:', error)
-                          }
-                        } else {
-                          var currentUser = await window.nostr.getPublicKey()
-                        }
-                        if (currentUser) {
-                          localStorage.setItem('currentUser', currentUser)
-
-                          // Construct the new URL
-                          const newUrl = `${window.location.origin}${window.location.pathname}?map=https://nosdav.net/${currentUser}/mm/index.json`
-
-                          // Push the new URL to the browser
-                          window.location.href = newUrl
-
-                          /*
-                            window.history.pushState({}, null, newUrl)
-
-                            // Fetch the data from the new URL
-                            fetch(`https://nosdav.net/${currentUser}/mm/index.json`)
-                              .then(response => response.json())
-                              .then(data => {
-                                initializeApp(data)
-                              })
-                              .catch(err => {
-                                console.error('Error fetching map data:', err)
-                                // Fallback to data island if fetch fails
-                                const data = JSON.parse(
-                                  document.querySelector('#initialData').textContent
-                                )
-                                initializeApp(data)
-                              })
-                              */
-                        }
-                      }}
-                    >
-                      🔐
-                    </button>
-                    <button
-                      class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                      onClick=${async () => {
-                        const dataIslandContent =
-                          document.getElementById('initialData').textContent
-                        const data = JSON.parse(dataIslandContent)
-                        const urlParams = new URLSearchParams(
-                          window.location.search
-                        )
-                        const mapFile = urlParams.get('map')
-                        if (mapFile) {
-                          try {
-                            const response = await fetch(mapFile, {
-                              method: 'PUT',
-                              headers: {
-                                'Content-Type': 'application/json'
-                              },
-                              body: JSON.stringify(data)
-                            })
-                            if (response.ok) {
-                              alert('Data saved successfully!')
-                            } else {
-                              alert('Error saving data.')
-                            }
-                          } catch (error) {
-                            alert('Error saving data: ' + error.message)
-                          }
-                        } else {
-                          alert('No map URL provided in query string.')
-                        }
-                      }}
-                    >
-                      💾
-                    </button>
-                    <!-- Commenting out Share button
-                    <button
-                      class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                      onClick=${() => {
-                      const currentUrl = new URL(window.location.href)
-                      const mapValue = currentUrl.searchParams.get('map')
-                      if (mapValue) {
-                        const shareUrl = `https://mindstr.org/?map=${mapValue}`
-                        window.open(shareUrl, '_blank')
-                      } else {
-                        alert('No map URL found.')
-                      }
-                    }}
-                    >
-                      📤 Share
-                    </button>
-                    -->
-                  </div>
-
-                  <div class="flex items-center space-x-4">
-                    <div
-                      class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-semibold"
-                    >
-                      ${this.state.points}
-                    </div>
-                    <button
-                      class="px-3 py-1 text-sm bg-gray-200 rounded-md hover:bg-gray-300"
-                      onClick=${() => this.showShortcutsList()}
-                    >
-                      ⌨️
-                    </button>
-                  </div>
-                </div>
-              </nav>
-
-              <div id="nodeCreation" style="display:none">
-                <input
-                  ref=${el => (this.editInputRef = el)}
-                  type="text"
-                  value=${newNodeName}
-                  onInput=${e => this.handleInputChange(e)}
-                  placeholder="Node Name"
-                />
-                <button onclick=${() => this.handleNodeCreation()}>
-                  Add Node
-                </button>
-              </div>
-              <canvas
-                onmousedown=${e => this.handleCanvasMouseDown(e)}
-                onmousemove=${e => this.handleCanvasMouseMove(e)}
-                onmouseup=${e => this.handleCanvasMouseUp(e)}
-                ondblclick=${e => this.handleCanvasDoubleClick(e)}
-              ></canvas>
-
-              ${editingNode !== null
-                ? html`
-                    <input
-                      ref=${el => (this.editInputRef = el)}
-                      type="text"
-                      style=${`position: absolute; top: ${nodes[editingNode].y}px; left: ${nodes[editingNode].x}px;`}
-                      value=${nodes[editingNode].name}
-                      onblur=${e => {
-                        const updatedNodes = [...nodes]
-                        updatedNodes[editingNode].name = e.target.value
-                        this.setState({
-                          nodes: updatedNodes,
-                          editingNode: null
-                        })
-                        this.redraw()
-                      }}
-                      onkeydown=${e => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          e.target.blur()
-                        }
-                      }}
-                    />
-                  `
-                : null}
-            </div>
-          `
-        }
-      }
-
-      const urlParams = new URLSearchParams(window.location.search)
-      const mapFile = urlParams.get('map')
-      const titleParam = urlParams.get('title')
-
-      if (mapFile) {
-        fetch(mapFile)
-          .then(response => response.json())
-          .then(data => {
-            if (titleParam) {
-              data.nodes[0].name = titleParam
-            }
-            initializeApp(data)
-          })
-          .catch(err => {
-            console.error('Error fetching map data:', err)
-            // Fallback to data island if fetch fails
-            const data = JSON.parse(
-              document.querySelector('#initialData').textContent
-            )
-            if (titleParam) {
-              data.nodes[0].name = titleParam
-            }
-            initializeApp(data)
-          })
-      } else {
-        // Default to data island if no map parameter is provided
-        const data = JSON.parse(
-          document.querySelector('#initialData').textContent
-        )
-        if (titleParam) {
-          data.nodes[0].name = titleParam
-        }
-        initializeApp(data)
-      }
-
-      function initializeApp(data) {
-        console.log('Initializing app with data:', data)
-
-        if (!data.nodes || !data.connections) {
-          console.error("Fetched data doesn't have the expected structure.")
-          return
-        }
-
-        // Check for version and set it if not present
-        if (!data.version) {
-          data.version = '0.1'
-        }
-
-        // Set the ID of the main node to '#this'
-        if (data.nodes.length > 0) {
-          data.nodes[0]['@id'] = '#this'
-        }
-
-        // If there's no selected node, set it to the root node (index 0)
-        if (data.selectedNode === undefined && data.nodes.length > 0) {
-          data.selectedNode = 0
-        }
-
-        render(
-          html`<${MindMap} data=${data} selectedNode=${data.selectedNode} />`,
-          document.getElementById('app')
-        )
-      }
-    </script>
+    <script type="module" src="./js/app.js"></script>
   </body>
 </html>

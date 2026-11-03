@@ -1,81 +1,71 @@
-![image](https://github.com/melvincarvalho/mindstr/assets/65864/3a656770-3c51-4ede-b59a-b09e8264f3c5)
-
-
 # Mindstr
-mindstr
 
-# Status
+A mind map you own. Mindstr is a single static page: it loads a JSON map
+from any URL and saves it back with an HTTP `PUT`, signed with your Nostr key
+([NIP-98](https://github.com/nostr-protocol/nips/blob/master/98.md)).
 
-only intended for intrepid programmers who read the sourcecode
+**Live:** https://mindstr.org
 
-# Mindstr Data Model Documentation
+## Use
 
-Mindstr is a web-based mind mapping tool that uses a specific data structure for representing nodes and connections. This document outlines the structure and the expected data types for each field.
+| URL | What happens |
+| --- | --- |
+| `https://mindstr.org/` | Scratch map (not saved) |
+| `?map=<url>` | Load the map at `<url>`; Ctrl+S saves it back there |
+| `?title=<text>` | Name the root node of a *new* map |
 
-## Data Structure
+Press 🔐 to sign in with a NIP-07 extension (nos2x, Alby, …); that opens your
+own map at `https://nosdav.net/<pubkey>/mm/index.json`. A hex key in
+`localStorage['nostr:privkey']` is used instead of an extension if present.
 
-### 1. Version
+If a map can't be loaded, saving is disabled so the original isn't overwritten.
+A 404 is treated as a new map.
 
-- **Field**: `version`
-- **Type**: `string`
-- **Description**: Represents the version of the Mindstr data format.
+### Shortcuts
 
-### 2. Nodes
+| Key | Action |
+| --- | --- |
+| Tab / Insert | Add child |
+| Enter | Add sibling |
+| F2 / double-click / double-tap | Rename |
+| Delete | Delete node (its children move up to its parent) |
+| Ctrl+K | Set link |
+| O / click link text | Open link |
+| Arrows | Move selection |
+| Ctrl+Z / Ctrl+Shift+Z | Undo / redo |
+| Ctrl+S | Save |
+| F, +, −, wheel, pinch | Fit / zoom |
 
-- **Field**: `nodes`
-- **Type**: `array`
-- **Description**: An array of individual node objects.
+Links: `http(s)` URLs open in a new tab; `.md` files open in the NosDAV doc
+viewer; relative links (`./other.json`) open another map next to this one.
+Other schemes are blocked.
 
-Each node object contains:
-- **name**: `string` - The display name of the node.
-- **x**: `number` - The x-coordinate position of the node on the canvas.
-- **y**: `number` - The y-coordinate position of the node on the canvas.
-- **bgColor** (optional): `string` - The background color of the node. If not provided, a default color is used.
-
-### 3. Connections
-
-- **Field**: `connections`
-- **Type**: `array`
-- **Description**: An array of connection objects that link nodes together.
-
-Each connection object contains:
-- **start**: `number` - The index of the starting node in the `nodes` array.
-- **end**: `number` - The index of the ending node in the `nodes` array.
-
-### 4. Selected Node
-
-- **Field**: `selectedNode`
-- **Type**: `number` or `null`
-- **Description**: The index of the currently selected node in the `nodes` array. If no node is selected, the value is `null`.
-
-## Example JSON Representation
+## Data format
 
 ```json
 {
   "version": "0.1",
   "nodes": [
-    {
-      "name": "Root Node",
-      "x": 500,
-      "y": 50,
-      "bgColor": "#FFD6E8"
-    },
-    {
-      "name": "Child Node",
-      "x": 550,
-      "y": 100
-    }
+    { "@id": "#this", "name": "Root", "x": 0, "y": 0, "bgColor": "#FFD6E8" },
+    { "@id": "#k3x9q2", "name": "Child", "x": 170, "y": 0, "link": "./child.json" }
   ],
-  "connections": [
-    {
-      "start": 0,
-      "end": 1
-    }
-  ],
+  "connections": [{ "start": 0, "end": 1 }],
   "selectedNode": 1
 }
 ```
 
----
+- `nodes[0]` is the root and always has `@id` `#this`.
+- `connections` refer to nodes by array index.
+- `bgColor`, `link` and any other fields on a node are preserved.
+- The current map is also kept in the page's `<script id="initialData">` data island.
 
-This markdown provides a concise overview of the data structure used in Mindstr. For specific implementation details or further clarifications, refer to the application's source code.
+## Develop
+
+No build step. Serve the folder (`npx serve .`) and open it. Pushing to
+`gh-pages` deploys mindstr.org.
+
+- `index.html`: markup and styles
+- `js/app.js`: canvas, interaction, load/save
+- `js/nostr-auth.js`: NIP-07 / local-key signing and NIP-98 `authFetch`
+
+MIT licensed.
