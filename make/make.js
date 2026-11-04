@@ -1,7 +1,7 @@
 // Make a map: type a topic, Claude writes it as an outline, the map grows on screen as the
 // outline streams in. Runs entirely in the browser with the visitor's own API key.
 import { radialLayout } from '../js/layout.js'
-import { drawMap, makeMeasure, THEMES } from '../js/render.js'
+import { drawMap, linkIconAt, makeMeasure, THEMES } from '../js/render.js'
 import { parseOutline, toMarkdown } from '../js/outline.js'
 import { BRANCH_COLORS } from '../js/colors.js'
 
@@ -461,16 +461,25 @@ canvas.addEventListener('pointermove', ev => {
   const h = hit(ev)
   if (h !== hover) {
     hover = h
-    canvas.style.cursor = h !== null && !flat.kids[h].length ? 'pointer' : ''
+    canvas.style.cursor = h !== null && (!flat.kids[h].length || (flat.nodes[h].link && onIcon(ev, h))) ? 'pointer' : ''
     invalidate()
   }
 })
 canvas.addEventListener('pointerleave', () => { hover = null; invalidate() })
+// the ↗ icon opens the link, as in the app; the rest of the node grows it
+function onIcon(ev, i) {
+  const li = linkIconAt(i, { nodes: flat.nodes, size, pos })
+  if (!li) return false
+  const r = canvas.getBoundingClientRect()
+  const x = (ev.clientX - r.left - view.x) / view.scale
+  const y = (ev.clientY - r.top - view.y) / view.scale
+  return Math.hypot(x - li.x, y - li.y) <= li.r + 2
+}
 canvas.addEventListener('click', ev => {
   const h = hit(ev)
   if (h === null) return
   const n = flat.nodes[h]
-  if (n.link && ev.altKey) return window.open(n.link, '_blank', 'noopener')
+  if (n.link && (onIcon(ev, h) || ev.altKey)) return window.open(n.link, '_blank', 'noopener')
   grow(h)
 })
 
