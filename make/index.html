@@ -80,6 +80,8 @@
       @keyframes pulse { to { opacity: .25 } }
       .actions { position: absolute; top: 12px; right: max(12px, env(safe-area-inset-right)); display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px }
       .actions .btn { padding: 6px 12px; font-size: 13px; box-shadow: 0 2px 10px rgb(30 30 60 / 0.08) }
+      .fitbtn { position: absolute; bottom: 14px; right: max(12px, env(safe-area-inset-right)); padding: 6px 12px; font-size: 13px }
+      canvas { touch-action: none }
       .hint { position: absolute; top: 14px; left: max(14px, env(safe-area-inset-left)); font-size: 12px; color: var(--muted) }
     </style>
   </head>
@@ -150,7 +152,8 @@
     </header>
     <main>
       <canvas id="map"></canvas>
-      <div class="hint">Click a leaf to grow it · ↗ opens its link</div>
+      <div class="hint">Click a leaf to grow it · ↗ opens its link · drag to pan, wheel or pinch to zoom</div>
+      <button class="btn fitbtn" id="fit" hidden title="Fit the map to the window">Fit</button>
       <div class="actions" id="actions" hidden>
         <button class="btn" id="copy">Copy JSON-LD</button>
         <button class="btn" id="copyMd">Copy outline</button>

@@ -4,6 +4,7 @@ import { radialLayout } from '../js/layout.js'
 import { drawMap, linkIconAt, makeMeasure, THEMES } from '../js/render.js'
 import { parseOutline, toMarkdown } from '../js/outline.js'
 import { BRANCH_COLORS } from '../js/colors.js'
+import { boundsOf, DRAG_THRESHOLD, fitBox, panBy, pinchInfo, pinchTo, toWorld, wheel } from '../js/view.js'
 
 const $ = s => document.querySelector(s)
 const API = 'https://api.anthropic.com/v1/messages'
@@ -301,6 +302,7 @@ const target = new Map() // id → { x, y } where layout wants it
 const appearing = new Map() // id → time first seen
 let view = { x: 0, y: 0, scale: 1 }
 let viewTarget = null
+let userMoved = false // once the visitor pans or zooms, the map stops re-fitting itself
 let width = 0
 let height = 0
 let dpr = 1
@@ -311,6 +313,8 @@ function resetView() {
   target.clear()
   appearing.clear()
   viewTarget = null
+  userMoved = false
+  $('#fit').hidden = true
   flat = { nodes: [], connections: [], parent: [], kids: [], depth: [], branchColor: [] }
   invalidate()
 }
@@ -354,20 +358,21 @@ function setTree(t) {
   invalidate()
 }
 
-function fit() {
-  if (!flat.nodes.length) return
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
-  flat.nodes.forEach((n, i) => {
-    const p = target.get(n.id)
-    const m = measure(n, flat.depth[i])
-    x0 = Math.min(x0, p.x - m.w / 2)
-    x1 = Math.max(x1, p.x + m.w / 2)
-    y0 = Math.min(y0, p.y - m.h / 2)
-    y1 = Math.max(y1, p.y + m.h / 2)
-  })
-  const pad = 48 // the status pill sits in the bottom margin
-  const scale = Math.min(1.1, (width - pad * 2) / Math.max(1, x1 - x0), (height - pad * 2 - 30) / Math.max(1, y1 - y0))
-  viewTarget = { scale, x: width / 2 - ((x0 + x1) / 2) * scale, y: (height - 30) / 2 - ((y0 + y1) / 2) * scale }
+function fit(force = false) {
+  if (!flat.nodes.length || (userMoved && !force)) return
+  const box = boundsOf(fn => flat.nodes.forEach((n, i) => fn(target.get(n.id), measure(n, flat.depth[i]))))
+  viewTarget = fitBox(box, { width, top: 0, bottom: height - 30, pad: 48, cap: 1.1 }) // the status pill sits in the bottom margin
+  invalidate()
+}
+$('#fit').addEventListener('click', () => {
+  userMoved = false
+  $('#fit').hidden = true
+  fit(true)
+})
+const moved = () => {
+  userMoved = true
+  viewTarget = null
+  $('#fit').hidden = false
 }
 
 const pos = i => current.get(flat.nodes[i].id)
@@ -445,11 +450,13 @@ function draw() {
   if (moving || appearing.size) invalidate()
 }
 
-// hover and click: a leaf grows on click
-function hit(ev) {
+// hit testing in canvas coordinates
+const local = ev => {
   const r = canvas.getBoundingClientRect()
-  const x = (ev.clientX - r.left - view.x) / view.scale
-  const y = (ev.clientY - r.top - view.y) / view.scale
+  return { x: ev.clientX - r.left, y: ev.clientY - r.top }
+}
+function hit(ev) {
+  const { x, y } = toWorld(view, ...Object.values(local(ev)))
   for (let i = flat.nodes.length - 1; i >= 0; i--) {
     const p = pos(i)
     const m = size(i)
@@ -457,31 +464,90 @@ function hit(ev) {
   }
   return null
 }
-canvas.addEventListener('pointermove', ev => {
-  const h = hit(ev)
-  if (h !== hover) {
-    hover = h
-    canvas.style.cursor = h !== null && (!flat.kids[h].length || (flat.nodes[h].link && onIcon(ev, h))) ? 'pointer' : ''
-    invalidate()
-  }
-})
-canvas.addEventListener('pointerleave', () => { hover = null; invalidate() })
 // the ↗ icon opens the link, as in the app; the rest of the node grows it
 function onIcon(ev, i) {
   const li = linkIconAt(i, { nodes: flat.nodes, size, pos })
   if (!li) return false
-  const r = canvas.getBoundingClientRect()
-  const x = (ev.clientX - r.left - view.x) / view.scale
-  const y = (ev.clientY - r.top - view.y) / view.scale
+  const { x, y } = toWorld(view, ...Object.values(local(ev)))
   return Math.hypot(x - li.x, y - li.y) <= li.r + 2
 }
-canvas.addEventListener('click', ev => {
+// Pan by dragging, zoom with the wheel or a pinch, click a node to grow it (shared view maths).
+const pointers = new Map()
+let gesture = null // { start, last, moved, hit, icon } or { pinch }
+canvas.addEventListener('pointerdown', ev => {
+  if (ev.pointerType === 'mouse' && ev.button !== 0) return
+  canvas.setPointerCapture(ev.pointerId)
+  const p = local(ev)
+  pointers.set(ev.pointerId, p)
+  if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()]
+    gesture = { pinch: pinchInfo(a, b) }
+    return
+  }
+  if (pointers.size > 2) return
   const h = hit(ev)
-  if (h === null) return
-  const n = flat.nodes[h]
-  if (n.link && (onIcon(ev, h) || ev.altKey)) return window.open(n.link, '_blank', 'noopener')
-  grow(h)
+  gesture = { start: p, last: p, moved: false, hit: h, icon: h !== null && Boolean(flat.nodes[h].link) && onIcon(ev, h) }
 })
+canvas.addEventListener('pointermove', ev => {
+  const p = local(ev)
+  if (!pointers.has(ev.pointerId)) {
+    if (ev.pointerType !== 'mouse') return
+    const h = hit(ev)
+    if (h !== hover) {
+      hover = h
+      invalidate()
+    }
+    canvas.style.cursor = h !== null && (!flat.kids[h].length || (flat.nodes[h].link && onIcon(ev, h))) ? 'pointer' : h !== null ? 'grab' : ''
+    return
+  }
+  pointers.set(ev.pointerId, p)
+  if (!gesture) return
+  if (gesture.pinch) {
+    if (pointers.size < 2) return
+    const [a, b] = [...pointers.values()]
+    const now = pinchInfo(a, b)
+    pinchTo(view, gesture.pinch, now)
+    gesture.pinch = now
+    moved()
+    invalidate()
+    return
+  }
+  if (!gesture.moved && Math.hypot(p.x - gesture.start.x, p.y - gesture.start.y) > DRAG_THRESHOLD) {
+    gesture.moved = true
+    canvas.style.cursor = 'grabbing'
+  }
+  if (gesture.moved) {
+    panBy(view, p.x - gesture.last.x, p.y - gesture.last.y)
+    moved()
+    invalidate()
+  }
+  gesture.last = p
+})
+function endPointer(ev) {
+  if (!pointers.delete(ev.pointerId)) return
+  const g = gesture
+  if (!g) return
+  if (g.pinch) {
+    if (!pointers.size) gesture = null
+    return
+  }
+  if (pointers.size) return
+  gesture = null
+  canvas.style.cursor = ''
+  if (ev.type === 'pointercancel' || g.moved || g.hit === null) return
+  const n = flat.nodes[g.hit]
+  if (n.link && (g.icon || ev.altKey)) return window.open(n.link, '_blank', 'noopener')
+  grow(g.hit)
+}
+canvas.addEventListener('pointerup', endPointer)
+canvas.addEventListener('pointercancel', endPointer)
+canvas.addEventListener('pointerleave', () => { hover = null; invalidate() })
+canvas.addEventListener('wheel', ev => {
+  ev.preventDefault()
+  wheel(view, ev, local(ev), height)
+  moved()
+  invalidate()
+}, { passive: false })
 
 // ---------- output ----------
 function toDoc() {

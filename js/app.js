@@ -4,10 +4,8 @@ import { BRANCH_COLORS, readableText } from './colors.js'
 import { badgeAt, colorsFor, drawMap, linkIconAt, makeMeasure, THEMES } from './render.js'
 import { fanLayout, radialLayout } from './layout.js'
 import { parseOutline, toMarkdown } from './outline.js'
+import { boundsOf, DRAG_THRESHOLD, fitBox, MIN_SCALE, pinchInfo as pinchOf, pinchTo, stepView, toScreen as screenOf, toWorld as worldOf, wheel as wheelView, zoomAt as zoomView } from './view.js'
 
-const MIN_SCALE = 0.1
-const MAX_SCALE = 4
-const DRAG_THRESHOLD = 5
 const DOUBLE_TAP_MS = 350
 const HISTORY_LIMIT = 200
 const ANIM_MS = 220
@@ -486,8 +484,8 @@ function dragPos(i) {
   return { x: p.x + 12 / state.view.scale, y: p.y + (t.h / 2 + 34) / state.view.scale }
 }
 
-const toWorld = (sx, sy) => ({ x: (sx - state.view.x) / state.view.scale, y: (sy - state.view.y) / state.view.scale })
-const toScreen = (wx, wy) => ({ x: wx * state.view.scale + state.view.x, y: wy * state.view.scale + state.view.y })
+const toWorld = (sx, sy) => worldOf(state.view, sx, sy)
+const toScreen = (wx, wy) => screenOf(state.view, wx, wy)
 
 function hitTest(p, exclude) {
   // Generous hit areas: at least 44 × 44 screen px, nearest node wins.
@@ -594,12 +592,7 @@ function setView(target, animate = true) {
 
 function zoomAt(sx, sy, factor) {
   viewAnim = null
-  const v = state.view
-  const next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, v.scale * factor))
-  const k = next / v.scale
-  v.x = sx - (sx - v.x) * k
-  v.y = sy - (sy - v.y) * k
-  v.scale = next
+  zoomView(state.view, sx, sy, factor)
   positionEditor()
   invalidate()
 }
@@ -613,31 +606,17 @@ function visibleArea() {
 
 function fitView(animate = true, initial = false) {
   if (!state.nodes.length || !width) return
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-  state.nodes.forEach((n, i) => {
-    if (!info.visible[i]) return
-    const m = size(i)
-    minX = Math.min(minX, n.x - m.w / 2)
-    maxX = Math.max(maxX, n.x + m.w / 2)
-    minY = Math.min(minY, n.y - m.h / 2)
-    maxY = Math.max(maxY, n.y + m.h / 2)
-  })
+  const box = boundsOf(fn => state.nodes.forEach((n, i) => info.visible[i] && fn(n, size(i))))
   const area = visibleArea()
   const small = width < 760 || coarse.matches
   const pad = width < 500 ? 20 : 56
-  const cap = small ? 1 : 1.25
-  let scale = Math.min((width - pad * 2) / (maxX - minX || 1), (area.bottom - area.top - pad * 2) / (maxY - minY || 1), cap)
-  let cx = (minX + maxX) / 2
-  let cy = (minY + maxY) / 2
-  if (initial && small && scale < 0.45) {
+  let view = fitBox(box, { width, top: area.top, bottom: area.bottom, pad, cap: small ? 1 : 1.25 })
+  if (initial && small && view.scale < 0.45) {
     // too big to read when fitted on a phone: open on a readable piece around the root
-    scale = 0.62
-    cx = state.nodes[0].x
-    cy = state.nodes[0].y
+    const scale = 0.62
+    view = { scale, x: width / 2 - state.nodes[0].x * scale, y: (area.top + area.bottom) / 2 - state.nodes[0].y * scale }
   }
-  scale = Math.max(MIN_SCALE, scale)
-  const midY = (area.top + area.bottom) / 2
-  setView({ scale, x: width / 2 - cx * scale, y: midY - cy * scale }, animate)
+  setView(view, animate)
 }
 
 function ensureVisible(i, animate = true) {
@@ -718,13 +697,7 @@ function draw() {
   frame = 0
   const now = performance.now()
   if (viewAnim) {
-    const t = Math.min(1, (now - viewAnim.t0) / 260)
-    const e = ease(t)
-    const { from, to } = viewAnim
-    state.view.x = from.x + (to.x - from.x) * e
-    state.view.y = from.y + (to.y - from.y) * e
-    state.view.scale = from.scale + (to.scale - from.scale) * e
-    if (t >= 1) viewAnim = null
+    if (!stepView(state.view, viewAnim, now)) viewAnim = null
     positionEditor()
   }
   drawMap(ctx, scene())
@@ -1423,7 +1396,7 @@ function localPoint(e) {
 
 function pinchInfo() {
   const [a, b] = [...pointers.values()]
-  return { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 }
+  return pinchOf(a, b)
 }
 
 const focusMap = () => {
@@ -1487,9 +1460,10 @@ canvas.addEventListener('pointermove', e => {
 
   if (gesture.type === 'pinch' && pointers.size >= 2) {
     const now = pinchInfo()
-    state.view.x += now.cx - gesture.cx
-    state.view.y += now.cy - gesture.cy
-    zoomAt(now.cx, now.cy, now.dist / gesture.dist)
+    viewAnim = null
+    pinchTo(state.view, gesture, now)
+    positionEditor()
+    invalidate()
     Object.assign(gesture, now)
     return
   }
@@ -1610,20 +1584,9 @@ canvas.addEventListener(
     e.preventDefault()
     viewAnim = null
     userMoved = true
-    const k = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? height : 1
-    if (e.ctrlKey || e.metaKey) {
-      // pinch on a trackpad, or Ctrl+wheel
-      const p = localPoint(e)
-      const d = Math.max(-60, Math.min(60, e.deltaY * k))
-      zoomAt(p.x, p.y, Math.exp(-d * 0.01))
-    } else {
-      const dx = (e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX) * k
-      const dy = (e.shiftKey && !e.deltaX ? 0 : e.deltaY) * k
-      state.view.x -= dx
-      state.view.y -= dy
-      positionEditor()
-      invalidate()
-    }
+    wheelView(state.view, e, localPoint(e), height) // pinch or Ctrl+wheel zooms, else pans
+    positionEditor()
+    invalidate()
   },
   { passive: false }
 )
