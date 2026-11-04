@@ -89,7 +89,8 @@ function system() {
     'Order: the most important first. Put real content in the map: names, numbers, terms, not headings like "Introduction".',
     STYLE[settings.style] || STYLE.overview,
     settings.links === 'yes' ? 'When you are sure a URL exists, write a node as [text](https://…). Never invent URLs.' : 'No links.',
-    `Language: ${settings.lang || 'English'}.`
+    `Language: ${settings.lang || 'English'}.`,
+    'If the request names a URL, fetch it with web_fetch first and map what that page actually says: the root is the page title, the branches its main sections or claims. Do not pad with general knowledge.'
   ].join('\n')
 }
 
@@ -104,7 +105,7 @@ function thinkingFor(model, on) {
 }
 
 // Claude's streamed text, as it arrives.
-async function* stream(messages, { signal } = {}) {
+async function* stream(messages, { signal, extra = {} } = {}) {
   const key = $('#key').value.trim()
   if (!key) throw new Error('Add your Claude API key under ⚙ first.')
   const res = await fetch(API, {
@@ -122,7 +123,8 @@ async function* stream(messages, { signal } = {}) {
       stream: true,
       ...thinkingFor(settings.model, settings.think === 'yes'),
       system: system(),
-      messages
+      messages,
+      ...extra
     })
   })
   if (!res.ok) {
@@ -150,6 +152,17 @@ async function* stream(messages, { signal } = {}) {
     }
   }
 }
+
+// Keep the outline and drop any chatter around it ("I'll fetch the page first." and the like).
+function outlineOnly(text) {
+  let at = text.search(/(^|\n)#\s/)
+  if (at < 0) at = text.search(/#\s+\S/) // "I'll fetch the page first.# Title" on one line
+  if (at >= 0) text = text.slice(at)
+  return text.split('\n').filter(l => /^\s*(#{1,6}\s|[-*+]\s|\d+[.)]\s)/.test(l)).join('\n') + '\n'
+}
+
+// No heading came back: the bullets go under one root named after the request.
+const rooted = (roots, q) => (roots.length > 1 ? [{ name: q.replace(/^https?:\/\/(www\.)?/, '').slice(0, 60), kids: roots }] : roots)
 
 // Give every node a stable id by its path, so a re-parse of the growing outline keeps ids.
 function adopt(roots, ids, path = '') {
@@ -182,22 +195,29 @@ async function build() {
   $('#go').textContent = 'Building…'
   tree = null
   resetView()
-  status('Asking ' + settings.model.replace('claude-', '').replace(/-/g, ' ') + '…')
+  // A URL in the request: the API fetches the page (web_fetch server tool) and the map summarises it.
+  const urls = q.match(/https?:\/\/[^\s<>"')\]]+/g) || []
+  const who = settings.model.replace('claude-', '').replace(/-/g, ' ')
+  status(urls.length ? `Fetching ${urls.length === 1 ? 'the page' : urls.length + ' pages'}, then asking ${who}…` : `Asking ${who}…`)
+  const content = urls.length
+    ? `Mind map of the page${urls.length > 1 ? 's' : ''} at ${urls.join(' and ')}${q.replace(/https?:\/\/[^\s<>"')\]]+/g, '').trim() ? ` (${q.replace(/https?:\/\/[^\s<>"')\]]+/g, '').trim()})` : ''}. Fetch first, then map what it says.`
+    : `Mind map of: ${q}`
+  const extra = urls.length ? { tools: [{ type: 'web_fetch_20250910', name: 'web_fetch', max_uses: Math.min(urls.length, 3) }] } : {}
   const ids = new Map()
   let text = ''
   const req = {}
   try {
-    for await (const chunk of stream([{ role: 'user', content: `Mind map of: ${q}` }], { signal: abort.signal })) {
+    for await (const chunk of stream([{ role: 'user', content }], { signal: abort.signal, extra })) {
       if (chunk.usage) { tally(chunk.usage, req); continue }
       text += chunk.text
-      const complete = text.slice(0, text.lastIndexOf('\n') + 1)
-      const roots = parseOutline(complete)
+      const complete = outlineOnly(text.slice(0, text.lastIndexOf('\n') + 1))
+      const roots = rooted(parseOutline(complete), q)
       if (!roots.length) continue
       adopt(roots, ids)
       setTree(roots[0])
       status(`Building… ${count(tree)} nodes`)
     }
-    const roots = parseOutline(text)
+    const roots = rooted(parseOutline(outlineOnly(text)), q)
     if (!roots.length) throw new Error('Claude sent no outline. Try again.')
     adopt(roots, ids)
     setTree(roots[0])
