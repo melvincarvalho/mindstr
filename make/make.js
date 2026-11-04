@@ -234,12 +234,17 @@ async function build() {
 }
 
 // Ask for the children of one leaf, in the context of the whole map.
+const pathTo = i => {
+  const path = []
+  for (let j = i; j !== null && j !== undefined; j = flat.parent[j]) path.unshift(flat.nodes[j].name)
+  return path
+}
+
 async function grow(i) {
   if (busy || !tree) return
   const node = flat.nodes[i]
   if (node.kids.length) return
-  const path = []
-  for (let j = i; j !== null && j !== undefined; j = flat.parent[j]) path.unshift(flat.nodes[j].name)
+  const path = pathTo(i)
   busy = true
   status(`Growing “${node.name}”…`)
   let text = ''
@@ -487,6 +492,16 @@ canvas.addEventListener('pointerdown', ev => {
   if (pointers.size > 2) return
   const h = hit(ev)
   gesture = { start: p, last: p, moved: false, hit: h, icon: h !== null && Boolean(flat.nodes[h].link) && onIcon(ev, h) }
+  hideMenu()
+  if (h !== null && ev.pointerType !== 'mouse') {
+    // a long press on touch opens the same menu as a right-click
+    gesture.hold = setTimeout(() => {
+      if (gesture?.hit === h && !gesture.moved) {
+        gesture.menu = true
+        showMenu(h, p)
+      }
+    }, 500)
+  }
 })
 canvas.addEventListener('pointermove', ev => {
   const p = local(ev)
@@ -514,6 +529,7 @@ canvas.addEventListener('pointermove', ev => {
   }
   if (!gesture.moved && Math.hypot(p.x - gesture.start.x, p.y - gesture.start.y) > DRAG_THRESHOLD) {
     gesture.moved = true
+    clearTimeout(gesture.hold)
     canvas.style.cursor = 'grabbing'
   }
   if (gesture.moved) {
@@ -533,8 +549,9 @@ function endPointer(ev) {
   }
   if (pointers.size) return
   gesture = null
+  clearTimeout(g.hold)
   canvas.style.cursor = ''
-  if (ev.type === 'pointercancel' || g.moved || g.hit === null) return
+  if (ev.type === 'pointercancel' || g.moved || g.menu || g.hit === null) return
   const n = flat.nodes[g.hit]
   if (n.link && (g.icon || ev.altKey)) return window.open(n.link, '_blank', 'noopener')
   grow(g.hit)
@@ -542,6 +559,47 @@ function endPointer(ev) {
 canvas.addEventListener('pointerup', endPointer)
 canvas.addEventListener('pointercancel', endPointer)
 canvas.addEventListener('pointerleave', () => { hover = null; invalidate() })
+canvas.addEventListener('contextmenu', ev => {
+  ev.preventDefault()
+  const h = hit(ev)
+  if (h !== null) showMenu(h, local(ev))
+})
+
+// ---------- node menu: grow, open as a new map, open link ----------
+const menu = $('#menu')
+let menuFor = null
+function showMenu(i, p) {
+  menuFor = i
+  const n = flat.nodes[i]
+  $('#m-grow').hidden = n.kids.length > 0
+  $('#m-link').hidden = !n.link
+  menu.hidden = false
+  const r = canvas.getBoundingClientRect()
+  menu.style.left = Math.min(p.x, r.width - menu.offsetWidth - 8) + 'px'
+  menu.style.top = Math.min(p.y, r.height - menu.offsetHeight - 8) + 'px'
+  $('#m-grow').hidden ? $('#m-map').focus() : $('#m-grow').focus()
+}
+function hideMenu() {
+  menu.hidden = true
+  menuFor = null
+}
+$('#m-grow').addEventListener('click', () => { const i = menuFor; hideMenu(); if (i !== null) grow(i) })
+$('#m-link').addEventListener('click', () => { const n = flat.nodes[menuFor]; hideMenu(); if (n?.link) window.open(n.link, '_blank', 'noopener') })
+$('#m-map').addEventListener('click', () => {
+  const i = menuFor
+  hideMenu()
+  if (i === null) return
+  // the node as the topic, its ancestors as context, built on arrival by the ?q= form
+  const path = pathTo(i)
+  const topic = path.length > 1 ? `${path[path.length - 1]}, in ${path.slice(0, -1).join(' › ')}` : path[0]
+  const u = new URL(location.href)
+  u.search = ''
+  u.searchParams.set('q', topic)
+  window.open(u.href, '_blank', 'noopener')
+})
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') hideMenu() })
+document.addEventListener('pointerdown', ev => { if (!menu.hidden && !menu.contains(ev.target)) hideMenu() })
+
 canvas.addEventListener('wheel', ev => {
   ev.preventDefault()
   wheel(view, ev, local(ev), height)

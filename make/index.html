@@ -82,6 +82,9 @@
       .actions .btn { padding: 6px 12px; font-size: 13px; box-shadow: 0 2px 10px rgb(30 30 60 / 0.08) }
       .fitbtn { position: absolute; bottom: 14px; right: max(12px, env(safe-area-inset-right)); padding: 6px 12px; font-size: 13px }
       canvas { touch-action: none }
+      .menu { position: absolute; z-index: 5; background: var(--raised); border: 1px solid var(--border); border-radius: 12px; padding: 6px; display: flex; flex-direction: column; min-width: 180px; box-shadow: 0 8px 28px rgb(30 30 60 / 0.16) }
+      .menu button { border: 0; background: transparent; text-align: left; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 600 }
+      .menu button:hover, .menu button:focus-visible { background: var(--accent-soft); color: var(--accent); outline: 0 }
       .hint { position: absolute; top: 14px; left: max(14px, env(safe-area-inset-left)); font-size: 12px; color: var(--muted) }
     </style>
   </head>
@@ -152,7 +155,7 @@
     </header>
     <main>
       <canvas id="map"></canvas>
-      <div class="hint">Click a leaf to grow it · ↗ opens its link · drag to pan, wheel or pinch to zoom</div>
+      <div class="hint">Click a leaf to grow it · right-click or hold for more · drag to pan, wheel or pinch to zoom</div>
       <button class="btn fitbtn" id="fit" hidden title="Fit the map to the window">Fit</button>
       <div class="actions" id="actions" hidden>
         <button class="btn" id="copy">Copy JSON-LD</button>
@@ -162,6 +165,11 @@
         <a class="btn" id="open" hidden target="_blank" rel="noopener">Open in Mindstr ↗</a>
       </div>
       <div class="status" id="status" hidden></div>
+      <div class="menu" id="menu" hidden role="menu">
+        <button type="button" id="m-grow" role="menuitem">Grow here</button>
+        <button type="button" id="m-map" role="menuitem">Open as new map ↗</button>
+        <button type="button" id="m-link" role="menuitem">Open link ↗</button>
+      </div>
     </main>
     <script type="module" src="make.js"></script>
   </body>
