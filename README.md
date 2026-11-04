@@ -70,6 +70,13 @@ Links: `http(s)` URLs open in a new tab; `.md` files open in the NosDAV doc
 viewer; relative links (`./other.json`) open another map next to this one via `?uri=`.
 Other schemes are blocked.
 
+## Make a map from a topic
+
+[mindstr.org/make](https://mindstr.org/make/): type a topic and watch Claude build the map as its
+outline streams in. Runs in your browser with your own API key (kept in localStorage, sent only to
+api.anthropic.com). Click a leaf to grow it; copy or download the JSON-LD; the status line shows
+tokens and cost. Settings: depth, breadth, model, style, language, thinking, links.
+
 ## Examples
 
 [welcome](https://mindstr.org/?uri=examples/welcome.json) ·
