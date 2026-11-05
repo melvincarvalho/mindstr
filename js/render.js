@@ -146,7 +146,7 @@ export function drawMap(ctx, s) {
   ctx.fillStyle = theme.bg
   ctx.fillRect(0, 0, s.width, s.height)
 
-  const root = s.pos(0)
+  const root = nodes.length ? s.pos(0) : null
   const cx = root ? root.x * view.scale + view.x : s.width / 2
   const cy = root ? root.y * view.scale + view.y : s.height / 2
   const aura = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.hypot(s.width, s.height) * 0.62)
