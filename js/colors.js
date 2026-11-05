@@ -59,8 +59,21 @@ export function readableText(fill) {
   return contrast(fill, '#1b1f27') >= contrast(fill, '#f4f5f8') ? '#1b1f27' : '#f4f5f8'
 }
 
-// Fill, border and edge colours for a branch colour in the current theme.
+// Fill, border and edge colours for a branch colour in the current theme. Called for every
+// node and edge on every frame, so the results are remembered (treat them as read-only).
+const toneCache = new Map()
 export function tones(color, dark) {
+  const key = (dark ? 'd' : 'l') + color
+  let t = toneCache.get(key)
+  if (!t) {
+    if (toneCache.size > 1000) toneCache.clear()
+    t = makeTones(color, dark)
+    toneCache.set(key, t)
+  }
+  return t
+}
+
+function makeTones(color, dark) {
   const [h, s0, l0] = rgbToHsl(toRgb(color))
   const s = s0 < 8 ? 0 : Math.max(s0, 45)
   return dark

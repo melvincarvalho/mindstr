@@ -624,6 +624,14 @@ function invalidate() {
   if (!frame) frame = requestAnimationFrame(draw)
 }
 
+// While the view or the map moves, frames leave out the costliest effects (render.js); one
+// full frame is drawn SETTLE_MS after the movement stops.
+const SETTLE_MS = 140
+let lastWheel = 0
+let settle = 0
+const isMoving = now =>
+  Boolean(viewAnim) || anims.size > 0 || (gesture !== null && (gesture.moved || gesture.type === 'pinch')) || now - lastWheel < SETTLE_MS
+
 function draw() {
   frame = 0
   const now = performance.now()
@@ -631,7 +639,12 @@ function draw() {
     if (!stepView(state.view, viewAnim, now)) viewAnim = null
     positionEditor()
   }
-  drawMap(ctx, scene())
+  const moving = isMoving(now)
+  drawMap(ctx, scene({ moving }))
+  if (moving) {
+    clearTimeout(settle)
+    settle = setTimeout(invalidate, SETTLE_MS)
+  }
   placeTreeItems()
   if (viewAnim || anims.size || appearing.size || flashing.until > now) invalidate()
 }
@@ -1517,6 +1530,7 @@ canvas.addEventListener(
     e.preventDefault()
     viewAnim = null
     userMoved = true
+    lastWheel = performance.now()
     wheelView(state.view, e, localPoint(e), height) // pinch or Ctrl+wheel zooms, else pans
     positionEditor()
     invalidate()
