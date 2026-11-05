@@ -154,7 +154,7 @@ npm test
   without errors, editing with undo and redo, Download JSON-LD, colours. Outside requests are
   blocked, so no network is needed.
 
-GitHub Actions runs both on every push to `gh-pages` and on pull requests. The app itself still
-has no dependencies: Playwright is a dev dependency, used only by the tests.
+Run `npm test` before pushing. The app itself still has no dependencies: Playwright is a dev
+dependency, used only by the tests.
 
 MIT licensed.
