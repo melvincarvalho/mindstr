@@ -6,7 +6,10 @@
   "type": "module",
   "scripts": {
     "start": "npx serve .",
-    "examples": "node scripts/build-examples.js"
+    "examples": "node scripts/build-examples.js",
+    "test": "npm run test:unit && npm run test:browser",
+    "test:unit": "node --test \"test/unit/*.test.js\"",
+    "test:browser": "node --test \"test/browser/*.test.js\""
   },
   "repository": {
     "type": "git",
@@ -21,5 +24,11 @@
   "bugs": {
     "url": "https://github.com/melvincarvalho/mindstr/issues"
   },
-  "homepage": "https://github.com/melvincarvalho/mindstr#readme"
+  "homepage": "https://github.com/melvincarvalho/mindstr#readme",
+  "devDependencies": {
+    "playwright": "1.63.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }
