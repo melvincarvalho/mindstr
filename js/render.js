@@ -58,8 +58,9 @@ export const THEMES = {
 export const SIZE_MIN = 0.8
 export const SIZE_MAX = 1.6
 export function nodeScale(node) {
-  const s = Number(node?.size)
-  return Number.isFinite(s) && s > 0 ? Math.min(SIZE_MAX, Math.max(SIZE_MIN, s)) : 1
+  const s = node?.size
+  // a JSON number only: strings, zero, negatives and NaN draw at normal size
+  return typeof s === 'number' && Number.isFinite(s) && s > 0 ? Math.min(SIZE_MAX, Math.max(SIZE_MIN, s)) : 1
 }
 const scaled = new Map()
 function styleFor(depth, k) {
@@ -80,7 +81,8 @@ function styleFor(depth, k) {
 export function makeMeasure(ctx) {
   const widths = new Map()
   const measure = (node, depth) => {
-    const st = styleFor(depth, nodeScale(node))
+    const k = nodeScale(node)
+    const st = styleFor(depth, k)
     const key = st.font + '\u0000' + node.name
     let tw = widths.get(key)
     if (tw === undefined) {
@@ -90,7 +92,7 @@ export function makeMeasure(ctx) {
       widths.set(key, tw)
     }
     const link = node.link ? LINK_W : 0
-    return { ...st, tw, w: Math.max(tw + st.padX * 2 + link, 48), link: Boolean(node.link) }
+    return { ...st, tw, w: Math.max(tw + st.padX * 2 + link, 48 * k), link: Boolean(node.link) }
   }
   measure.reset = () => widths.clear()
   return measure

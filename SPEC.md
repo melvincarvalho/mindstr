@@ -58,7 +58,7 @@ fields. See [Compatibility](#compatibility).
 | `bgColor` | string | Optional CSS colour, ideally a soft pastel. Renderers may ignore it on the root (the app draws the root in its brand colour). |
 | `link` | string | Optional. An `http(s)` URL, or a relative reference resolved against the map's own URL. A relative link to a `.json`/`.jsonld` file is another map. A `.md` link is a document. Other schemes are not followed. |
 | `collapsed` | boolean | Optional `true` when the node's branch is folded in the app. |
-| `size` | number | Optional scale on the node's text and box, relative to the style for its depth. `1` (the default) is normal size; `1.25` is a quarter bigger. Renderers clamp it (the app uses 0.8–1.6) and may ignore it. Use it sparingly, to stress a few nodes. |
+| `size` | number | Optional scale on the node's text and box, relative to the style for its depth. `1` (the default) is normal size; `1.25` is a quarter bigger. A JSON number, not a string. Renderers clamp it (the app uses 0.8–1.6) and may ignore it. Use it sparingly, to stress a few nodes. |
 | anything else | any | Preserved untouched. |
 
 ### Structure rules
