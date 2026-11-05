@@ -1080,6 +1080,7 @@ const toTree = i => {
     name: n.name,
     ...(n.link ? { link: n.link } : {}),
     ...(n.bgColor ? { bgColor: n.bgColor } : {}),
+    ...(n.size !== undefined ? { size: n.size } : {}),
     kids: info.kids[i].map(toTree)
   }
 }
@@ -1095,6 +1096,7 @@ function insertTrees(parent, trees) {
     const node = { '@id': newId(), name: t.name, x: state.nodes[pi].x, y: state.nodes[pi].y }
     if (t.link) node.link = t.link
     if (t.bgColor) node.bgColor = t.bgColor
+    if (t.size !== undefined) node.size = t.size
     state.nodes.push(node)
     const i = state.nodes.length - 1
     state.connections.push({ start: pi, end: i })

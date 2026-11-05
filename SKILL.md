@@ -36,6 +36,9 @@ Write **version 0.2**. The rules you must not get wrong:
   leaves stay uncoloured.
 - `link`: an `http(s)` URL, or a relative path to another map (`./other.jsonld`, or
   `./other.jsonld#k3x9q2` for one node in it) or a `.md` document.
+- `size`: optional, to stress a few nodes that matter most (the live site, a key result, a
+  warning). A number from 0.8 to 1.6, default 1; `1.25` is a good "important". Don't use it on
+  most nodes, or nothing stands out.
 - Names are one short line (1–4 words read best).
 
 ## Storage and viewing

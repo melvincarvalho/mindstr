@@ -54,10 +54,33 @@ export const THEMES = {
   }
 }
 
+// A node's optional `size` (SPEC.md) scales its depth's style: font, padding, height, corners.
+export const SIZE_MIN = 0.8
+export const SIZE_MAX = 1.6
+export function nodeScale(node) {
+  const s = Number(node?.size)
+  return Number.isFinite(s) && s > 0 ? Math.min(SIZE_MAX, Math.max(SIZE_MIN, s)) : 1
+}
+const scaled = new Map()
+function styleFor(depth, k) {
+  const base = STYLES[Math.min(depth, 2)]
+  if (k === 1) return base
+  const key = Math.min(depth, 2) + ':' + k
+  let st = scaled.get(key)
+  if (!st) {
+    // whole pixels, so the font string stays simple for anything that reads it back
+    const font = base.font.replace(/(\d+)px/, (_, px) => Math.round(px * k) + 'px')
+    st = { font, padX: base.padX * k, h: base.h * k, r: base.r * k }
+    if (scaled.size > 500) scaled.clear()
+    scaled.set(key, st)
+  }
+  return st
+}
+
 export function makeMeasure(ctx) {
   const widths = new Map()
   const measure = (node, depth) => {
-    const st = STYLES[Math.min(depth, 2)]
+    const st = styleFor(depth, nodeScale(node))
     const key = st.font + '\u0000' + node.name
     let tw = widths.get(key)
     if (tw === undefined) {
