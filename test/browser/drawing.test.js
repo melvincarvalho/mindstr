@@ -61,3 +61,26 @@ for (const colorScheme of ['light', 'dark']) {
     await page.context().close()
   })
 }
+
+test('the app goes idle after tidying a map with a folded branch', async () => {
+  const page = await openPage(browser, server.url)
+  await page.addInitScript(() => {
+    window.__frames = 0
+    const raf = window.requestAnimationFrame.bind(window)
+    window.requestAnimationFrame = cb => raf(ts => (window.__frames++, cb(ts)))
+  })
+  await load(page, `${server.url}?example=welcome`)
+  await page.locator('#tree').focus()
+  await page.keyboard.press('ControlOrMeta+f')
+  await page.keyboard.type('Arrange')
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Space') // fold "Arrange"
+  await page.keyboard.press('l') // tidy: moves nodes, including the ones now hidden
+  await page.waitForTimeout(1500)
+  const before = await page.evaluate(() => window.__frames)
+  await page.waitForTimeout(600)
+  const frames = (await page.evaluate(() => window.__frames)) - before
+  assert.equal(frames, 0, 'no frames are drawn while nothing changes')
+  assert.deepEqual(page.errors, [])
+  await page.context().close()
+})
