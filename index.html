@@ -38,6 +38,7 @@
         --accent: #6d4aff;
         --accent-hi: #8262ff;
         --accent-lo: #5b40e8;
+        --accent-grad: linear-gradient(135deg, var(--accent-hi), var(--accent-lo));
         --accent-text: #ffffff;
         --accent-soft: rgb(109 74 255 / 0.14);
         --warn-bg: #fff4d6;
@@ -127,14 +128,14 @@
       }
       @media (hover: hover) {
         button:hover:not(:disabled), .btn:hover { background: var(--hover); }
-        .primary:hover:not(:disabled) { filter: brightness(1.08); }
+        .primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--accent-grad); }
       }
       button:focus-visible, .btn:focus-visible, a:focus-visible {
         outline: 2px solid var(--accent); outline-offset: 2px;
       }
       button:disabled { color: var(--muted); opacity: 0.45; cursor: default; }
       .primary {
-        background: linear-gradient(135deg, var(--accent-hi), var(--accent-lo)); color: var(--accent-text);
+        background: var(--accent-grad); color: var(--accent-text);
         box-shadow: 0 5px 14px var(--accent-soft);
         padding: 0 14px; font-weight: 600;
         white-space: nowrap; flex-shrink: 0;

@@ -28,7 +28,9 @@ export const THEMES = {
     muted: '#687080',
     aura: 'rgba(124,93,250,0.13)',
     auraMid: 'rgba(124,93,250,0.045)',
+    auraClear: 'rgba(124,93,250,0)',
     wash: 'rgba(80,170,255,0.09)',
+    washClear: 'rgba(80,170,255,0)',
     nodeHighlight: 'rgba(255,255,255,0.72)'
   },
   dark: {
@@ -45,7 +47,9 @@ export const THEMES = {
     muted: '#9aa2b1',
     aura: 'rgba(124,93,250,0.19)',
     auraMid: 'rgba(124,93,250,0.05)',
+    auraClear: 'rgba(124,93,250,0)',
     wash: 'rgba(34,211,238,0.075)',
+    washClear: 'rgba(34,211,238,0)',
     nodeHighlight: 'rgba(255,255,255,0.08)'
   }
 }
@@ -148,12 +152,12 @@ export function drawMap(ctx, s) {
   const aura = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.hypot(s.width, s.height) * 0.62)
   aura.addColorStop(0, theme.aura)
   aura.addColorStop(0.48, theme.auraMid)
-  aura.addColorStop(1, 'rgba(124,93,250,0)')
+  aura.addColorStop(1, theme.auraClear)
   ctx.fillStyle = aura
   ctx.fillRect(0, 0, s.width, s.height)
   const wash = ctx.createRadialGradient(s.width * 0.9, s.height * 0.08, 0, s.width * 0.9, s.height * 0.08, Math.max(s.width, s.height) * 0.7)
   wash.addColorStop(0, theme.wash)
-  wash.addColorStop(1, 'rgba(80,170,255,0)')
+  wash.addColorStop(1, theme.washClear)
   ctx.fillStyle = wash
   ctx.fillRect(0, 0, s.width, s.height)
 
