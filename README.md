@@ -151,8 +151,8 @@ npm test
 - `npm run test:unit`: Node's built-in test runner, no browser (`test/unit/`): the map format,
   outlines, view maths and layout.
 - `npm run test:browser`: the app in headless Chromium (`test/browser/`): every example loads
-  without errors, editing with undo and redo, Download JSON-LD, colours. Outside requests are
-  blocked, so no network is needed.
+  without errors, editing with undo and redo, Download JSON-LD, colours, node `size`. Outside
+  requests are blocked and relays are mocked, so no network is needed.
 
 Run `npm test` before pushing. The app itself still has no dependencies: Playwright is a dev
 dependency, used only by the tests.

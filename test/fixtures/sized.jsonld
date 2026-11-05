@@ -1,0 +1,11 @@
+{
+  "@context": { "@vocab": "https://mindstr.org/ns#", "link": { "@type": "@id" }, "parent": { "@type": "@id" } },
+  "version": "0.2",
+  "nodes": [
+    { "@id": "#this", "name": "Root", "x": 0, "y": 0, "size": 1.3 },
+    { "@id": "#bbbbbb", "name": "Big", "x": 260, "y": 0, "parent": "#this", "size": 1.4 },
+    { "@id": "#cccccc", "name": "Small", "x": 480, "y": -60, "parent": "#bbbbbb", "size": 0.8 },
+    { "@id": "#dddddd", "name": "Text size", "x": 480, "y": 60, "parent": "#bbbbbb", "size": "1.5" },
+    { "@id": "#eeeeee", "name": "Plain", "x": -260, "y": 0, "parent": "#this" }
+  ]
+}
