@@ -165,26 +165,91 @@ function ring(ctx, p, m, grow, width, color, dash) {
   ctx.setLineDash([])
 }
 
-export function drawMap(ctx, s) {
-  const { view, theme, info, nodes } = s
-  ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0)
-  ctx.fillStyle = theme.bg
-  ctx.fillRect(0, 0, s.width, s.height)
+// Vertical node-fill gradients, kept per context and reused across nodes and frames.
+const fills = new WeakMap()
+function fillGradient(ctx, hi, lo, h) {
+  let cache = fills.get(ctx)
+  if (!cache) fills.set(ctx, (cache = new Map()))
+  const key = hi + '|' + lo + '|' + h
+  let g = cache.get(key)
+  if (!g) {
+    if (cache.size > 500) cache.clear()
+    g = ctx.createLinearGradient(0, 0, 0, h)
+    g.addColorStop(0, hi)
+    g.addColorStop(1, lo)
+    cache.set(key, g)
+  }
+  return g
+}
+
+// The backdrop: the theme colour, a wash in the top-right corner, and a soft glow around the
+// root that follows it. The first two only change with size and theme, so they're drawn once
+// into a layer; the glow is a small pre-drawn image stretched into place (a smooth gradient
+// scales up without visible loss). Two full-canvas gradients per frame become two copies.
+let layer = null
+const auras = new Map()
+const MAX_LAYER = 16e6 // device pixels; anything bigger (a large PNG export) is drawn directly
+function drawBackdrop(ctx, s) {
+  const { theme, view, nodes } = s
+  const W = Math.round(s.width * s.dpr)
+  const H = Math.round(s.height * s.dpr)
+  if (!W || !H) return // nothing to draw on yet (a 0×0 canvas before the first resize)
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  if (W * H <= MAX_LAYER) {
+    const key = `${W}x${H}|${theme.bg}|${theme.wash}|${theme.washClear}`
+    if (layer?.key !== key) {
+      const c = layer?.canvas ?? document.createElement('canvas')
+      c.width = W
+      c.height = H
+      paintLayer(c.getContext('2d'), W, H, theme)
+      layer = { key, canvas: c }
+    }
+    ctx.drawImage(layer.canvas, 0, 0)
+  } else paintLayer(ctx, W, H, theme)
 
   const root = nodes.length ? s.pos(0) : null
-  const cx = root ? root.x * view.scale + view.x : s.width / 2
-  const cy = root ? root.y * view.scale + view.y : s.height / 2
-  const aura = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.hypot(s.width, s.height) * 0.62)
-  aura.addColorStop(0, theme.aura)
-  aura.addColorStop(0.48, theme.auraMid)
-  aura.addColorStop(1, theme.auraClear)
-  ctx.fillStyle = aura
-  ctx.fillRect(0, 0, s.width, s.height)
-  const wash = ctx.createRadialGradient(s.width * 0.9, s.height * 0.08, 0, s.width * 0.9, s.height * 0.08, Math.max(s.width, s.height) * 0.7)
+  const cx = (root ? root.x * view.scale + view.x : s.width / 2) * s.dpr
+  const cy = (root ? root.y * view.scale + view.y : s.height / 2) * s.dpr
+  const R = Math.hypot(W, H) * 0.62
+  ctx.imageSmoothingEnabled = true
+  ctx.drawImage(auraImage(theme), cx - R, cy - R, R * 2, R * 2)
+}
+function paintLayer(c, W, H, theme) {
+  c.fillStyle = theme.bg
+  c.fillRect(0, 0, W, H)
+  const wash = c.createRadialGradient(W * 0.9, H * 0.08, 0, W * 0.9, H * 0.08, Math.max(W, H) * 0.7)
   wash.addColorStop(0, theme.wash)
   wash.addColorStop(1, theme.washClear)
-  ctx.fillStyle = wash
-  ctx.fillRect(0, 0, s.width, s.height)
+  c.fillStyle = wash
+  c.fillRect(0, 0, W, H)
+}
+function auraImage(theme) {
+  const key = theme.aura + theme.auraMid + theme.auraClear
+  let img = auras.get(key)
+  if (!img) {
+    const N = 256
+    img = document.createElement('canvas')
+    img.width = img.height = N
+    const c = img.getContext('2d')
+    const g = c.createRadialGradient(N / 2, N / 2, 0, N / 2, N / 2, N / 2)
+    g.addColorStop(0, theme.aura)
+    g.addColorStop(0.48, theme.auraMid)
+    g.addColorStop(1, theme.auraClear)
+    c.fillStyle = g
+    c.fillRect(0, 0, N, N)
+    auras.set(key, img)
+  }
+  return img
+}
+
+export function drawMap(ctx, s) {
+  const { view, theme, info, nodes } = s
+  // While the view moves (scroll, pan, pinch, drag, animation) the costliest effects are left
+  // out: edge glow, node shadows, edge colour blends and the inner highlight. The app draws
+  // one full frame once it settles.
+  const moving = Boolean(s.moving)
+  drawBackdrop(ctx, s)
+  ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0)
 
   if (s.grid) {
     const gap = 32 * view.scale
@@ -206,6 +271,14 @@ export function drawMap(ctx, s) {
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
 
+  // colours per node, worked out once per frame
+  const colors = new Map()
+  const col = i => {
+    let c = colors.get(i)
+    if (!c) colors.set(i, (c = colorsFor(i, s)))
+    return c
+  }
+
   // edges
   for (const { start, end } of s.connections) {
     if (!info.visible[start] || !info.visible[end]) continue
@@ -226,17 +299,20 @@ export function drawMap(ctx, s) {
     ctx.moveTo(p0[0], p0[1])
     ctx.bezierCurveTo(p0[0] + cx * dist * 0.45, p0[1] + cy * dist * 0.45, p3[0] - dx * dist * 0.35, p3[1] - dy * dist * 0.35, p3[0], p3[1])
     const depth = info.depth[end]
-    const source = colorsFor(start, s)
-    const target = colorsFor(end, s)
+    const source = col(start)
+    const target = col(end)
     const lineWidth = depth <= 1 ? 3.25 : depth === 2 ? 1.9 : 1.5
-    ctx.save()
-    ctx.lineWidth = lineWidth + (depth <= 1 ? 9 : 5)
-    ctx.strokeStyle = target.glow
-    ctx.stroke()
-    ctx.restore()
-    const edge = ctx.createLinearGradient(p0[0], p0[1], p3[0], p3[1])
-    edge.addColorStop(0, source.edge)
-    edge.addColorStop(1, target.edge)
+    if (!moving) {
+      ctx.lineWidth = lineWidth + (depth <= 1 ? 9 : 5)
+      ctx.strokeStyle = target.glow
+      ctx.stroke()
+    }
+    let edge = target.edge
+    if (!moving && source.edge !== target.edge) {
+      edge = ctx.createLinearGradient(p0[0], p0[1], p3[0], p3[1])
+      edge.addColorStop(0, source.edge)
+      edge.addColorStop(1, target.edge)
+    }
     ctx.lineWidth = lineWidth
     ctx.strokeStyle = edge
     ctx.stroke()
@@ -248,7 +324,7 @@ export function drawMap(ctx, s) {
     const n = nodes[i]
     const p = s.pos(i)
     const m = s.size(i)
-    const c = colorsFor(i, s)
+    const c = col(i)
     const x = p.x - m.w / 2
     const y = p.y - m.h / 2
     const editing = s.editing === i
@@ -288,21 +364,17 @@ export function drawMap(ctx, s) {
       ctx.shadowColor = 'rgba(20,20,50,0.28)'
       ctx.shadowBlur = 24
       ctx.shadowOffsetY = 8
-    } else {
+    } else if (!moving) {
       const isRoot = info.depth[i] === 0
       ctx.shadowColor = isRoot ? theme.accentSoft : s.dark ? theme.shadow : c.glow
       ctx.shadowBlur = isRoot ? 30 : 14
       ctx.shadowOffsetY = isRoot ? 9 : 4
     }
-    box(ctx, x, y, m.w, m.h, m.r)
-    if (c.fillHi && c.fillLo) {
-      const fill = ctx.createLinearGradient(x, y, x, y + m.h)
-      fill.addColorStop(0, c.fillHi)
-      fill.addColorStop(1, c.fillLo)
-      ctx.fillStyle = fill
-    } else {
-      ctx.fillStyle = c.fill
-    }
+    // the fill gradient runs from the box's top to its bottom: drawn at the origin, one
+    // gradient per colour pair and height serves every node
+    ctx.translate(x, y)
+    box(ctx, 0, 0, m.w, m.h, m.r)
+    ctx.fillStyle = c.fillHi && c.fillLo ? fillGradient(ctx, c.fillHi, c.fillLo, m.h) : c.fill
     ctx.fill()
     ctx.restore()
     if (c.border) {
@@ -311,10 +383,13 @@ export function drawMap(ctx, s) {
       ctx.strokeStyle = c.border
       ctx.stroke()
     }
-    box(ctx, x + 1.25, y + 1.25, m.w - 2.5, m.h - 2.5, Math.max(0, m.r - 1.25))
-    ctx.lineWidth = 0.75
-    ctx.strokeStyle = theme.nodeHighlight
-    ctx.stroke()
+    if (!moving) {
+      // a hairline inner highlight; too fine to miss while the view moves
+      box(ctx, x + 1.25, y + 1.25, m.w - 2.5, m.h - 2.5, Math.max(0, m.r - 1.25))
+      ctx.lineWidth = 0.75
+      ctx.strokeStyle = theme.nodeHighlight
+      ctx.stroke()
+    }
 
     if (!editing) {
       const text = readableText(c.fill)
@@ -351,10 +426,12 @@ export function drawMap(ctx, s) {
     const collapsed = info.hidden[i] > 0
     if (!lifted && (collapsed || ((s.selected === i || s.hover === i) && info.kids[i].length))) {
       const b = badgeAt(i, s)
-      const col = c.edge
+      const edgeCol = c.edge
       ctx.save()
-      ctx.shadowColor = c.glow
-      ctx.shadowBlur = 10
+      if (!moving) {
+        ctx.shadowColor = c.glow
+        ctx.shadowBlur = 10
+      }
       ctx.beginPath()
       ctx.arc(b.x, b.y, b.r + 3, 0, Math.PI * 2)
       ctx.fillStyle = theme.bg
@@ -362,13 +439,13 @@ export function drawMap(ctx, s) {
       ctx.restore()
       ctx.beginPath()
       ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2)
-      ctx.fillStyle = collapsed ? col : theme.badgeBg
+      ctx.fillStyle = collapsed ? edgeCol : theme.badgeBg
       ctx.fill()
       ctx.lineWidth = 1.75
-      ctx.strokeStyle = col
+      ctx.strokeStyle = edgeCol
       ctx.stroke()
       if (collapsed) {
-        ctx.fillStyle = readableText(col)
+        ctx.fillStyle = readableText(edgeCol)
         ctx.font = `700 11px ${STACK}`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
