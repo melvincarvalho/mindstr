@@ -45,15 +45,22 @@ export function serve() {
 
 export const launch = () => chromium.launch()
 
-// A new page that collects uncaught errors and console errors. Requests to other hosts
-// (fonts, relays, login widgets) are blocked, so the tests don't depend on the network.
+// A new page that collects uncaught errors and console errors in page.errors. Requests to
+// other hosts (fonts, the xlogin widget) are blocked, and WebSockets to other hosts (Nostr
+// relays) are mocked as relays that never answer, so the tests don't touch the network.
 export async function openPage(browser, base, options = {}) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, acceptDownloads: true, ...options })
   const page = await context.newPage()
   const origin = new URL(base).origin
-  await page.route('**/*', route => (new URL(route.request().url()).origin === origin ? route.continue() : route.abort()))
+  const outside = url => new URL(url).origin !== origin
+  await page.route('**/*', route => (outside(route.request().url()) ? route.abort() : route.continue()))
+  await page.routeWebSocket(url => outside(url.href.replace(/^ws/, 'http')), () => {}) // never connects out
   page.errors = []
   page.on('pageerror', e => page.errors.push(e.stack || e.message))
+  page.on('console', m => {
+    // the blocked outside requests above each log "Failed to load resource"; anything else counts
+    if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) page.errors.push('console.error: ' + m.text())
+  })
   return page
 }
 

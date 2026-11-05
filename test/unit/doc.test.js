@@ -71,6 +71,29 @@ test('normalize: repairs ids, names and coordinates', () => {
   assert.notEqual(b['@id'], '#dup', 'a duplicate id is replaced')
 })
 
+test('normalize: no other node may take #this, or the root\'s old id', () => {
+  const m = normalize({
+    nodes: [{ '@id': '#root', name: 'R' }, { '@id': '#this', name: 'A' }, { '@id': '#root', name: 'B' }],
+    connections: [{ start: 0, end: 1 }, { start: 0, end: 2 }]
+  })
+  const ids = m.nodes.map(n => n['@id'])
+  assert.equal(ids[0], '#this')
+  assert.equal(new Set(ids).size, 3, 'ids are unique')
+  assert.ok(!ids.slice(1).includes('#this') && !ids.includes('#root'))
+})
+
+test('normalize: parent links to the root\'s old id follow it to #this', () => {
+  const m = normalize({
+    version: '0.2',
+    nodes: [
+      { '@id': '#root', name: 'R' },
+      { '@id': '#aaaaaa', name: 'A', parent: '#root' },
+      { '@id': '#bbbbbb', name: 'B', parent: 'https://example.org/map.jsonld#root' }
+    ]
+  })
+  assert.deepEqual(m.connections, [{ start: 0, end: 1 }, { start: 0, end: 2 }])
+})
+
 test('normalize: keeps unknown node and top-level fields', () => {
   const m = normalize({
     '@context': { '@vocab': NS },

@@ -23,15 +23,20 @@ export function context02(existing) {
 // Any map document → { nodes, connections, selected, extra, version }, repairing what it can.
 export function normalize(data) {
   const raw = data && typeof data === 'object' ? data : {}
-  const seen = new Set()
+  // The root is always #this: it keeps that id, no other node may take it, and parent links
+  // that named the root by its old id follow it.
+  const seen = new Set(['#this'])
   const parents = [] // parent @id per node, as read from the file (0.2)
-  const nodes = (Array.isArray(raw.nodes) ? raw.nodes : [])
-    .filter(n => n && typeof n === 'object')
-    .map(n => {
+  const kept = (Array.isArray(raw.nodes) ? raw.nodes : []).filter(n => n && typeof n === 'object')
+  const oldRoot = typeof kept[0]?.['@id'] === 'string' ? fragment(kept[0]['@id']) : null
+  if (oldRoot) seen.add(oldRoot)
+  const nodes = kept
+    .map((n, i) => {
       const { parent, ...rest } = n
-      parents.push(fragment(parent))
-      let id = typeof n['@id'] === 'string' ? n['@id'] : newId()
-      if (seen.has(id)) id = newId()
+      const p = fragment(parent)
+      parents.push(oldRoot && p === oldRoot ? '#this' : p)
+      let id = i === 0 ? '#this' : typeof n['@id'] === 'string' ? n['@id'] : newId()
+      if (i > 0 && seen.has(id)) id = newId()
       seen.add(id)
       return {
         ...rest,
