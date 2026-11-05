@@ -58,6 +58,7 @@ fields. See [Compatibility](#compatibility).
 | `bgColor` | string | Optional CSS colour, ideally a soft pastel. Renderers may ignore it on the root (the app draws the root in its brand colour). |
 | `link` | string | Optional. An `http(s)` URL, or a relative reference resolved against the map's own URL. A relative link to a `.json`/`.jsonld` file is another map. A `.md` link is a document. Other schemes are not followed. |
 | `collapsed` | boolean | Optional `true` when the node's branch is folded in the app. |
+| `size` | number | Optional scale on the node's text and box, relative to the style for its depth. `1` (the default) is normal size; `1.25` is a quarter bigger. A JSON number, not a string. Renderers clamp it (the app uses 0.8–1.6) and may ignore it. Use it sparingly, to stress a few nodes. |
 | anything else | any | Preserved untouched. |
 
 ### Structure rules
@@ -111,7 +112,7 @@ the layout are as in 0.1):
 ### The context
 
 - `@vocab` is `https://mindstr.org/ns#`: every plain key (`name`, `x`, `y`, `bgColor`,
-  `collapsed`, `nodes`, `connections`, …) becomes an IRI in that namespace. It is the
+  `collapsed`, `size`, `nodes`, `connections`, …) becomes an IRI in that namespace. It is the
   namespace the cos-generated 0.1 maps already use, and mindstr.org can publish a
   vocabulary document there later. (`urn:solid:` was considered and rejected: it has no
   owner, and generic terms such as `name` or `parent` would collide with other apps'
@@ -150,6 +151,9 @@ A 0.2 file carries the tree twice: `connections` (by index) and `parent` (by id)
 
 Deliberately not in 0.2: `@type` on nodes, schema.org aliases for `name`, a hosted
 context, and any change to `x`, `y` or `bgColor`.
+
+Optional node fields that readers can ignore, such as `collapsed` and `size`, don't change
+the version: an app that doesn't know one preserves it and draws the node as usual.
 
 ## Compatibility
 
