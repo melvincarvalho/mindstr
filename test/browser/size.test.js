@@ -86,7 +86,7 @@ test('copying and pasting a branch keeps its sizes', async () => {
   await load(page, `${server.url}?uri=test/fixtures/sized.jsonld`)
   const selected = async () => {
     const li = page.locator('#tree li[aria-selected="true"]')
-    return (await li.count()) ? li.textContent() : ''
+    return (await li.count()) ? li.first().textContent() : ''
   }
   // select a node the way a user can by keyboard: Find selects the first match, Escape returns to the map
   const pick = async name => {
@@ -99,8 +99,11 @@ test('copying and pasting a branch keeps its sizes', async () => {
   await pick('Big')
   await page.keyboard.press('ControlOrMeta+c')
   await pick('Plain')
+  const items = page.locator('#tree li')
+  const before = await items.count()
   await page.keyboard.press('ControlOrMeta+v')
-  await page.waitForTimeout(200)
+  // the pasted branch (Big, Small, Text size) shows up in the tree once it's in the map
+  await page.waitForFunction(n => document.querySelectorAll('#tree li').length === n, before + 3)
   const map = await downloadMap(page)
   const plain = map.nodes.find(n => n.name === 'Plain')
   const pasted = map.nodes.filter(n => n.parent === plain['@id'])
