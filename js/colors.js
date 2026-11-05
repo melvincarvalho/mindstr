@@ -39,6 +39,7 @@ function rgbToHsl([r, g, b]) {
 }
 
 const hsl = (h, s, l) => `hsl(${Math.round(h)} ${Math.round(s)}% ${Math.round(l)}%)`
+const hsla = (h, s, l, a) => `hsl(${Math.round(h)} ${Math.round(s)}% ${Math.round(l)}% / ${a})`
 
 function luminance(rgb) {
   const [r, g, b] = rgb.map(v => {
@@ -60,9 +61,25 @@ export function readableText(fill) {
 
 // Fill, border and edge colours for a branch colour in the current theme.
 export function tones(color, dark) {
-  const [h, s0] = rgbToHsl(toRgb(color))
+  const [h, s0, l0] = rgbToHsl(toRgb(color))
   const s = s0 < 8 ? 0 : Math.max(s0, 45)
   return dark
-    ? { fill: hsl(h, s * 0.45, 21), border: hsl(h, s * 0.7, 62), edge: hsl(h, s * 0.75, 64), tint: hsl(h, s * 0.4, 17) }
-    : { fill: color, border: hsl(h, s * 0.6, 46), edge: hsl(h, s * 0.65, 44), tint: hsl(h, s, 97) }
+    ? {
+        fill: hsl(h, s * 0.45, 21),
+        fillHi: hsl(h, s * 0.5, 26),
+        fillLo: hsl(h, s * 0.48, 18),
+        border: hsla(h, s * 0.7, 68, 0.72),
+        edge: hsl(h, s * 0.75, 66),
+        glow: hsla(h, s * 0.8, 58, 0.2),
+        tint: hsl(h, s * 0.4, 17)
+      }
+    : {
+        fill: color,
+        fillHi: hsl(h, s * 0.85, Math.min(98, l0 + 3)),
+        fillLo: hsl(h, Math.max(s * 0.8, 40), Math.max(30, l0 - 3)),
+        border: hsla(h, s * 0.6, 48, 0.58),
+        edge: hsl(h, s * 0.65, 44),
+        glow: hsla(h, s * 0.8, 52, 0.16),
+        tint: hsl(h, s, 97)
+      }
 }

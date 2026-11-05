@@ -4,35 +4,49 @@ import { BRANCH_COLORS, readableText, tones } from './colors.js'
 const STACK = 'system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif'
 // Node styles by depth: root, top-level branch, everything deeper.
 export const STYLES = [
-  { font: `800 18px Manrope, ${STACK}`, padX: 22, h: 46, r: 23 },
-  { font: `700 15px Manrope, ${STACK}`, padX: 16, h: 36, r: 12 },
-  { font: `600 14px Manrope, ${STACK}`, padX: 14, h: 32, r: 10 }
+  { font: `800 20px Manrope, ${STACK}`, padX: 24, h: 50, r: 25 },
+  { font: `700 15px Manrope, ${STACK}`, padX: 17, h: 38, r: 14 },
+  { font: `600 14px Manrope, ${STACK}`, padX: 14, h: 32, r: 11 }
 ]
-const LINK_W = 18 // room for the ↗ icon
+const LINK_W = 20 // room for the ↗ icon
 const ROOT_FILL = '#6d4aff'
+const ROOT_HI = '#8b5cf6'
+const ROOT_LO = '#5438df'
 
 export const THEMES = {
   light: {
-    bg: '#f7f7fa',
-    grid: 'rgba(27,31,39,0.08)',
+    bg: '#f6f7fb',
+    grid: 'rgba(63,55,105,0.055)',
     leaf: '#ffffff',
-    shadow: 'rgba(30,30,60,0.10)',
+    leafHi: '#ffffff',
+    leafLo: '#f2f3f9',
+    shadow: 'rgba(43,32,85,0.12)',
     accent: '#6d4aff',
     accentRgb: '109,74,255',
     accentSoft: 'rgba(109,74,255,0.22)',
     badgeBg: '#ffffff',
-    muted: '#687080'
+    muted: '#687080',
+    aura: 'rgba(124,93,250,0.13)',
+    auraMid: 'rgba(124,93,250,0.045)',
+    wash: 'rgba(80,170,255,0.09)',
+    nodeHighlight: 'rgba(255,255,255,0.72)'
   },
   dark: {
-    bg: '#14161c',
-    grid: 'rgba(255,255,255,0.06)',
+    bg: '#11131b',
+    grid: 'rgba(255,255,255,0.045)',
     leaf: '#20242e',
-    shadow: 'rgba(0,0,0,0)',
+    leafHi: '#2a2f3b',
+    leafLo: '#1b1f28',
+    shadow: 'rgba(0,0,0,0.32)',
     accent: '#a28bff',
     accentRgb: '162,139,255',
     accentSoft: 'rgba(162,139,255,0.30)',
-    badgeBg: '#14161c',
-    muted: '#9aa2b1'
+    badgeBg: '#171a23',
+    muted: '#9aa2b1',
+    aura: 'rgba(124,93,250,0.19)',
+    auraMid: 'rgba(124,93,250,0.05)',
+    wash: 'rgba(34,211,238,0.075)',
+    nodeHighlight: 'rgba(255,255,255,0.08)'
   }
 }
 
@@ -99,12 +113,12 @@ export function colorsFor(i, s) {
   const d = s.info.depth[i]
   const branch = s.info.branchColor[i] || BRANCH_COLORS[0]
   const bt = tones(branch, s.dark)
-  if (d === 0) return { fill: ROOT_FILL, border: null, lw: 0, edge: s.theme.accent }
+  if (d === 0) return { fill: ROOT_FILL, fillHi: ROOT_HI, fillLo: ROOT_LO, border: null, lw: 0, edge: s.theme.accent, glow: s.theme.accentSoft }
   if (d === 1 || n.bgColor) {
     const t = tones(n.bgColor || branch, s.dark)
-    return { fill: t.fill, border: t.border, lw: 1.5, edge: bt.edge }
+    return { fill: t.fill, fillHi: t.fillHi, fillLo: t.fillLo, border: t.border, lw: 1.25, edge: bt.edge, glow: t.glow }
   }
-  return { fill: s.theme.leaf, border: bt.border, lw: 1, edge: bt.edge }
+  return { fill: s.theme.leaf, fillHi: s.theme.leafHi, fillLo: s.theme.leafLo, border: bt.border, lw: 1, edge: bt.edge, glow: bt.glow }
 }
 
 function box(ctx, x, y, w, h, r) {
@@ -128,18 +142,40 @@ export function drawMap(ctx, s) {
   ctx.fillStyle = theme.bg
   ctx.fillRect(0, 0, s.width, s.height)
 
+  const root = s.pos(0)
+  const cx = root ? root.x * view.scale + view.x : s.width / 2
+  const cy = root ? root.y * view.scale + view.y : s.height / 2
+  const aura = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.hypot(s.width, s.height) * 0.62)
+  aura.addColorStop(0, theme.aura)
+  aura.addColorStop(0.48, theme.auraMid)
+  aura.addColorStop(1, 'rgba(124,93,250,0)')
+  ctx.fillStyle = aura
+  ctx.fillRect(0, 0, s.width, s.height)
+  const wash = ctx.createRadialGradient(s.width * 0.9, s.height * 0.08, 0, s.width * 0.9, s.height * 0.08, Math.max(s.width, s.height) * 0.7)
+  wash.addColorStop(0, theme.wash)
+  wash.addColorStop(1, 'rgba(80,170,255,0)')
+  ctx.fillStyle = wash
+  ctx.fillRect(0, 0, s.width, s.height)
+
   if (s.grid) {
     const gap = 32 * view.scale
     if (gap > 10) {
       ctx.fillStyle = theme.grid
-      const r = Math.min(2, Math.max(1, 1.4 * view.scale))
-      for (let gx = ((view.x % gap) + gap) % gap; gx < s.width; gx += gap)
-        for (let gy = ((view.y % gap) + gap) % gap; gy < s.height; gy += gap) ctx.fillRect(gx, gy, r, r)
+      const r = Math.min(1.4, Math.max(0.65, 0.85 * view.scale))
+      ctx.beginPath()
+      for (let gx = ((view.x % gap) + gap) % gap; gx < s.width; gx += gap) {
+        for (let gy = ((view.y % gap) + gap) % gap; gy < s.height; gy += gap) {
+          ctx.moveTo(gx + r, gy)
+          ctx.arc(gx, gy, r, 0, Math.PI * 2)
+        }
+      }
+      ctx.fill()
     }
   }
 
   ctx.setTransform(s.dpr * view.scale, 0, 0, s.dpr * view.scale, s.dpr * view.x, s.dpr * view.y)
   ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
 
   // edges
   for (const { start, end } of s.connections) {
@@ -161,8 +197,19 @@ export function drawMap(ctx, s) {
     ctx.moveTo(p0[0], p0[1])
     ctx.bezierCurveTo(p0[0] + cx * dist * 0.45, p0[1] + cy * dist * 0.45, p3[0] - dx * dist * 0.35, p3[1] - dy * dist * 0.35, p3[0], p3[1])
     const depth = info.depth[end]
-    ctx.lineWidth = depth <= 1 ? 3 : depth === 2 ? 2 : 1.5
-    ctx.strokeStyle = colorsFor(end, s).edge
+    const source = colorsFor(start, s)
+    const target = colorsFor(end, s)
+    const lineWidth = depth <= 1 ? 3.25 : depth === 2 ? 1.9 : 1.5
+    ctx.save()
+    ctx.lineWidth = lineWidth + (depth <= 1 ? 9 : 5)
+    ctx.strokeStyle = target.glow
+    ctx.stroke()
+    ctx.restore()
+    const edge = ctx.createLinearGradient(p0[0], p0[1], p3[0], p3[1])
+    edge.addColorStop(0, source.edge)
+    edge.addColorStop(1, target.edge)
+    ctx.lineWidth = lineWidth
+    ctx.strokeStyle = edge
     ctx.stroke()
   }
 
@@ -212,13 +259,21 @@ export function drawMap(ctx, s) {
       ctx.shadowColor = 'rgba(20,20,50,0.28)'
       ctx.shadowBlur = 24
       ctx.shadowOffsetY = 8
-    } else if (!s.dark) {
-      ctx.shadowColor = theme.shadow
-      ctx.shadowBlur = 8
-      ctx.shadowOffsetY = 1.5
+    } else {
+      const isRoot = info.depth[i] === 0
+      ctx.shadowColor = isRoot ? theme.accentSoft : s.dark ? theme.shadow : c.glow
+      ctx.shadowBlur = isRoot ? 30 : 14
+      ctx.shadowOffsetY = isRoot ? 9 : 4
     }
     box(ctx, x, y, m.w, m.h, m.r)
-    ctx.fillStyle = c.fill
+    if (c.fillHi && c.fillLo) {
+      const fill = ctx.createLinearGradient(x, y, x, y + m.h)
+      fill.addColorStop(0, c.fillHi)
+      fill.addColorStop(1, c.fillLo)
+      ctx.fillStyle = fill
+    } else {
+      ctx.fillStyle = c.fill
+    }
     ctx.fill()
     ctx.restore()
     if (c.border) {
@@ -227,6 +282,10 @@ export function drawMap(ctx, s) {
       ctx.strokeStyle = c.border
       ctx.stroke()
     }
+    box(ctx, x + 1.25, y + 1.25, m.w - 2.5, m.h - 2.5, Math.max(0, m.r - 1.25))
+    ctx.lineWidth = 0.75
+    ctx.strokeStyle = theme.nodeHighlight
+    ctx.stroke()
 
     if (!editing) {
       const text = readableText(c.fill)
@@ -238,8 +297,15 @@ export function drawMap(ctx, s) {
       const li = linkIconAt(i, s)
       if (li) {
         ctx.save()
+        ctx.fillStyle = text
+        ctx.globalAlpha *= 0.1
+        ctx.beginPath()
+        ctx.arc(li.x, li.y, 7.5, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
+        ctx.save()
         ctx.strokeStyle = s.dark && c.fill === theme.leaf ? theme.accent : text
-        ctx.globalAlpha *= 0.8
+        ctx.globalAlpha *= 0.85
         ctx.lineWidth = 1.6
         ctx.beginPath()
         ctx.moveTo(li.x - 4, li.y + 4)
@@ -257,10 +323,14 @@ export function drawMap(ctx, s) {
     if (!lifted && (collapsed || ((s.selected === i || s.hover === i) && info.kids[i].length))) {
       const b = badgeAt(i, s)
       const col = c.edge
+      ctx.save()
+      ctx.shadowColor = c.glow
+      ctx.shadowBlur = 10
       ctx.beginPath()
       ctx.arc(b.x, b.y, b.r + 3, 0, Math.PI * 2)
       ctx.fillStyle = theme.bg
       ctx.fill()
+      ctx.restore()
       ctx.beginPath()
       ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2)
       ctx.fillStyle = collapsed ? col : theme.badgeBg

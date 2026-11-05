@@ -28,36 +28,40 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
     <style>
       :root {
-        --bg: #f7f7fa;
-        --bar: #ffffff;
+        --bg: #f6f7fb;
+        --bar: #ffffffd9;
         --raised: #ffffff;
-        --border: #e3e4ea;
+        --border: #e4e3ee;
         --text: #1b1f27;
         --muted: #5f6675;
         --hover: #f0eefb;
         --accent: #6d4aff;
+        --accent-hi: #8262ff;
+        --accent-lo: #5b40e8;
         --accent-text: #ffffff;
         --accent-soft: rgb(109 74 255 / 0.14);
         --warn-bg: #fff4d6;
         --warn-text: #5c4100;
-        --shadow: 0 8px 30px rgb(20 20 50 / 0.14), 0 1px 3px rgb(20 20 50 / 0.08);
+        --shadow: 0 12px 36px rgb(40 30 90 / 0.13), 0 2px 6px rgb(20 20 50 / 0.07);
         --target: 36px;
       }
       @media (prefers-color-scheme: dark) {
         :root {
-          --bg: #14161c;
-          --bar: #1a1d24;
+          --bg: #11131b;
+          --bar: #171a23e6;
           --raised: #20242e;
           --border: #2c313b;
           --text: #e8eaee;
           --muted: #a0a7b5;
           --hover: #272b36;
           --accent: #a28bff;
+          --accent-hi: #ad98ff;
+          --accent-lo: #876af0;
           --accent-text: #14161c;
           --accent-soft: rgb(162 139 255 / 0.18);
           --warn-bg: #3a2f10;
           --warn-text: #f3d78a;
-          --shadow: 0 8px 30px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
+          --shadow: 0 12px 36px rgb(0 0 0 / 0.48), 0 2px 6px rgb(0 0 0 / 0.35);
         }
       }
       @media (pointer: coarse) {
@@ -123,21 +127,22 @@
       }
       @media (hover: hover) {
         button:hover:not(:disabled), .btn:hover { background: var(--hover); }
-        .primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--accent); }
+        .primary:hover:not(:disabled) { filter: brightness(1.08); }
       }
       button:focus-visible, .btn:focus-visible, a:focus-visible {
         outline: 2px solid var(--accent); outline-offset: 2px;
       }
       button:disabled { color: var(--muted); opacity: 0.45; cursor: default; }
       .primary {
-        background: var(--accent); color: var(--accent-text);
+        background: linear-gradient(135deg, var(--accent-hi), var(--accent-lo)); color: var(--accent-text);
+        box-shadow: 0 5px 14px var(--accent-soft);
         padding: 0 14px; font-weight: 600;
         white-space: nowrap; flex-shrink: 0;
       }
       .lbl, .lbl-idle { display: none; }
       @media (max-width: 760px) { body:not(.node-selected) .node-actions .lbl { display: none; } body:not(.node-selected) .node-actions .lbl-idle { display: inline; } }
       @media (min-width: 1100px) { .lbl { display: inline; } }
-      .primary:disabled { background: var(--hover); color: var(--muted); }
+      .primary:disabled { background: var(--hover); color: var(--muted); box-shadow: none; }
       #status { color: var(--muted); font-size: 12.5px; margin-right: 6px; white-space: nowrap; }
       #status[data-state='dirty'] { color: var(--accent); font-weight: 600; }
 
@@ -218,8 +223,8 @@
       #zoom {
         position: absolute; right: 16px; bottom: 76px; z-index: 4;
         display: flex; flex-direction: column;
-        background: var(--raised); border: 1px solid var(--border); border-radius: 12px;
-        box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); overflow: hidden;
+        background: var(--raised); border: 1px solid var(--border); border-radius: 14px;
+        box-shadow: var(--shadow); overflow: hidden;
       }
       #zoom button { border-radius: 0; }
 
