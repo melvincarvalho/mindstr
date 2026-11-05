@@ -1,0 +1,10 @@
+{
+  "@context": { "@vocab": "https://mindstr.org/ns#", "foaf": "http://xmlns.com/foaf/0.1/" },
+  "title": "Kept at the top level",
+  "version": "0.2",
+  "nodes": [
+    { "@id": "#root", "name": "Root", "x": 0, "y": 0 },
+    { "@id": "#aaaaaa", "name": "Child", "x": 230, "y": 0, "parent": "#this", "mood": "kept on the node" },
+    { "@id": "#bbbbbb", "name": "Grandchild", "x": 460, "y": 0, "parent": "https://example.org/elsewhere.jsonld#aaaaaa" }
+  ]
+}

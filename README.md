@@ -134,9 +134,27 @@ No build step. Serve the folder (`npx serve .`) and open it. Pushing to
 
 - `index.html`: markup and styles
 - `js/app.js`: canvas, interaction, load/save
+- `js/doc.js`: the map format: reading any version, repairing it, writing it back
 - `js/pod.js`: xlogin sign-in, `authFetch`, and finding your pod / default map
 - `js/live.js`: solid-0.1 WebSocket notifications
 - `scripts/build-examples.js`: regenerates `examples/` (Node, no dependencies)
 - `scripts/social-card.html`: source of `social-card.png`; open at 1200×630 and screenshot
+
+### Tests
+
+```
+npm install
+npx playwright install chromium
+npm test
+```
+
+- `npm run test:unit`: Node's built-in test runner, no browser (`test/unit/`): the map format,
+  outlines, view maths and layout.
+- `npm run test:browser`: the app in headless Chromium (`test/browser/`): every example loads
+  without errors, editing with undo and redo, Download JSON-LD, colours. Outside requests are
+  blocked, so no network is needed.
+
+GitHub Actions runs both on every push to `gh-pages` and on pull requests. The app itself still
+has no dependencies: Playwright is a dev dependency, used only by the tests.
 
 MIT licensed.

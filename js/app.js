@@ -1,6 +1,7 @@
 import { authFetch, hostPod, identity, login as openLogin, MAP_PATH, myMapUrl, ready } from './pod.js'
 import { watch } from './live.js'
 import { BRANCH_COLORS, readableText } from './colors.js'
+import { newId, normalize, toDoc } from './doc.js'
 import { badgeAt, colorsFor, drawMap, linkIconAt, makeMeasure, THEMES } from './render.js'
 import { fanLayout, radialLayout } from './layout.js'
 import { parseOutline, toMarkdown } from './outline.js'
@@ -218,78 +219,8 @@ const topSerial = () => undoStack.at(-1)?.n
 
 // ---------- model ----------
 
-const newId = () =>
-  '#' + Array.from(crypto.getRandomValues(new Uint8Array(6)), b => 'abcdefghijkmnpqrstuvwxyz23456789'[b % 32]).join('')
-
-// Format versions (see SPEC.md). 0.1: connections only. 0.2: adds @context and parent.
-const NS = 'https://mindstr.org/ns#'
-const isV01 = v => v === undefined || v === null || String(v) === '0.1' || String(v).startsWith('0.0')
-const fragment = v => (typeof v === 'string' && v.includes('#') ? '#' + v.split('#').pop() : v)
-
-// Ensure a 0.2 context: keep whatever is there, add @vocab and the link/parent typing.
-function context02(existing) {
-  const typing = { link: { '@type': '@id' }, parent: { '@type': '@id' } }
-  if (!existing) return { '@vocab': NS, ...typing }
-  if (typeof existing === 'object' && !Array.isArray(existing)) {
-    return { '@vocab': NS, ...existing, link: existing.link ?? typing.link, parent: existing.parent ?? typing.parent }
-  }
-  const list = Array.isArray(existing) ? existing : [existing]
-  return list.some(c => c && typeof c === 'object' && c.parent) ? existing : [...list, typing]
-}
-
-function normalize(data) {
-  const raw = data && typeof data === 'object' ? data : {}
-  const seen = new Set()
-  const parents = [] // parent @id per node, as read from the file (0.2)
-  const nodes = (Array.isArray(raw.nodes) ? raw.nodes : [])
-    .filter(n => n && typeof n === 'object')
-    .map(n => {
-      const { parent, ...rest } = n
-      parents.push(fragment(parent))
-      let id = typeof n['@id'] === 'string' ? n['@id'] : newId()
-      if (seen.has(id)) id = newId()
-      seen.add(id)
-      return {
-        ...rest,
-        '@id': id,
-        name: typeof n.name === 'string' ? n.name : String(n.name ?? ''),
-        x: Number.isFinite(+n.x) ? +n.x : 0,
-        y: Number.isFinite(+n.y) ? +n.y : 0
-      }
-    })
-  if (!nodes.length) nodes.push({ '@id': '#this', name: 'Central idea', x: 0, y: 0 })
-  nodes[0]['@id'] = '#this'
-  const valid = i => Number.isInteger(i) && i >= 0 && i < nodes.length
-  let connections = (Array.isArray(raw.connections) ? raw.connections : [])
-    .filter(c => c && valid(c.start) && valid(c.end) && c.start !== c.end)
-    .map(c => ({ start: c.start, end: c.end }))
-  if (!connections.length) {
-    // no usable connections: rebuild the tree from parent links (0.2), in node order
-    const index = new Map(nodes.map((n, i) => [n['@id'], i]))
-    parents.forEach((p, i) => {
-      const start = index.get(p)
-      if (i > 0 && start !== undefined && start !== i) connections.push({ start, end: i })
-    })
-  }
-  // when both exist and disagree, connections win; parent is recomputed on save
-  const selected = valid(raw.selectedNode) ? raw.selectedNode : 0
-  const { nodes: _n, connections: _c, selectedNode: _s, version, ...extra } = raw
-  return { nodes, connections, selected, extra, version: version ?? '0.1' }
-}
-
 function serialize() {
-  const v01 = isV01(state.version)
-  const extra = v01 ? state.extra : { ...state.extra, '@context': context02(state.extra['@context']) }
-  let nodes = state.nodes
-  if (!v01) {
-    const parentOf = new Map()
-    for (const c of state.connections) if (c.end !== 0 && !parentOf.has(c.end)) parentOf.set(c.end, c.start)
-    nodes = state.nodes.map((n, i) => {
-      const p = parentOf.get(i)
-      return i === 0 || p === undefined || !state.nodes[p] ? n : { ...n, parent: state.nodes[p]['@id'] }
-    })
-  }
-  return { ...extra, version: state.version, nodes, connections: state.connections, selectedNode: state.selected }
+  return toDoc(state)
 }
 
 // A stable colour for a branch that has none of its own (doesn't change when siblings move).
