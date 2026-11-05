@@ -5,6 +5,7 @@ import { newId, normalize, toDoc } from './doc.js'
 import { badgeAt, colorsFor, drawMap, linkIconAt, makeMeasure, THEMES } from './render.js'
 import { fanLayout, radialLayout } from './layout.js'
 import { parseOutline, toMarkdown } from './outline.js'
+import { grownKids, growMessage, growSystem, storedKey, storedSettings, stream as claudeStream, topicFor } from './claude.js'
 import { boundsOf, DRAG_THRESHOLD, fitBox, MIN_SCALE, pinchInfo as pinchOf, pinchTo, stepView, toScreen as screenOf, toWorld as worldOf, wheel as wheelView, zoomAt as zoomView } from './view.js'
 
 const DOUBLE_TAP_MS = 350
@@ -36,6 +37,7 @@ const mapsList = $('#mapsList')
 const menu = $('#menu')
 const menuBtn = $('#menuBtn')
 const findBar = $('#find')
+const nodeMenu = $('#nodeMenu')
 const findInput = $('#findInput')
 const findCount = $('#findCount')
 const hint = $('#hint')
@@ -1070,6 +1072,119 @@ function insertTrees(parent, trees) {
   announce(`Added ${count} ideas`)
 }
 
+// ---------- grow with AI (js/claude.js) ----------
+// Claude adds children to a node, with the whole map as context, using the key the visitor
+// saved on make/ (same site, same localStorage). The result goes in as one edit.
+
+const pathTo = i => {
+  const path = []
+  for (let j = i; j !== null && j !== undefined; j = info.parent[j]) path.unshift(state.nodes[j].name || 'Untitled')
+  return path
+}
+const makeUrl = q => {
+  const u = new URL('make/', location.href)
+  if (q) u.searchParams.set('q', q)
+  return u.href
+}
+
+let growing = null
+async function grow(i) {
+  const node = state.nodes[i]
+  if (!node) return
+  if (growing) return say('Already growing an idea: wait for it, or press Stop')
+  const key = storedKey()
+  if (!key) {
+    toast('To grow ideas with AI, add your Claude API key on the Make page first.', {
+      ms: 9000,
+      action: ['Open Make', () => window.open(makeUrl(), '_blank', 'noopener')]
+    })
+    return
+  }
+  commitEdit()
+  const id = node['@id']
+  const name = node.name || 'Untitled'
+  const existing = info.kids[i].map(k => state.nodes[k].name)
+  const s = storedSettings()
+  const content = growMessage({ outline: toMarkdown(toTree(0)), name, path: pathTo(i), count: s.breadth, existing })
+  growing = new AbortController()
+  toast(`Growing “${name}” with Claude…`, { ms: 120000, action: ['Stop', () => growing?.abort()] })
+  announce(`Growing ${name}`)
+  let text = ''
+  try {
+    const chunks = claudeStream({
+      key,
+      model: s.model,
+      think: s.think,
+      system: growSystem(s),
+      messages: [{ role: 'user', content }],
+      signal: growing.signal,
+      maxTokens: 2048
+    })
+    for await (const c of chunks) if (c.text) text += c.text
+    const seen = new Set(existing.map(n => n.toLowerCase()))
+    const kids = grownKids(text).filter(k => !seen.has(k.name.toLowerCase()) && seen.add(k.name.toLowerCase()))
+    // the map may have changed while Claude answered (edits, live updates): find the node again
+    const at = state.nodes.findIndex(n => n['@id'] === id)
+    if (at < 0) return say('That idea was removed while Claude was answering')
+    if (!kids.length) return say('Claude sent no new ideas. Try again.')
+    insertTrees(at, kids.slice(0, 12).map(k => ({ ...k, kids: [] })))
+  } catch (e) {
+    if (e.name === 'AbortError') say('Stopped growing')
+    else toast(`Couldn’t grow “${name}”: ${e.message}`, { ms: 8000 })
+  } finally {
+    growing = null
+  }
+}
+
+function openAsNewMap(i) {
+  if (!state.nodes[i]) return
+  window.open(makeUrl(topicFor(pathTo(i))), '_blank', 'noopener')
+}
+
+// the idea menu: right-click a node (a long-press on touch screens fires the same event)
+function openNodeMenu(i, clientX, clientY) {
+  closeMenu()
+  select(i)
+  nodeMenu.querySelector('#nodeMenuLink').hidden = !state.nodes[i].link
+  nodeMenu.hidden = false
+  const w = nodeMenu.offsetWidth
+  const h = nodeMenu.offsetHeight
+  nodeMenu.style.left = Math.max(8, Math.min(clientX, window.innerWidth - w - 8)) + 'px'
+  nodeMenu.style.top = Math.max(8, Math.min(clientY, window.innerHeight - h - 8)) + 'px'
+  nodeMenu.style.right = 'auto'
+  nodeMenu.querySelector('button')?.focus({ preventScroll: true })
+}
+function closeNodeMenu(refocus) {
+  if (nodeMenu.hidden) return
+  nodeMenu.hidden = true
+  if (refocus) focusMap()
+}
+canvas.addEventListener('contextmenu', e => {
+  const p = localPoint(e)
+  const i = hitTest(toWorld(p.x, p.y))
+  if (i < 0) return // the browser's own menu, off the nodes
+  e.preventDefault()
+  openNodeMenu(i, e.clientX, e.clientY)
+})
+nodeMenu.addEventListener('keydown', e => {
+  const items = [...nodeMenu.querySelectorAll('button')].filter(b => !b.hidden)
+  const k = items.indexOf(document.activeElement)
+  if (e.key === 'Escape' || e.key === 'Tab') {
+    e.preventDefault()
+    return closeNodeMenu(true)
+  }
+  const go = { ArrowDown: k + 1, ArrowUp: k - 1, Home: 0, End: items.length - 1 }[e.key]
+  if (go === undefined) return
+  e.preventDefault()
+  items[(go + items.length) % items.length]?.focus()
+})
+nodeMenu.addEventListener('focusout', e => {
+  if (!nodeMenu.contains(e.relatedTarget)) closeNodeMenu()
+})
+document.addEventListener('pointerdown', e => {
+  if (!nodeMenu.hidden && !nodeMenu.contains(e.target)) closeNodeMenu()
+})
+
 let clip = null
 document.addEventListener('copy', e => onCopy(e, false))
 document.addEventListener('cut', e => onCopy(e, true))
@@ -1622,6 +1737,8 @@ document.addEventListener('keydown', e => {
         return sel !== null && openLink(state.nodes[sel]), true
       case 'l':
         return tidy(), true
+      case 'g':
+        return grow(state.selected ?? 0), true
     }
     return false
   })()
@@ -1694,6 +1811,8 @@ const actions = {
   findClose: closeFind,
   tidy,
   import: openImport,
+  grow: () => grow(state.selected ?? 0),
+  growMap: () => openAsNewMap(state.selected ?? 0),
   png: exportPng,
   outline: copyOutline,
   json: exportJson,
@@ -1709,11 +1828,13 @@ const actions = {
 
 for (const btn of document.querySelectorAll('[data-action]')) {
   const inMenu = menu.contains(btn)
+  const inNodeMenu = nodeMenu.contains(btn)
   // keep keyboard focus on the map after mouse clicks on toolbar buttons
-  if (!inMenu && !findBar.contains(btn)) btn.addEventListener('mousedown', e => e.preventDefault())
-  if (inMenu) btn.tabIndex = -1
+  if (!inMenu && !inNodeMenu && !findBar.contains(btn)) btn.addEventListener('mousedown', e => e.preventDefault())
+  if (inMenu || inNodeMenu) btn.tabIndex = -1
   btn.addEventListener('click', e => {
     if (inMenu) closeMenu()
+    if (inNodeMenu) closeNodeMenu()
     actions[btn.dataset.action]?.(e)
   })
 }

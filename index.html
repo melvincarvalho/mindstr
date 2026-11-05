@@ -382,6 +382,7 @@
       <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></symbol>
       <symbol id="i-paste" viewBox="0 0 24 24"><path d="M9 4h6v3H9z" /><path d="M15 5h3v15H6V5h3" /><path d="M9 12h6M9 16h4" /></symbol>
       <symbol id="i-maps" viewBox="0 0 24 24"><path d="M4 6h6l2 2h8v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" /></symbol>
+      <symbol id="i-grow" viewBox="0 0 24 24"><path d="M12 20v-8" /><path d="M12 12c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5z" /><path d="M12 14.5c0-3-2.2-5-5.5-5 0 3 2.2 5 5.5 5z" /></symbol>
       <symbol id="i-new" viewBox="0 0 24 24"><path d="M14 4H6v16h12V8z" /><path d="M14 4v4h4M12 11v6M9 14h6" /></symbol>
       <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></symbol>
       <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6" /></symbol>
@@ -430,6 +431,7 @@
       <button role="menuitem" data-action="find" class="narrow-only"><svg class="icon" aria-hidden="true"><use href="#i-find" /></svg>Find</button>
       <button role="menuitem" data-action="tidy" class="narrow-only"><svg class="icon" aria-hidden="true"><use href="#i-tidy" /></svg>Tidy layout</button>
       <button role="menuitem" data-action="import"><svg class="icon" aria-hidden="true"><use href="#i-paste" /></svg>Add from outline…</button>
+      <button role="menuitem" data-action="grow"><svg class="icon" aria-hidden="true"><use href="#i-grow" /></svg>Grow with AI</button>
       <hr />
       <button role="menuitem" data-action="png"><svg class="icon" aria-hidden="true"><use href="#i-image" /></svg>Download image (PNG)</button>
       <button role="menuitem" data-action="outline"><svg class="icon" aria-hidden="true"><use href="#i-copy" /></svg>Copy as outline</button>
@@ -437,6 +439,13 @@
       <hr />
       <button role="menuitem" data-action="mine" class="narrow-only"><svg class="icon" aria-hidden="true"><use href="#i-home" /></svg>My map</button>
       <button role="menuitem" data-action="help"><svg class="icon" aria-hidden="true"><use href="#i-help" /></svg>Help and examples</button>
+    </div>
+
+    <!-- right-click or long-press a node -->
+    <div class="menu" id="nodeMenu" role="menu" aria-label="Idea" tabindex="-1" hidden>
+      <button role="menuitem" data-action="grow"><svg class="icon" aria-hidden="true"><use href="#i-grow" /></svg>Grow here with AI</button>
+      <button role="menuitem" data-action="growMap"><svg class="icon" aria-hidden="true"><use href="#i-new" /></svg>Open as a new map</button>
+      <button role="menuitem" data-action="open" id="nodeMenuLink"><svg class="icon" aria-hidden="true"><use href="#i-open" /></svg>Open link</button>
     </div>
 
     <div id="banner" role="alert" hidden></div>
@@ -513,6 +522,7 @@
           <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>V</kbd></td><td>Copy branch · paste a branch or any text outline</td></tr>
           <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Find</td></tr>
           <tr><td><kbd>L</kbd> · <kbd>F</kbd></td><td>Tidy layout · fit to screen</td></tr>
+          <tr><td><kbd>G</kbd> · right-click</td><td>Grow ideas with AI (your Claude key, set on <a href="make/" target="_blank" rel="noopener">Make</a>) · idea menu</td></tr>
           <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Undo / redo</td></tr>
           <tr><td><kbd>Alt</kbd>+arrows</td><td>Reorder (↑↓), promote (←), move under previous (→)</td></tr>
           <tr><td><kbd>Shift</kbd>+<kbd>Delete</kbd></td><td>Delete just the node; its children move up</td></tr>
