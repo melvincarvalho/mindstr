@@ -207,6 +207,7 @@ async function build() {
   const ids = new Map()
   let text = ''
   const req = {}
+  const watch = stopwatch()
   try {
     for await (const chunk of stream([{ role: 'user', content }], { signal: abort.signal, extra })) {
       if (chunk.usage) { tally(chunk.usage, req); continue }
@@ -216,13 +217,15 @@ async function build() {
       if (!roots.length) continue
       adopt(roots, ids)
       setTree(roots[0])
+      watch.firstNode()
       status(`Building… ${count(tree)} nodes`)
     }
     const roots = rooted(parseOutline(outlineOnly(text)), q)
     if (!roots.length) throw new Error('Claude sent no outline. Try again.')
     adopt(roots, ids)
     setTree(roots[0])
-    status(`${count(tree)} nodes · ${spent(req)}`, 'done')
+    watch.firstNode()
+    status(`${count(tree)} nodes · ${watch.took(count(tree))} · ${spent(req)}`, 'done')
     $('#actions').hidden = false
   } catch (e) {
     if (e.name !== 'AbortError') status(e.message, 'err')
@@ -249,6 +252,7 @@ async function grow(i) {
   status(`Growing “${node.name}”…`)
   let text = ''
   const req = {}
+  const watch = stopwatch()
   try {
     const messages = [{
       role: 'user',
@@ -267,8 +271,9 @@ async function grow(i) {
         } else Object.assign(pending[j], { name: k.name, link: k.link })
       })
       setTree(tree)
+      if (pending.length) watch.firstNode()
     }
-    status(`${count(tree)} nodes · ${spent(req)}`, 'done')
+    status(`${count(tree)} nodes · ${watch.took(pending.length)} · ${spent(req)}`, 'done')
   } catch (e) {
     status(e.message, 'err')
   } finally {
@@ -277,6 +282,23 @@ async function grow(i) {
 }
 
 const count = n => 1 + n.kids.reduce((s, k) => s + count(k), 0)
+
+// How long a request took: the total, the wait for the first node, and the average gap after it.
+const seconds = ms => `${(ms / 1000).toFixed(1)}s`
+function stopwatch() {
+  const start = performance.now()
+  let first = null
+  return {
+    firstNode() { first ??= performance.now() },
+    took(nodes) {
+      const end = performance.now()
+      if (first === null) return seconds(end - start)
+      const each = nodes > 1 ? (end - first) / (nodes - 1) : null
+      const gap = each === null ? '' : `, ${each < 1000 ? `${Math.round(each)}ms` : seconds(each)} each`
+      return `${seconds(end - start)} (first node ${seconds(first - start)}${gap})`
+    }
+  }
+}
 
 // Tokens: per request and for the whole page session (input tokens come with message_start,
 // output tokens arrive as a running figure in message_delta).
