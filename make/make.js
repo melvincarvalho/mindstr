@@ -173,7 +173,8 @@ async function build() {
     adopt(roots, ids)
     setTree(roots[0])
     watch.firstNode()
-    status(`${count(tree)} nodes · ${watch.took(count(tree))} · ${spent(req)}`, 'done')
+    const nodes = count(tree)
+    status(`${nodes} nodes · ${watch.took(nodes)} · ${spent(req)}`, 'done')
     $('#actions').hidden = false
   } catch (e) {
     if (e.name !== 'AbortError') status(e.message, 'err')
