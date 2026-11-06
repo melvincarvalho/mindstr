@@ -5,9 +5,9 @@ import { drawMap, linkIconAt, makeMeasure, THEMES } from '../js/render.js'
 import { parseOutline, toMarkdown } from '../js/outline.js'
 import { BRANCH_COLORS } from '../js/colors.js'
 import { boundsOf, DRAG_THRESHOLD, fitBox, panBy, pinchInfo, pinchTo, toWorld, wheel } from '../js/view.js'
+import { growMessage, grownKids, KEY_STORE, SETTINGS_STORE, stream as claudeStream, topicFor } from '../js/claude.js'
 
 const $ = s => document.querySelector(s)
-const API = 'https://api.anthropic.com/v1/messages'
 const SAVE_HELPER = 'http://localhost:5463/save'
 const ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789'
 const newId = () => '#' + Array.from({ length: 6 }, () => ALPHABET[(Math.random() * 32) | 0]).join('')
@@ -17,15 +17,15 @@ const CAP = [0, 8, 30, 60, 110] // nodes in total, by depth
 const fields = ['depth', 'breadth', 'model', 'style', 'lang', 'links', 'think']
 const settings = Object.fromEntries(fields.map(f => [f, $('#' + f).value]))
 try {
-  Object.assign(settings, JSON.parse(localStorage.getItem('mindstr.make.settings') || '{}'))
-  $('#key').value = localStorage.getItem('mindstr.make.key') || ''
+  Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_STORE) || '{}'))
+  $('#key').value = localStorage.getItem(KEY_STORE) || ''
 } catch {}
 for (const f of fields) {
   const el = $('#' + f)
   if (settings[f] !== undefined) el.value = settings[f]
   el.addEventListener('input', () => {
     settings[f] = el.value
-    try { localStorage.setItem('mindstr.make.settings', JSON.stringify(settings)) } catch {}
+    try { localStorage.setItem(SETTINGS_STORE, JSON.stringify(settings)) } catch {}
     showRanges()
   })
 }
@@ -35,7 +35,7 @@ const showRanges = () => {
 }
 showRanges()
 $('#key').addEventListener('input', () => {
-  try { localStorage.setItem('mindstr.make.key', $('#key').value.trim()) } catch {}
+  try { localStorage.setItem(KEY_STORE, $('#key').value.trim()) } catch {}
 })
 $('#gear').addEventListener('click', () => {
   const open = $('#settings').hidden
@@ -95,63 +95,11 @@ function system() {
   ].join('\n')
 }
 
-// Thinking off is spelled differently per model (checked 4 Nov 2026): Haiku 5.5 takes
-// "disabled", Sonnet 5.5 takes "between_tools", Opus 5.5 always thinks and is quickest with
-// adaptive thinking at low effort. On: adaptive for all.
-function thinkingFor(model, on) {
-  if (on) return { thinking: { type: 'adaptive' } }
-  if (/haiku/.test(model)) return { thinking: { type: 'disabled' } }
-  if (/sonnet/.test(model)) return { thinking: { type: 'between_tools' } }
-  return { thinking: { type: 'adaptive' }, output_config: { effort: 'low' } }
-}
-
-// Claude's streamed text, as it arrives.
+// Claude's streamed text, as it arrives (js/claude.js), with this page's key and settings.
 async function* stream(messages, { signal, extra = {} } = {}) {
   const key = $('#key').value.trim()
   if (!key) throw new Error('Add your Claude API key under ⚙ first.')
-  const res = await fetch(API, {
-    method: 'POST',
-    signal,
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: settings.model,
-      max_tokens: 4096,
-      stream: true,
-      ...thinkingFor(settings.model, settings.think === 'yes'),
-      system: system(),
-      messages,
-      ...extra
-    })
-  })
-  if (!res.ok) {
-    let msg = res.status + ' ' + res.statusText
-    try { msg = (await res.json()).error?.message || msg } catch {}
-    throw new Error(msg)
-  }
-  const reader = res.body.getReader()
-  const dec = new TextDecoder()
-  let buf = ''
-  for (;;) {
-    const { value, done } = await reader.read()
-    if (done) break
-    buf += dec.decode(value, { stream: true })
-    const lines = buf.split('\n')
-    buf = lines.pop()
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue
-      let ev
-      try { ev = JSON.parse(line.slice(6)) } catch { continue }
-      if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') yield { text: ev.delta.text }
-      else if (ev.type === 'message_start' && ev.message?.usage) yield { usage: ev.message.usage }
-      else if (ev.type === 'message_delta' && ev.usage) yield { usage: ev.usage }
-      else if (ev.type === 'error') throw new Error(ev.error?.message || 'stream error')
-    }
-  }
+  yield* claudeStream({ key, model: settings.model, think: settings.think === 'yes', system: system(), messages, signal, extra })
 }
 
 // Keep the outline and drop any chatter around it ("I'll fetch the page first." and the like).
@@ -254,16 +202,13 @@ async function grow(i) {
   const req = {}
   const watch = stopwatch()
   try {
-    const messages = [{
-      role: 'user',
-      content: `Here is a mind map:\n\n${toMarkdown(tree)}\nAdd ${settings.breadth} children to the node “${node.name}” (${path.join(' › ')}). Output only those children as top-level "- " bullets, with no heading and no nesting.`
-    }]
+    const messages = [{ role: 'user', content: growMessage({ outline: toMarkdown(tree), name: node.name, path, count: settings.breadth }) }]
     const pending = []
     for await (const chunk of stream(messages)) {
       if (chunk.usage) { tally(chunk.usage, req); continue }
       text += chunk.text
       const complete = text.slice(0, text.lastIndexOf('\n') + 1)
-      const kids = parseOutline(complete).flatMap(r => (r.kids.length ? [r, ...r.kids] : [r]))
+      const kids = grownKids(complete)
       kids.forEach((k, j) => {
         if (!pending[j]) {
           pending[j] = { id: newId(), name: k.name, link: k.link, kids: [] }
@@ -612,8 +557,7 @@ $('#m-map').addEventListener('click', () => {
   hideMenu()
   if (i === null) return
   // the node as the topic, its ancestors as context, built on arrival by the ?q= form
-  const path = pathTo(i)
-  const topic = path.length > 1 ? `${path[path.length - 1]}, in ${path.slice(0, -1).join(' › ')}` : path[0]
+  const topic = topicFor(pathTo(i))
   const u = new URL(location.href)
   u.search = ''
   u.searchParams.set('q', topic)
