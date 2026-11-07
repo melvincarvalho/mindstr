@@ -22,10 +22,11 @@ test('fragment: keeps the part after # of a full IRI', () => {
   assert.equal(fragment(undefined), undefined)
 })
 
-test('context02: adds @vocab and link/parent typing, keeps what is there', () => {
+test('context02: adds @vocab and link/image/parent typing, keeps what is there', () => {
   assert.deepEqual(context02(undefined), {
     '@vocab': NS,
     link: { '@type': '@id' },
+    image: { '@type': '@id' },
     parent: { '@type': '@id' }
   })
   const own = { '@vocab': NS, foaf: 'http://xmlns.com/foaf/0.1/', link: { '@type': '@vocab' } }

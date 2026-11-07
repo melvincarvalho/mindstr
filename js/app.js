@@ -2,6 +2,7 @@ import { authFetch, hostPod, identity, login as openLogin, MAP_PATH, myMapUrl, r
 import { watch } from './live.js'
 import { BRANCH_COLORS, readableText } from './colors.js'
 import { newId, normalize, toDoc } from './doc.js'
+import { makeImages } from './images.js'
 import { badgeAt, colorsFor, drawMap, linkIconAt, makeMeasure, THEMES } from './render.js'
 import { fanLayout, radialLayout } from './layout.js'
 import { parseOutline, toMarkdown } from './outline.js'
@@ -380,8 +381,13 @@ function redo() {
 let dpr = 1
 let width = 0
 let height = 0
-const measure = makeMeasure(ctx)
+const images = makeImages({ base: () => mapUrl || location.href, onChange: () => invalidate() })
+const measure = makeMeasure(ctx, { shows: node => images.get(node.image).status !== 'failed' })
 const size = i => measure(state.nodes[i], info.depth[i] ?? 2)
+const pictureOf = node => {
+  const { status, img } = images.get(node.image)
+  return status === 'ready' ? img : null
+}
 
 // Animated positions: id → { x, y, t0 } (where the node is animating *from*).
 const anims = new Map()
@@ -617,6 +623,7 @@ function scene(over = {}) {
     matches: find.set,
     reduced: reducedMotion.matches,
     grid: true,
+    picture: pictureOf,
     ...over
   }
 }
@@ -1028,6 +1035,7 @@ const toTree = i => {
   return {
     name: n.name,
     ...(n.link ? { link: n.link } : {}),
+    ...(n.image ? { image: n.image } : {}),
     ...(n.bgColor ? { bgColor: n.bgColor } : {}),
     ...(n.size !== undefined ? { size: n.size } : {}),
     kids: info.kids[i].map(toTree)
@@ -1044,6 +1052,7 @@ function insertTrees(parent, trees) {
   const add = (t, pi, top) => {
     const node = { '@id': newId(), name: t.name, x: state.nodes[pi].x, y: state.nodes[pi].y }
     if (t.link) node.link = t.link
+    if (t.image) node.image = t.image
     if (t.bgColor) node.bgColor = t.bgColor
     if (t.size !== undefined) node.size = t.size
     state.nodes.push(node)
@@ -1252,15 +1261,21 @@ function exportPng() {
   const w = Math.ceil(maxX - minX + 48)
   const h = Math.ceil(maxY - minY + 48)
   const scale = Math.min(2, 8000 / Math.max(w, h))
+  // an image served without CORS headers would stop the canvas being saved, so it's left out
+  const exportable = node => {
+    const { img, exportable: canSave } = images.get(node.image)
+    return canSave ? img : null
+  }
+  const leftOut = state.nodes.filter((n, i) => info.visible[i] && pictureOf(n) && !exportable(n)).length
   const out = document.createElement('canvas')
   out.width = Math.round(w * scale)
   out.height = Math.round(h * scale)
   drawMap(
     out.getContext('2d'),
-    scene({ view: { x: 24 - minX, y: 24 - minY, scale: 1 }, width: w, height: h, dpr: scale, grid: false, selected: null, hover: null, drop: null, dragging: null, flash: null, matches: null, editing: null, pos: i => state.nodes[i] })
+    scene({ view: { x: 24 - minX, y: 24 - minY, scale: 1 }, width: w, height: h, dpr: scale, grid: false, picture: exportable, selected: null, hover: null, drop: null, dragging: null, flash: null, matches: null, editing: null, pos: i => state.nodes[i] })
   )
   out.toBlob(b => download(b, slug() + '.png'), 'image/png')
-  toast('Image downloaded')
+  toast(leftOut ? `Image downloaded, without ${leftOut} node ${leftOut === 1 ? 'image' : 'images'} from sites that don't allow it` : 'Image downloaded')
 }
 
 async function copyOutline() {

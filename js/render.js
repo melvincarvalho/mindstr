@@ -9,6 +9,10 @@ export const STYLES = [
   { font: `600 14px Manrope, ${STACK}`, padX: 14, h: 32, r: 11 }
 ]
 const LINK_W = 20 // room for the ↗ icon
+// The space a node's image gets, above its text. Fixed, so a node doesn't jump when its image loads.
+export const IMAGE_W = 120
+export const IMAGE_H = 90
+const IMAGE_PAD = 10
 const ROOT_FILL = '#6d4aff'
 const ROOT_HI = '#8b5cf6'
 const ROOT_LO = '#5438df'
@@ -78,7 +82,10 @@ function styleFor(depth, k) {
   return st
 }
 
-export function makeMeasure(ctx) {
+const hasImage = node => typeof node.image === 'string' && node.image.trim() !== ''
+
+// `shows` says whether a node gets image space. The app leaves it out once an image has failed.
+export function makeMeasure(ctx, { shows = hasImage } = {}) {
   const widths = new Map()
   const measure = (node, depth) => {
     const k = nodeScale(node)
@@ -92,7 +99,14 @@ export function makeMeasure(ctx) {
       widths.set(key, tw)
     }
     const link = node.link ? LINK_W : 0
-    return { ...st, tw, w: Math.max(tw + st.padX * 2 + link, 48 * k), link: Boolean(node.link) }
+    const w = Math.max(tw + st.padX * 2 + link, 48 * k)
+    const plain = { ...st, tw, w, link: Boolean(node.link), tx: st.padX, ty: 0, pic: null }
+    if (!shows(node)) return plain
+    // tx, ty: where the text sits, from the box's left edge and from its centre
+    const pic = { w: IMAGE_W * k, h: IMAGE_H * k, pad: IMAGE_PAD * k }
+    const wide = Math.max(w, pic.w + pic.pad * 2)
+    const extra = pic.h + pic.pad
+    return { ...plain, w: wide, h: st.h + extra, tx: (wide - tw - link) / 2, ty: extra / 2, pic }
   }
   measure.reset = () => widths.clear()
   return measure
@@ -134,7 +148,25 @@ export function linkIconAt(i, s) {
   const m = s.size(i)
   if (!m.link) return null
   const p = s.pos(i)
-  return { x: p.x - m.w / 2 + m.padX + m.tw + 11, y: p.y, r: 12 }
+  return { x: p.x - m.w / 2 + m.tx + m.tw + 11, y: p.y + m.ty, r: 12 }
+}
+
+// A node's image, fitted inside its space and centred, or a faint panel while there's nothing to show.
+function drawPicture(ctx, m, img, cx, top, ink) {
+  const { w, h } = m.pic
+  if (!img) {
+    ctx.save()
+    ctx.fillStyle = ink
+    ctx.globalAlpha *= 0.08
+    box(ctx, cx - w / 2, top, w, h, 6)
+    ctx.fill()
+    ctx.restore()
+    return
+  }
+  const iw = img.naturalWidth || w
+  const ih = img.naturalHeight || h
+  const fit = Math.min(w / iw, h / ih)
+  ctx.drawImage(img, cx - (iw * fit) / 2, top + (h - ih * fit) / 2, iw * fit, ih * fit)
 }
 
 export function colorsFor(i, s) {
@@ -393,11 +425,12 @@ export function drawMap(ctx, s) {
 
     if (!editing) {
       const text = readableText(c.fill)
+      if (m.pic) drawPicture(ctx, m, s.picture?.(n) ?? null, p.x, y + m.pic.pad, text)
       ctx.font = m.font
       ctx.textAlign = 'left'
       ctx.textBaseline = 'middle'
       ctx.fillStyle = text
-      ctx.fillText(n.name, x + m.padX, p.y + 1)
+      ctx.fillText(n.name, x + m.tx, p.y + m.ty + 1)
       const li = linkIconAt(i, s)
       if (li) {
         ctx.save()
