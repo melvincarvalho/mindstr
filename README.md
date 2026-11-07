@@ -70,6 +70,10 @@ Links: `http(s)` URLs open in a new tab; `.md` files open in the NosDAV doc
 viewer; relative links (`./other.json`) open another map next to this one via `?uri=`.
 Other schemes are blocked.
 
+Images: a node's optional `image` is an `http(s)` URL or a relative reference, and it shows above the
+node's text. There's no button for it yet, so set it in the map file. If an image won't load, the node
+shows its text alone. PNG export leaves out images from sites that don't send CORS headers.
+
 ## Make a map from a topic
 
 [mindstr.org/make](https://mindstr.org/make/): type a topic, or paste a URL, and watch Claude build

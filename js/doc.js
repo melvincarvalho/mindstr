@@ -9,12 +9,12 @@ export const NS = 'https://mindstr.org/ns#'
 export const isV01 = v => v === undefined || v === null || String(v) === '0.1' || String(v).startsWith('0.0')
 export const fragment = v => (typeof v === 'string' && v.includes('#') ? '#' + v.split('#').pop() : v)
 
-// Ensure a 0.2 context: keep whatever is there, add @vocab and the link/parent typing.
+// Ensure a 0.2 context: keep whatever is there, add @vocab and the link/image/parent typing.
 export function context02(existing) {
-  const typing = { link: { '@type': '@id' }, parent: { '@type': '@id' } }
+  const typing = { link: { '@type': '@id' }, image: { '@type': '@id' }, parent: { '@type': '@id' } }
   if (!existing) return { '@vocab': NS, ...typing }
   if (typeof existing === 'object' && !Array.isArray(existing)) {
-    return { '@vocab': NS, ...existing, link: existing.link ?? typing.link, parent: existing.parent ?? typing.parent }
+    return { '@vocab': NS, ...existing, link: existing.link ?? typing.link, image: existing.image ?? typing.image, parent: existing.parent ?? typing.parent }
   }
   const list = Array.isArray(existing) ? existing : [existing]
   return list.some(c => c && typeof c === 'object' && c.parent) ? existing : [...list, typing]

@@ -57,6 +57,7 @@ fields. See [Compatibility](#compatibility).
 | `x`, `y` | number | Centre of the node in map units (≈ CSS px at 100% zoom). `y` grows downward. Any origin. |
 | `bgColor` | string | Optional CSS colour, ideally a soft pastel. Renderers may ignore it on the root (the app draws the root in its brand colour). |
 | `link` | string | Optional. An `http(s)` URL, or a relative reference resolved against the map's own URL. A relative link to a `.json`/`.jsonld` file is another map. A `.md` link is a document. Other schemes are not followed. |
+| `image` | string | Optional. An `http(s)` URL, or a relative reference resolved against the map's own URL. Renderers show it with the node's text, and fall back to the text alone if it doesn't load. |
 | `collapsed` | boolean | Optional `true` when the node's branch is folded in the app. |
 | `size` | number | Optional scale on the node's text and box, relative to the style for its depth. `1` (the default) is normal size; `1.25` is a quarter bigger. A JSON number, not a string. Renderers clamp it (the app uses 0.8–1.6) and may ignore it. Use it sparingly, to stress a few nodes. |
 | anything else | any | Preserved untouched. |
@@ -93,6 +94,7 @@ the layout are as in 0.1):
   "@context": {
     "@vocab": "https://mindstr.org/ns#",
     "link": { "@type": "@id" },
+    "image": { "@type": "@id" },
     "parent": { "@type": "@id" }
   },
   "version": "0.2",
@@ -117,11 +119,11 @@ the layout are as in 0.1):
   vocabulary document there later. (`urn:solid:` was considered and rejected: it has no
   owner, and generic terms such as `name` or `parent` would collide with other apps'
   meanings.)
-- `link` and `parent` are typed `@id`, so their values are IRIs. Relative values resolve
+- `link`, `image` and `parent` are typed `@id`, so their values are IRIs. Relative values resolve
   against the document's URL by normal JSON-LD rules — the same resolution the app
   already does for links.
 - Writers that find an existing `@context` keep it and add only the missing pieces
-  (`@vocab` if absent, and the `link` / `parent` typing). A string or array context gets
+  (`@vocab` if absent, and the `link` / `image` / `parent` typing). A string or array context gets
   an object with the two typings appended.
 
 ### `parent`
