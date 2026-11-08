@@ -608,7 +608,13 @@ function zoomAt(sx, sy, factor) {
 // The part of the stage not covered by floating bars.
 function visibleArea() {
   const top = findBar.hidden ? 0 : 64
-  const bar = width < 760 && document.body.classList.contains('has-selection') ? 76 : 0
+  let bar = width < 760 && document.body.classList.contains('has-selection') ? 76 : 0
+  // controls along the bottom (the replay bar, the editing hint) take their space out of the fit,
+  // so no node ends up under them
+  const stageBottom = stage.getBoundingClientRect().bottom
+  for (const el of [$('#replay'), hint]) {
+    if (el && !el.hidden) bar = Math.max(bar, stageBottom - el.getBoundingClientRect().top + 12)
+  }
   return { top, bottom: height - bar }
 }
 
@@ -2133,7 +2139,10 @@ function replayTo(n) {
   }
   replay.n = Math.max(1, Math.min(n, replay.order.length))
   applyRemote(grownTo(replay.doc, replay.order, replay.n), remote.etag)
-  if (!replayActive()) pauseReplay()
+  if (!replayActive()) {
+    $('#watch').hidden = true // the map is whole: nothing left to watch
+    pauseReplay()
+  }
   showReplay()
 }
 
