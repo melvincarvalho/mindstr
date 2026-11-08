@@ -7,6 +7,11 @@ import { BRANCH_COLORS } from '../js/colors.js'
 import { boundsOf, DRAG_THRESHOLD, fitBox, panBy, pinchInfo, pinchTo, toWorld, wheel } from '../js/view.js'
 import { growMessage, grownKids, KEY_STORE, SETTINGS_STORE, stream as claudeStream, topicFor } from '../js/claude.js'
 import { chime, pop, unlock } from '../js/sound.js'
+import { cachesFrom, findCached, openUrl } from '../js/cache.js'
+
+// Ready-made maps (#45): look in the caches before asking Claude; ?cache=off always builds
+const cacheParam = new URLSearchParams(location.search).get('cache')
+const caches = cachesFrom(cacheParam)
 
 // the Build click or Enter is the gesture that lets the page make sound (js/sound.js)
 window.addEventListener('pointerdown', unlock, { capture: true })
@@ -131,6 +136,19 @@ let abort = null
 async function build() {
   const q = $('#q').value.trim()
   if (!q || busy) return
+  // a ready-made map needs no key: open it in the app, growing, and say where it came from
+  if (caches.length) {
+    status('Looking for a ready-made map…')
+    const hit = await findCached(q, caches)
+    if (hit) {
+      try {
+        sessionStorage.setItem('mindstr:cacheHit', JSON.stringify({ source: hit.source, topic: q }))
+      } catch {}
+      location.href = openUrl(new URL('../', location.href).href, hit, cacheParam)
+      return
+    }
+    status('')
+  }
   if (!$('#key').value.trim()) {
     $('#settings').hidden = false
     $('#gear').setAttribute('aria-expanded', 'true')
