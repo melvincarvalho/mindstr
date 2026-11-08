@@ -178,3 +178,88 @@ export async function loadMapEvent(naddr, opts = {}) {
   if (!data || !Array.isArray(data.nodes) || !data.nodes.length) throw new Error('the map event does not contain a map')
   return { data, event, signature, title: tag(event, 'title') || data.nodes[0]?.name }
 }
+
+// ---------- publishing (kind 30627) ----------
+
+// Relays a published map goes to, and that its link names
+export const PUBLISH_RELAYS = ['wss://relay.ditto.pub', 'wss://nos.lol', 'wss://relay.primal.net', 'wss://relay.damus.io']
+// strfry's default event limit; most relays allow 64–128 KB
+export const MAX_EVENT_BYTES = 65536
+
+const toWords = bytes => {
+  const out = []
+  let acc = 0
+  let bits = 0
+  for (const b of bytes) {
+    acc = (acc << 8) | b
+    bits += 8
+    while (bits >= 5) {
+      bits -= 5
+      out.push((acc >> bits) & 31)
+    }
+  }
+  if (bits) out.push((acc << (5 - bits)) & 31)
+  return out
+}
+
+// { kind, pubkey, d, relays } → naddr1… (NIP-19)
+export function encodeNaddr({ kind, pubkey, d, relays = [] }) {
+  const enc = new TextEncoder()
+  const tlv = (type, bytes) => [type, bytes.length, ...bytes]
+  const pk = pubkey.match(/../g).map(h => parseInt(h, 16))
+  const bytes = [
+    ...tlv(0, enc.encode(d)),
+    ...relays.flatMap(r => tlv(1, enc.encode(r))),
+    ...tlv(2, pk),
+    ...tlv(3, [(kind >>> 24) & 255, (kind >> 16) & 255, (kind >> 8) & 255, kind & 255])
+  ]
+  const hrp = 'naddr'
+  const words = toWords(bytes)
+  const expanded = [...[...hrp].map(c => c.charCodeAt(0) >> 5), 0, ...[...hrp].map(c => c.charCodeAt(0) & 31)]
+  const pm = polymod([...expanded, ...words, 0, 0, 0, 0, 0, 0]) ^ 1
+  const checksum = [0, 1, 2, 3, 4, 5].map(i => (pm >> (5 * (5 - i))) & 31)
+  return hrp + '1' + [...words, ...checksum].map(w => CHARSET[w]).join('')
+}
+
+// The unsigned event for a map (see docs/nip-mindmap.md). `from` is the event the map was opened
+// from, if any: the same author keeps its `d` (an update); anyone else's becomes a fork.
+export function mapEventTemplate(doc, { d, pubkey, from = null, url = null } = {}) {
+  const title = doc.nodes[0]?.name || 'Mind map'
+  const tags = [
+    ['d', d],
+    ['title', title],
+    ['alt', `Mind map: ${title} (${doc.nodes.length} ideas). Open it in a mind map app.`],
+    ['t', 'mindmap']
+  ]
+  if (from && from.pubkey !== pubkey) {
+    const fromD = tag(from, 'd')
+    tags.push(['a', `${MAP_KIND}:${from.pubkey}:${fromD}`, '', 'fork'])
+  }
+  if (url && /^https?:\/\//.test(url)) tags.push(['r', url])
+  return { kind: MAP_KIND, created_at: Math.floor(Date.now() / 1000), tags, content: JSON.stringify(doc) }
+}
+
+// Send a signed event to each relay: [{ relay, ok, message }], never waiting longer than `timeout`
+export function publishEvent(relays, event, { timeout = 8000, WebSocketImpl = globalThis.WebSocket } = {}) {
+  return Promise.all(relays.map(relay => new Promise(resolve => {
+    let ws
+    const finish = (ok, message) => {
+      clearTimeout(timer)
+      try { ws?.close() } catch {}
+      resolve({ relay, ok, message })
+    }
+    const timer = setTimeout(() => finish(false, 'no answer'), timeout)
+    try {
+      ws = new WebSocketImpl(relay)
+    } catch {
+      return finish(false, 'could not connect')
+    }
+    ws.onopen = () => ws.send(JSON.stringify(['EVENT', event]))
+    ws.onmessage = msg => {
+      let m
+      try { m = JSON.parse(msg.data) } catch { return }
+      if (m[0] === 'OK' && m[1] === event.id) finish(Boolean(m[2]), m[3] || '')
+    }
+    ws.onerror = () => finish(false, 'could not connect')
+  })))
+}
