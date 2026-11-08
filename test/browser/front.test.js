@@ -68,3 +68,16 @@ test('a link that names a map skips the front door', async () => {
   assert.equal(await page.locator('#front').isHidden(), true)
   await page.context().close()
 })
+
+test('the example pills open a replay with the Watch it grow button', async () => {
+  const page = await openPage(browser, server.url)
+  await load(page, server.url)
+  const pills = page.locator('.front-examples a')
+  assert.equal(await pills.count(), 3)
+  await Promise.all([page.waitForURL(/example=japan-trip/), pills.nth(2).click()])
+  await page.waitForSelector('#watch:not([hidden])')
+  assert.equal(await page.locator('#front').isHidden(), true)
+  assert.match(await page.locator('#replayCount').textContent(), /^1 \/ 27$/)
+  assert.deepEqual(page.errors, [])
+  await page.context().close()
+})

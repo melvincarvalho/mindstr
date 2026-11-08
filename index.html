@@ -228,7 +228,7 @@
       #front {
         position: absolute; inset: 0; z-index: 6;
         display: flex; align-items: center; justify-content: center; padding: 16px;
-        background: color-mix(in srgb, var(--bg) 97%, transparent);
+        background: var(--bg);
       }
       #front[hidden] { display: none; }
       #frontForm { width: min(620px, 100%); text-align: center; }
@@ -246,6 +246,15 @@
       .front-paths button:hover { border-color: var(--accent); }
       .front-paths button[hidden] { display: none; }
       .front-fine { margin-top: 16px; font-size: 13px; color: var(--muted); }
+      .front-examples { display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+      .front-examples span { flex-basis: 100%; font-size: 14px; color: var(--muted); }
+      .front-examples a {
+        display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 20px;
+        background: color-mix(in srgb, var(--accent) 13%, var(--raised)); color: var(--text); font-weight: 600; text-decoration: none;
+        border: 1px solid transparent;
+      }
+      .front-examples a:hover { border-color: var(--accent); }
+      .front-paths { margin-top: 12px; }
       #watch .icon { width: 22px; height: 22px; fill: currentColor; }
       .share-link { width: min(56ch, 60vw); font: inherit; padding: 4px 8px; margin-left: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg, transparent); color: inherit; }
       #replayCount { min-width: 4.5em; text-align: center; color: var(--muted); }
@@ -525,6 +534,12 @@
           <div class="front-row">
             <input id="frontQ" type="search" placeholder="A topic, a question or a link" aria-label="What do you want to map?" autocomplete="off" />
             <button class="primary" type="submit">Create</button>
+          </div>
+          <div class="front-examples" aria-label="Watch an example grow">
+            <span>Or watch one grow:</span>
+            <a href="?example=solar-system&amp;replay=1s">🪐 The solar system</a>
+            <a href="?example=project-plan&amp;replay=1s">🚀 Launch a website</a>
+            <a href="?example=japan-trip&amp;replay=1s">✈️ Plan a trip to Japan</a>
           </div>
           <div class="front-paths">
             <button type="button" id="frontContinue" hidden></button>

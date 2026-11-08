@@ -118,3 +118,12 @@ build('nostr', N('Nostr', {},
   N('Clients', { bgColor: O }, N('NIP-07: browser signer', nip('07')), N('Many apps, one identity')),
   N('Beyond notes', { bgColor: P }, N('NIP-98: HTTP auth', nip('98')), N('Mindstr saves with NIP-98')),
   back))
+
+build('japan-trip', N('Plan a trip to Japan', {},
+  N('When to go', { bgColor: P }, N('Spring: cherry blossom'), N('Autumn: red maples'), N('Avoid Golden Week crowds')),
+  N('Where to stay', { bgColor: B },
+    N('Tokyo', {}, N('Shibuya'), N('Asakusa')), N('Kyoto', {}, N('Gion')), N('Osaka'), N('A night in a ryokan')),
+  N('Getting around', { bgColor: G }, N('Shinkansen bullet train'), N('IC card for trains and shops'), N('Rail pass: check it pays off')),
+  N('Eat', { bgColor: O }, N('Ramen'), N('Sushi at a fish market'), N('Convenience-store snacks')),
+  N('Before you go', { bgColor: Y }, N('Passport and entry rules'), N('eSIM or pocket wifi'), N('Carry some cash'), N('Learn a few phrases')),
+  back))
