@@ -30,7 +30,9 @@ export function storedSettings() {
     breadth: Number(s.breadth) || DEFAULT_BREADTH,
     think: s.think === 'yes',
     lang: typeof s.lang === 'string' && s.lang.trim() ? s.lang.trim() : 'English',
-    links: s.links === 'yes'
+    links: s.links === 'yes',
+    depth: Number(s.depth) || 2,
+    style: typeof s.style === 'string' && s.style ? s.style : 'overview'
   }
 }
 

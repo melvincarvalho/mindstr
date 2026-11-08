@@ -120,7 +120,7 @@ test('without a key, the editor says where to add one and asks Claude nothing', 
   await page.context().close()
 })
 
-test('Open as a new map opens make/ with the node and its path as the topic', async () => {
+test('Open as a new map builds the node and its path as a new map, in a new tab', async () => {
   const page = await setUp({ key: 'sk-test' })
   const p = await pointOf(page, 'Arrange')
   await page.mouse.click(p.x, p.y, { button: 'right' })
@@ -129,8 +129,9 @@ test('Open as a new map opens make/ with the node and its path as the topic', as
     page.locator('#nodeMenu').getByRole('menuitem', { name: 'Open as a new map' }).click()
   ])
   const u = new URL(popup.url())
-  assert.equal(u.pathname, '/make/')
-  assert.equal(u.searchParams.get('q'), 'Arrange, in Welcome to Mindstr')
+  assert.equal(u.pathname, '/')
+  assert.equal(u.searchParams.get('build'), 'Arrange, in Welcome to Mindstr')
+  assert.ok(u.searchParams.get('draft'), 'a fresh draft')
   assert.deepEqual(page.errors, [])
   await page.context().close()
 })
