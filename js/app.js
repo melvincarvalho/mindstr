@@ -532,6 +532,7 @@ function setView(target, animate = true) {
 
 function zoomAt(sx, sy, factor) {
   viewAnim = null
+  userMoved = true
   zoomView(state.view, sx, sy, factor)
   positionEditor()
   invalidate()
@@ -1490,7 +1491,6 @@ const focusMap = () => {
 }
 
 canvas.addEventListener('pointerdown', e => {
-  userMoved = true
   if (e.pointerType === 'mouse' && e.button !== 0) return
   commitEdit()
   closeMenu()
@@ -1547,6 +1547,7 @@ canvas.addEventListener('pointermove', e => {
   if (gesture.type === 'pinch' && pointers.size >= 2) {
     const now = pinchInfo()
     viewAnim = null
+    userMoved = true
     pinchTo(state.view, gesture, now)
     positionEditor()
     invalidate()
@@ -1579,7 +1580,8 @@ canvas.addEventListener('pointermove', e => {
     canvas.style.cursor = gesture.invalid ? 'not-allowed' : ''
     invalidate()
   } else if (gesture.type === 'pan') {
-    if (far) gesture.moved = true
+    // a click doesn't count as moving the view (it's also how a viewer allows sound); a drag does
+    if (far) gesture.moved = userMoved = true
     state.view.x += p.x - gesture.last.x
     state.view.y += p.y - gesture.last.y
     gesture.last = p
