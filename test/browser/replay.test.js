@@ -62,3 +62,22 @@ test('without ?replay there is no replay bar', async () => {
   assert.deepEqual(page.errors, [])
   await page.context().close()
 })
+
+// The fit leaves room for the replay bar, so no node sits under it (#52).
+test('after a replay, no node is hidden under the replay bar', async () => {
+  const page = await openPage(browser, server.url)
+  await page.goto(`${server.url}?example=solar-system&replay=100ms`, { waitUntil: 'load' })
+  await page.waitForSelector('#watch:not([hidden])')
+  await page.click('[data-action="replayEnd"]')
+  await page.waitForTimeout(800) // the fit animates
+  assert.equal(await page.locator('#watch').isHidden(), true, 'jumping to the end removes the big button')
+  const under = await page.evaluate(() => {
+    const bar = document.querySelector('#replay').getBoundingClientRect()
+    return [...document.querySelectorAll('#tree li')]
+      .map(li => li.getBoundingClientRect())
+      .filter(r => r.top + r.height / 2 + 10 > bar.top && r.left + r.width / 2 > bar.left - 60 && r.left + r.width / 2 < bar.right + 60).length
+  })
+  assert.equal(under, 0)
+  assert.deepEqual(page.errors, [])
+  await page.context().close()
+})
