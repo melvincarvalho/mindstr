@@ -161,4 +161,4 @@ npm test
 Run `npm test` before pushing. The app itself still has no dependencies: Playwright is a dev
 dependency, used only by the tests.
 
-MIT licensed.
+[AGPL-3.0-or-later](LICENSE). Versions before November 2026 were released under MIT. The ready-made maps in [mindstr-maps](https://github.com/melvincarvalho/mindstr-maps) are CC0.
