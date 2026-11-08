@@ -233,14 +233,14 @@
       #front[hidden] { display: none; }
       #frontForm { width: min(620px, 100%); text-align: center; }
       #front h1 { font-size: 30px; font-weight: 750; margin: 0 0 22px; color: var(--text); }
-      .front-row { display: flex; gap: 10px; }
+      .front-row { position: relative; } /* Create sits inside the box, so the box itself is centred */
       #frontQ {
-        flex: 1; min-width: 0; height: 52px; padding: 0 20px; font: inherit; font-size: 17px;
-        color: var(--text); background: var(--raised); border: 1px solid var(--border); border-radius: 26px;
+        width: 100%; height: 56px; padding: 0 128px 0 22px; font: inherit; font-size: 17px;
+        color: var(--text); background: var(--raised); border: 1px solid var(--border); border-radius: 28px;
         box-shadow: var(--shadow); outline: none;
       }
       #frontQ:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
-      .front-row .primary { height: 52px; padding: 0 26px; border-radius: 26px; font-size: 16px; font-weight: 700; }
+      .front-row .primary { position: absolute; right: 6px; top: 6px; height: 44px; padding: 0 24px; border-radius: 22px; font-size: 16px; font-weight: 700; }
       .front-paths { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
       .front-paths button { height: 40px; padding: 0 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--raised); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
       .front-paths button:hover { border-color: var(--accent); }
