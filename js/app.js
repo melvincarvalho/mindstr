@@ -5,6 +5,7 @@ import { newId, normalize, toDoc } from './doc.js'
 import { makeImages } from './images.js'
 import { blocked, chime, pop, setSound, soundOn, unlock } from './sound.js'
 import { grownTo, growthOrder, parseSpeed } from './replay.js'
+import { cacheName, cachesFrom, findCached, openUrl } from './cache.js'
 import { badgeAt, colorsFor, drawMap, linkIconAt, makeMeasure, THEMES } from './render.js'
 import { fanLayout, radialLayout } from './layout.js'
 import { parseOutline, toMarkdown } from './outline.js'
@@ -98,6 +99,9 @@ const autoplay = params.has('autoplay') // with &autoplay it starts at once, sil
 // The front door (#49): a bare visit to the site, with no map in the link, starts with a search box
 // instead of the editor. Any link that names a map, a draft or an example skips it, as does a pod.
 const frontDoor = !location.search && !hostPod
+// Ready-made maps (#45): ?cache= picks where to look before building with Claude (js/cache.js)
+const cacheParam = params.get('cache')
+const caches = cachesFrom(cacheParam)
 let mapUrl = null
 let badUri = false
 try {
@@ -2599,11 +2603,24 @@ function leaveFrontDoor() {
   history.replaceState(null, '', draftUrl(draftId))
   focusMap()
 }
-$('#frontForm').addEventListener('submit', e => {
+$('#frontForm').addEventListener('submit', async e => {
   e.preventDefault()
   const q = $('#frontQ').value.trim()
   if (!q) return $('#frontQ').focus()
-  location.href = new URL('make/?q=' + encodeURIComponent(q), location.href).href
+  const button = $('#frontForm [type=submit]')
+  button.disabled = true
+  const hit = await findCached(q, caches)
+  if (hit) {
+    // a ready-made map: open it growing, and say where it came from
+    session.set('mindstr:cacheHit', JSON.stringify({ source: hit.source, topic: q }))
+    location.href = openUrl(new URL('./', location.href).href, hit, cacheParam)
+    return
+  }
+  button.disabled = false
+  const make = new URL('make/', location.href)
+  make.searchParams.set('q', q)
+  if (cacheParam !== null) make.searchParams.set('cache', cacheParam)
+  location.href = make.href
 })
 $('#frontContinue').addEventListener('click', leaveFrontDoor)
 $('#frontBlank').addEventListener('click', () => {
@@ -2826,6 +2843,17 @@ async function load() {
   if (msg) {
     session.set('mindstr:toast', null)
     toast(msg)
+  }
+  const cacheHit = session.get('mindstr:cacheHit')
+  if (cacheHit) {
+    session.set('mindstr:cacheHit', null)
+    try {
+      const { source, topic } = JSON.parse(cacheHit)
+      const fresh = new URL('make/', location.href)
+      fresh.searchParams.set('q', topic)
+      fresh.searchParams.set('cache', 'off')
+      toast(`Ready-made map from ${cacheName(source)}`, { action: ['Build fresh', () => (location.href = fresh.href)], ms: 8000 })
+    } catch {}
   }
   if (frontDoor) showFrontDoor(restored)
   else if (!mapUrl && !restored && !fromStash && !coarse.matches) startEdit(0)
