@@ -4,6 +4,7 @@ import { BRANCH_COLORS, readableText } from './colors.js'
 import { newId, normalize, toDoc } from './doc.js'
 import { makeImages } from './images.js'
 import { blocked, chime, pop, setSound, soundOn, unlock } from './sound.js'
+import { grownTo, growthOrder, parseSpeed } from './replay.js'
 import { badgeAt, colorsFor, drawMap, linkIconAt, makeMeasure, THEMES } from './render.js'
 import { fanLayout, radialLayout } from './layout.js'
 import { parseOutline, toMarkdown } from './outline.js'
@@ -92,6 +93,7 @@ const mapParam =
   (/^[\w-]+$/.test(exampleParam || '') ? `examples/${exampleParam}.json` : null) ||
   (hostPod ? hostPod + MAP_PATH : null) // installed in a pod: the owner's map
 const titleParam = params.get('title')
+const replayParam = params.get('replay') // ?replay=2s: regrow the map from its root
 let mapUrl = null
 let badUri = false
 try {
@@ -1825,6 +1827,9 @@ const actions = {
   redo,
   fit: () => fitAll(),
   sound: toggleSound,
+  replayPlay: () => (replay.timer ? pauseReplay() : playReplay()),
+  replayRestart: () => (replayTo(1), playReplay()),
+  replayEnd: () => replayTo(replay.order.length),
   zoomIn: () => zoomAt(width / 2, height / 2, 1.25),
   zoomOut: () => zoomAt(width / 2, height / 2, 0.8),
   find: openFind,
@@ -2032,6 +2037,80 @@ const stable = v =>
 const content = d => stable({ ...d, selectedNode: undefined, version: undefined })
 const sameAsLocal = data => content(data) === content(JSON.parse(JSON.stringify(serialize())))
 
+// ---------- replay (?replay=2s): regrow the map from its root, one node at a time ----------
+// It reuses the live-update path, so each step flashes, fits, pops, and the last one chimes. It's
+// for watching: saving is refused part-way, so a half-grown map never replaces the real one.
+const replay = { doc: null, order: [], n: 0, ms: parseSpeed(replayParam), timer: null }
+const replayActive = () => replay.doc !== null && replay.n < replay.order.length
+const currentDoc = () => ({ ...state.extra, version: state.version, nodes: state.nodes.map(n => ({ ...n })), connections: state.connections.map(c => ({ ...c })) })
+
+function startReplay() {
+  replay.doc = currentDoc()
+  replay.order = growthOrder(replay.doc)
+  const speed = $('#replaySpeed')
+  if (![...speed.options].some(o => +o.value === replay.ms)) speed.add(new Option(`${replay.ms / 1000} s`, replay.ms))
+  speed.value = String(replay.ms)
+  $('#replay').hidden = false
+  replayTo(1)
+  fitView(false)
+}
+
+function replayTo(n) {
+  if (state.dirty) {
+    pauseReplay()
+    return toast('You changed the map, so the replay stopped here.')
+  }
+  replay.n = Math.max(1, Math.min(n, replay.order.length))
+  applyRemote(grownTo(replay.doc, replay.order, replay.n), remote.etag)
+  if (!replayActive()) pauseReplay()
+  showReplay()
+}
+
+function playReplay() {
+  if (!replayActive()) replayTo(1)
+  clearInterval(replay.timer)
+  replay.timer = setInterval(() => replayTo(replay.n + 1), replay.ms)
+  showReplay()
+}
+
+function pauseReplay() {
+  clearInterval(replay.timer)
+  replay.timer = null
+  showReplay()
+}
+
+function showReplay() {
+  if (!replay.doc) return
+  const play = $('#replay [data-action=replayPlay]')
+  play.querySelector('use').setAttribute('href', replay.timer ? '#i-pause' : '#i-play')
+  play.title = replay.timer ? 'Pause' : replayActive() ? 'Play' : 'Play again'
+  play.setAttribute('aria-label', play.title)
+  $('#replayCount').textContent = `${replay.n} / ${replay.order.length}`
+}
+
+// The map changed on the pod while replaying: keep replaying the new version. Once the replay
+// has finished, go back to normal live updates.
+function replayLive(data, etag) {
+  if (!replayActive()) {
+    pauseReplay()
+    replay.doc = null
+    $('#replay').hidden = true
+    return false
+  }
+  const { nodes, connections, extra, version } = normalize(data)
+  replay.doc = { ...extra, version, nodes, connections }
+  replay.order = growthOrder(replay.doc)
+  remote.etag = etag
+  remote.exists = true
+  showReplay()
+  return true
+}
+
+$('#replaySpeed').addEventListener('change', e => {
+  replay.ms = Number(e.target.value)
+  if (replay.timer) playReplay()
+})
+
 // A pop for a node from elsewhere, its note set by its main branch; a chime when the writer marks
 // the map complete by selecting the root. Said once if the browser is still blocking sound.
 let soundHinted = false
@@ -2076,7 +2155,7 @@ function applyRemote(data, etag) {
     // fit the whole map, as Make does, until the viewer pans or zooms; then just keep the new node in view
     if (userMoved) ensureVisible(state.selected)
     else fitView()
-    arrivalSound(selected === 0)
+    arrivalSound(selected === 0 && nodes.length > 1)
   } else {
     const keep = nodes.findIndex(n => n['@id'] === selId)
     state.selected = keep >= 0 ? keep : selected
@@ -2127,6 +2206,7 @@ async function checkRemote() {
       remote.exists = true
       return
     }
+    if (replay.doc && replayLive(data, etag)) return
     if (state.dirty || state.editing || gesture) {
       remote.pending = { data, etag }
       showConflict('This map was changed elsewhere while you were editing.')
@@ -2430,6 +2510,7 @@ function newMap() {
 async function save() {
   commitEdit()
   if (state.saving) return
+  if (replayActive()) return toast('This is a replay, part-way through. Show the whole map (⏭) before saving.', { ms: 6000 })
   if (!mapUrl || isExample) return saveCopy()
   if (!state.canSave) return toast('This map couldn’t be loaded, so saving is off to protect the original.', { ms: 6000 })
   state.saving = true
@@ -2613,6 +2694,7 @@ async function load() {
   updateUi()
   if (state.canSave || remote.exists) startLive(updatesVia)
   if (remote.exists) startEvents()
+  if (replayParam !== null && state.nodes.length > 1) startReplay()
 
   if (focusId) {
     const i = state.nodes.findIndex(n => n['@id'] === focusId)
