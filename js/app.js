@@ -194,6 +194,33 @@ function uriParam(href) {
   return u.href
 }
 
+// The link to share: this map in the app, or a replay of it that starts growing as it opens. On a
+// phone, the system share sheet; elsewhere, the clipboard.
+function shareUrl(replayIt) {
+  let url = appUrlFor(mapUrl)
+  if (replayIt) url += '&replay=1s&autoplay'
+  return url
+}
+async function share(replayIt = false) {
+  if (!mapUrl) return toast('Save this map to a pod first, so it has a link to share.', { ms: 5000 })
+  const url = shareUrl(replayIt)
+  const note = state.dirty ? ' (it shows the saved version: save to include your changes)' : ''
+  if (navigator.share && coarse.matches) {
+    try {
+      await navigator.share({ title: state.nodes[0]?.name || 'Mindstr map', url })
+      return
+    } catch (err) {
+      if (err.name === 'AbortError') return
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url)
+    toast((replayIt ? 'Replay link copied' : 'Link copied') + note, { ms: note ? 6000 : 3200 })
+  } catch {
+    toast('Copy this link: ' + url, { ms: 12000 })
+  }
+}
+
 function appUrlFor(href) {
   const target = new URL('./', location.href)
   target.searchParams.set('uri', uriParam(href))
@@ -1828,6 +1855,8 @@ const actions = {
   redo,
   fit: () => fitAll(),
   sound: toggleSound,
+  share: () => share(false),
+  shareReplay: () => share(true),
   replayPlay: () => (replay.timer ? pauseReplay() : playReplay()),
   replayRestart: () => (replayTo(1), playReplay()),
   replayEnd: () => replayTo(replay.order.length),
