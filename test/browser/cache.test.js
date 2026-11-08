@@ -75,7 +75,7 @@ test('?cache=off never looks, and ?cache= can name another cache', async () => {
   await page.route(other + '**', route => (asked.push(route.request().url()), route.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' })))
   await page.goto(server.url + 'make/?q=planets&cache=' + encodeURIComponent(other), { waitUntil: 'load' })
   await page.waitForTimeout(300)
-  assert.deepEqual(asked, [other + 'index.json'])
+  assert.deepEqual(asked, [other + 'lookup.json', other + 'index.json'], 'the small lookup first, then the full index')
   assert.equal(seen.length, 0, 'ours not asked')
   await page.context().close()
 })

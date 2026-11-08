@@ -5,7 +5,7 @@ import { newId, normalize, toDoc } from './doc.js'
 import { makeImages } from './images.js'
 import { blocked, chime, pop, setSound, soundOn, unlock } from './sound.js'
 import { grownTo, growthOrder, parseSpeed } from './replay.js'
-import { cacheName, cachesFrom, findCached, openUrl } from './cache.js'
+import { cacheName, cachesFrom, directoryUrl, findCached, openUrl } from './cache.js'
 import { badgeAt, colorsFor, drawMap, linkIconAt, makeMeasure, THEMES } from './render.js'
 import { fanLayout, radialLayout } from './layout.js'
 import { parseOutline, toMarkdown } from './outline.js'
@@ -2591,6 +2591,10 @@ async function openMaps() {
 // Continue returns to your last draft (already loaded underneath); Start blank is a new empty map.
 function showFrontDoor(hasDraft) {
   const front = $('#front')
+  // browse the first cache's directory of ready-made maps; none when caching is off
+  const browse = $('#frontBrowse')
+  browse.hidden = !caches.length
+  if (caches.length) browse.href = directoryUrl(caches[0], new URL('./', location.href).href)
   const resume = $('#frontContinue')
   if (hasDraft) {
     resume.textContent = `Continue “${state.nodes[0].name}”`

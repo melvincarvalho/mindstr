@@ -1,7 +1,7 @@
 // Ready-made maps (#45): slugs, the ?cache= rule, and the lookup.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { DEFAULT_CACHE, cacheName, cachesFrom, findCached, openUrl, slug } from '../../js/cache.js'
+import { DEFAULT_CACHE, cacheName, cachesFrom, directoryUrl, findCached, openUrl, slug } from '../../js/cache.js'
 
 test('slug matches mindstr-maps: lower case, no accents, hyphens', () => {
   assert.equal(slug('Plan a Trip to Japan!'), 'plan-a-trip-to-japan')
@@ -41,4 +41,22 @@ test('openUrl opens the map as a replay and keeps the cache choice', () => {
   assert.equal(openUrl('https://mindstr.org/', hit, null), 'https://mindstr.org/?uri=https://b.org/maps/x.json&replay=1s')
   assert.equal(openUrl('https://mindstr.org/', hit, 'https://b.org/'), 'https://mindstr.org/?uri=https://b.org/maps/x.json&replay=1s&cache=https%3A%2F%2Fb.org%2F')
   assert.equal(cacheName('https://melvincarvalho.github.io/mindstr-maps/'), 'melvincarvalho.github.io/mindstr-maps')
+})
+
+test('findCached prefers the small lookup.json, and falls back to index.json', async () => {
+  const asked = []
+  const sites = {
+    'https://a.org/lookup.json': { lookup: { planets: 'maps/slim.json' } },
+    'https://a.org/index.json': { lookup: { planets: 'maps/full.json' } },
+    'https://b.org/index.json': { lookup: { planets: 'maps/old.json' } }
+  }
+  const fetchFn = async url => (asked.push(url), sites[url] ? { ok: true, json: async () => sites[url] } : { ok: false })
+  assert.equal((await findCached('planets', ['https://a.org/'], { fetchFn })).url, 'https://a.org/maps/slim.json')
+  assert.deepEqual(asked, ['https://a.org/lookup.json'], 'one small request')
+  assert.equal((await findCached('planets', ['https://b.org/'], { fetchFn })).url, 'https://b.org/maps/old.json', 'an older cache still works')
+})
+
+test('directoryUrl sends maps back to this app, unless it is mindstr.org', () => {
+  assert.equal(directoryUrl(DEFAULT_CACHE, 'https://mindstr.org/'), DEFAULT_CACHE)
+  assert.equal(directoryUrl(DEFAULT_CACHE, 'http://localhost:5470/'), DEFAULT_CACHE + '?app=http%3A%2F%2Flocalhost%3A5470%2F')
 })

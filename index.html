@@ -246,6 +246,9 @@
       .front-paths button:hover { border-color: var(--accent); }
       .front-paths button[hidden] { display: none; }
       .front-fine { margin-top: 16px; font-size: 13px; color: var(--muted); }
+      .front-browse { margin: 16px 0 0; }
+      .front-browse a { color: var(--accent); font-weight: 650; text-decoration: none; }
+      .front-browse a:hover { text-decoration: underline; }
       .front-examples { display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 20px; }
       .front-examples span { flex-basis: 100%; font-size: 14px; color: var(--muted); }
       .front-examples a {
@@ -546,6 +549,7 @@
             <button type="button" data-action="mine">My map</button>
             <button type="button" id="frontBlank">Start blank</button>
           </div>
+          <p class="front-browse"><a id="frontBrowse" href="https://melvincarvalho.github.io/mindstr-maps/" hidden>Browse all ready-made maps →</a></p>
           <p class="front-fine">Create uses your own Claude key, which stays in this browser.</p>
         </form>
       </div>

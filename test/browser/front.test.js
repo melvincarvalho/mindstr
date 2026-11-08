@@ -93,3 +93,14 @@ test('?cache= alone still shows the front door, and Create passes it on', async 
   assert.equal(u.searchParams.get('cache'), 'off')
   await page.context().close()
 })
+
+test('the front door links to the directory of ready-made maps, but not with ?cache=off', async () => {
+  const page = await openPage(browser, server.url)
+  await load(page, server.url)
+  const browse = page.locator('#frontBrowse')
+  assert.equal(await browse.isVisible(), true)
+  assert.ok((await browse.getAttribute('href')).startsWith('https://melvincarvalho.github.io/mindstr-maps/?app='))
+  await load(page, `${server.url}?cache=off`)
+  assert.equal(await page.locator('#frontBrowse').isHidden(), true)
+  await page.context().close()
+})
