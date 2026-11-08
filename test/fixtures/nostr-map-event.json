@@ -1,0 +1,50 @@
+{
+  "pubkey": "380904c4e5f152bb25d065b9a24cd9265d9a5d63f1406c8935678d232cae014b",
+  "created_at": 1794137417,
+  "kind": 30627,
+  "tags": [
+    [
+      "d",
+      "climate-change"
+    ],
+    [
+      "title",
+      "Climate change"
+    ],
+    [
+      "alt",
+      "Mind map: Climate change (27 ideas). Open it in a mind map app."
+    ],
+    [
+      "t",
+      "mindmap"
+    ],
+    [
+      "t",
+      "science"
+    ],
+    [
+      "t",
+      "global-warming"
+    ],
+    [
+      "t",
+      "climate-crisis"
+    ],
+    [
+      "t",
+      "climate-change-explained"
+    ],
+    [
+      "license",
+      "CC0-1.0"
+    ],
+    [
+      "r",
+      "https://melvincarvalho.github.io/mindstr-maps/maps/climate-change.json"
+    ]
+  ],
+  "content": "{\"@context\":{\"@vocab\":\"https://mindstr.org/ns#\",\"link\":{\"@type\":\"@id\"},\"parent\":{\"@type\":\"@id\"}},\"version\":\"0.2\",\"nodes\":[{\"@id\":\"#this\",\"name\":\"Climate change\",\"x\":0,\"y\":0},{\"@id\":\"#kc73tq\",\"name\":\"The greenhouse effect\",\"x\":-205,\"y\":-84,\"bgColor\":\"#D6E8FF\",\"parent\":\"#this\"},{\"@id\":\"#2bwvzz\",\"name\":\"Gases trap heat from the Sun\",\"x\":-504,\"y\":-62,\"link\":\"https://en.wikipedia.org/wiki/Greenhouse_effect\",\"parent\":\"#kc73tq\"},{\"@id\":\"#9mgc8e\",\"name\":\"Carbon dioxide is the main driver\",\"x\":-401,\"y\":-163,\"parent\":\"#kc73tq\"},{\"@id\":\"#yzkdub\",\"name\":\"Methane is short-lived but potent\",\"x\":-318,\"y\":-255,\"parent\":\"#kc73tq\"},{\"@id\":\"#3w8794\",\"name\":\"Human causes\",\"x\":0,\"y\":-184,\"bgColor\":\"#D9F2DC\",\"parent\":\"#this\"},{\"@id\":\"#uzjnmk\",\"name\":\"Burning coal, oil and gas\",\"x\":-204,\"y\":-321,\"parent\":\"#3w8794\"},{\"@id\":\"#diyvda\",\"name\":\"Deforestation releases stored carbon\",\"x\":-73,\"y\":-372,\"parent\":\"#3w8794\"},{\"@id\":\"#5cbnjm\",\"name\":\"Farming and livestock emit methane\",\"x\":82,\"y\":-420,\"parent\":\"#3w8794\"},{\"@id\":\"#dq8cmb\",\"name\":\"Cement and industry add emissions\",\"x\":204,\"y\":-321,\"parent\":\"#3w8794\"},{\"@id\":\"#6uzgua\",\"name\":\"The evidence\",\"x\":205,\"y\":-84,\"bgColor\":\"#FFE1CC\",\"parent\":\"#this\"},{\"@id\":\"#9nfsgr\",\"name\":\"Earth about 1.2°C warmer than pre-industrial\",\"x\":318,\"y\":-255,\"parent\":\"#6uzgua\"},{\"@id\":\"#zja3cw\",\"name\":\"CO₂ up from 280 to 420+ ppm\",\"x\":401,\"y\":-163,\"link\":\"https://en.wikipedia.org/wiki/Carbon_dioxide_in_Earth%27s_atmosphere\",\"parent\":\"#6uzgua\"},{\"@id\":\"#yjty3z\",\"name\":\"Ice cores show past climates\",\"x\":444,\"y\":-56,\"parent\":\"#6uzgua\"},{\"@id\":\"#fq7n8z\",\"name\":\"Effects\",\"x\":186,\"y\":108,\"bgColor\":\"#FFD6E8\",\"parent\":\"#this\"},{\"@id\":\"#839ngi\",\"name\":\"More frequent heatwaves and droughts\",\"x\":444,\"y\":56,\"parent\":\"#fq7n8z\"},{\"@id\":\"#ucz68e\",\"name\":\"Sea levels rising as ice melts\",\"x\":401,\"y\":163,\"link\":\"https://en.wikipedia.org/wiki/Sea_level_rise\",\"parent\":\"#fq7n8z\"},{\"@id\":\"#c6h756\",\"name\":\"Oceans absorbing CO₂ become acidic\",\"x\":318,\"y\":255,\"parent\":\"#fq7n8z\"},{\"@id\":\"#x8s4nr\",\"name\":\"Ecosystems and species under stress\",\"x\":204,\"y\":321,\"parent\":\"#fq7n8z\"},{\"@id\":\"#dzht7a\",\"name\":\"Responses\",\"x\":-71,\"y\":175,\"bgColor\":\"#FFF3C4\",\"parent\":\"#this\"},{\"@id\":\"#nybt6m\",\"name\":\"Paris Agreement aims well below 2°C\",\"x\":73,\"y\":372,\"link\":\"https://en.wikipedia.org/wiki/Paris_Agreement\",\"parent\":\"#dzht7a\"},{\"@id\":\"#fjh76a\",\"name\":\"Switching to renewable energy\",\"x\":-82,\"y\":420,\"parent\":\"#dzht7a\"},{\"@id\":\"#8zg5vu\",\"name\":\"Electrifying transport and heating\",\"x\":-204,\"y\":321,\"parent\":\"#dzht7a\"},{\"@id\":\"#43xfzy\",\"name\":\"Adapting to unavoidable changes\",\"x\":-318,\"y\":255,\"parent\":\"#dzht7a\"},{\"@id\":\"#bgyws7\",\"name\":\"The science\",\"x\":-219,\"y\":57,\"bgColor\":\"#E6E0FF\",\"parent\":\"#this\"},{\"@id\":\"#9xpnyj\",\"name\":\"IPCC assesses the research\",\"x\":-401,\"y\":163,\"link\":\"https://en.wikipedia.org/wiki/Intergovernmental_Panel_on_Climate_Change\",\"parent\":\"#bgyws7\"},{\"@id\":\"#agerku\",\"name\":\"Climate models project future warming\",\"x\":-504,\"y\":62,\"parent\":\"#bgyws7\"}],\"connections\":[{\"start\":0,\"end\":1},{\"start\":1,\"end\":2},{\"start\":1,\"end\":3},{\"start\":1,\"end\":4},{\"start\":0,\"end\":5},{\"start\":5,\"end\":6},{\"start\":5,\"end\":7},{\"start\":5,\"end\":8},{\"start\":5,\"end\":9},{\"start\":0,\"end\":10},{\"start\":10,\"end\":11},{\"start\":10,\"end\":12},{\"start\":10,\"end\":13},{\"start\":0,\"end\":14},{\"start\":14,\"end\":15},{\"start\":14,\"end\":16},{\"start\":14,\"end\":17},{\"start\":14,\"end\":18},{\"start\":0,\"end\":19},{\"start\":19,\"end\":20},{\"start\":19,\"end\":21},{\"start\":19,\"end\":22},{\"start\":19,\"end\":23},{\"start\":0,\"end\":24},{\"start\":24,\"end\":25},{\"start\":24,\"end\":26}],\"selectedNode\":0}",
+  "id": "380c9aef275ccadd8ef779fb6c5abde1604fbb8b0538cdb5e7c8f09ee7320f9b",
+  "sig": "21be539445d2e2d225b55ab8311669d75b39c11f73e8b98709265e4f8cbbfe5ad7970895a03cf42b08a41594ae337eeabebf2d1edc42dc9d468beec890b81dd5"
+}
