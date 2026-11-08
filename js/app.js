@@ -3,6 +3,7 @@ import { watch } from './live.js'
 import { BRANCH_COLORS, readableText } from './colors.js'
 import { newId, normalize, toDoc } from './doc.js'
 import { makeImages } from './images.js'
+import { blocked, chime, pop, setSound, soundOn, unlock } from './sound.js'
 import { badgeAt, colorsFor, drawMap, linkIconAt, makeMeasure, THEMES } from './render.js'
 import { fanLayout, radialLayout } from './layout.js'
 import { parseOutline, toMarkdown } from './outline.js'
@@ -1821,6 +1822,7 @@ const actions = {
   undo,
   redo,
   fit: () => fitAll(),
+  sound: toggleSound,
   zoomIn: () => zoomAt(width / 2, height / 2, 1.25),
   zoomOut: () => zoomAt(width / 2, height / 2, 0.8),
   find: openFind,
@@ -1846,6 +1848,11 @@ const actions = {
     updateUi()
   }
 }
+
+// browsers allow sound only after the viewer clicks or types on the page
+window.addEventListener('pointerdown', unlock, { capture: true })
+window.addEventListener('keydown', unlock, { capture: true })
+showSoundState()
 
 for (const btn of document.querySelectorAll('[data-action]')) {
   const inMenu = menu.contains(btn)
@@ -2023,6 +2030,32 @@ const stable = v =>
 const content = d => stable({ ...d, selectedNode: undefined, version: undefined })
 const sameAsLocal = data => content(data) === content(JSON.parse(JSON.stringify(serialize())))
 
+// A pop for a node from elsewhere, its note set by its main branch; a chime when the writer marks
+// the map complete by selecting the root. Said once if the browser is still blocking sound.
+let soundHinted = false
+function arrivalSound(complete) {
+  if (blocked()) {
+    if (!soundHinted) toast('Click the map to hear updates')
+    soundHinted = true
+    return
+  }
+  if (complete) return chime()
+  let i = state.selected
+  while (i !== null && info.parent[i] !== 0 && info.parent[i] !== null && info.parent[i] !== undefined) i = info.parent[i]
+  pop(Math.max(0, (info.kids[0] || []).indexOf(i)))
+}
+
+function toggleSound() {
+  setSound(!soundOn())
+  if (soundOn()) unlock()
+  showSoundState()
+  toast(soundOn() ? 'Sound on' : 'Sound off')
+}
+function showSoundState() {
+  const label = document.querySelector('#menu [data-action=sound] span')
+  if (label) label.textContent = soundOn() ? 'Sound: on' : 'Sound: off'
+}
+
 function applyRemote(data, etag) {
   const selId = state.nodes[state.selected]?.['@id']
   const known = new Set(state.nodes.map(n => n['@id']))
@@ -2041,6 +2074,7 @@ function applyRemote(data, etag) {
     // fit the whole map, as Make does, until the viewer pans or zooms; then just keep the new node in view
     if (userMoved) ensureVisible(state.selected)
     else fitView()
+    arrivalSound(selected === 0)
   } else {
     const keep = nodes.findIndex(n => n['@id'] === selId)
     state.selected = keep >= 0 ? keep : selected
@@ -2425,7 +2459,7 @@ async function save() {
     hideBanner()
     toast('Saved')
     announce('Saved')
-    new Audio('./audio/save.ogg').play().catch(() => {})
+    if (soundOn()) new Audio('./audio/save.ogg').play().catch(() => {})
   } catch (err) {
     toast('Save failed: ' + err.message, { ms: 6000 })
   } finally {
