@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
-import { decodeNaddr, fetchLatest, idMatches, loadMapEvent, sha256, signatureValid } from '../../js/nostr-map.js'
+import { decodeNaddr, encodeNaddr, fetchLatest, idMatches, loadMapEvent, mapEventTemplate, publishEvent, sha256, signatureValid } from '../../js/nostr-map.js'
 
 // a real kind 30627 event (the climate-change map, signed with a throwaway test key) and its naddr
 const EVENT = JSON.parse(readFileSync(new URL('../fixtures/nostr-map-event.json', import.meta.url), 'utf8'))
@@ -72,4 +72,48 @@ test('the built-in sha256 matches the standard one, for pages without crypto.sub
     const bytes = new TextEncoder().encode(text)
     assert.equal(Buffer.from(sha256(bytes)).toString('hex'), createHash('sha256').update(bytes).digest('hex'), `length ${bytes.length}`)
   }
+})
+
+test('encodeNaddr round-trips with decodeNaddr, and matches a link made elsewhere', () => {
+  const addr = { kind: 30627, pubkey: EVENT.pubkey, d: 'climate-change', relays: ['ws://192.168.0.177:7777'] }
+  assert.equal(encodeNaddr(addr), NADDR)
+  const two = { ...addr, relays: ['wss://a.example', 'wss://b.example'] }
+  assert.deepEqual(decodeNaddr(encodeNaddr(two)), two)
+})
+
+test("mapEventTemplate: kind, tags, content; a fork of someone else's map points back", () => {
+  const doc = JSON.parse(EVENT.content)
+  const mine = mapEventTemplate(doc, { d: 'climate-change', pubkey: 'a'.repeat(64), url: 'https://pod.example/map.jsonld' })
+  assert.equal(mine.kind, 30627)
+  assert.deepEqual(JSON.parse(mine.content).nodes.length, 27)
+  const tags = Object.fromEntries(mine.tags.map(t => [t[0], t[1]]))
+  assert.equal(tags.d, 'climate-change')
+  assert.equal(tags.title, 'Climate change')
+  assert.match(tags.alt, /^Mind map: Climate change \(27 ideas\)/)
+  assert.equal(tags.t, 'mindmap')
+  assert.equal(tags.r, 'https://pod.example/map.jsonld')
+  assert.equal(mine.tags.some(t => t[0] === 'a'), false, 'not a fork')
+  const fork = mapEventTemplate(doc, { d: 'climate-change', pubkey: 'b'.repeat(64), from: EVENT })
+  assert.deepEqual(fork.tags.find(t => t[0] === 'a'), ['a', `30627:${EVENT.pubkey}:climate-change`, '', 'fork'])
+})
+
+test('publishEvent reports each relay: accepted, refused, or silent', async () => {
+  const relayAnswering = answers => class {
+    constructor (url) { this.url = url; setTimeout(() => this.onopen?.(), 0) }
+    send (raw) {
+      const [, e] = JSON.parse(raw)
+      const a = answers[this.url]
+      if (a) setTimeout(() => this.onmessage?.({ data: JSON.stringify(['OK', e.id, a[0], a[1]]) }), 0)
+    }
+    close () {}
+  }
+  const results = await publishEvent(['wss://yes', 'wss://no', 'wss://quiet'], EVENT, {
+    timeout: 50,
+    WebSocketImpl: relayAnswering({ 'wss://yes': [true, ''], 'wss://no': [false, 'blocked: kind'] })
+  })
+  assert.deepEqual(results, [
+    { relay: 'wss://yes', ok: true, message: '' },
+    { relay: 'wss://no', ok: false, message: 'blocked: kind' },
+    { relay: 'wss://quiet', ok: false, message: 'no answer' }
+  ])
 })

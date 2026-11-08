@@ -5,8 +5,8 @@ import { newId, normalize, toDoc } from './doc.js'
 import { makeImages } from './images.js'
 import { blocked, chime, pop, setSound, soundOn, unlock } from './sound.js'
 import { grownTo, growthOrder, parseSpeed } from './replay.js'
-import { cacheName, cachesFrom, directoryUrl, findCached, openUrl } from './cache.js'
-import { loadMapEvent } from './nostr-map.js'
+import { cacheName, cachesFrom, directoryUrl, findCached, openUrl, slug as topicSlug } from './cache.js'
+import { encodeNaddr, loadMapEvent, mapEventTemplate, MAP_KIND, MAX_EVENT_BYTES, PUBLISH_RELAYS, publishEvent } from './nostr-map.js'
 import { badgeAt, colorsFor, drawMap, linkIconAt, makeMeasure, THEMES } from './render.js'
 import { fanLayout, radialLayout } from './layout.js'
 import { parseOutline, toMarkdown } from './outline.js'
@@ -108,6 +108,7 @@ let mapUrl = null
 let badUri = false
 // ?nostr=naddr1…: a map published as a Nostr event (kind 30627); it opens read-only
 const nostrParam = params.get('nostr')
+let nostrSource = null // the event this map was opened from, if any
 try {
   if (mapParam) mapUrl = new URL(mapParam, location.href).href
 } catch {
@@ -238,6 +239,42 @@ async function copyText(text) {
 }
 
 // When nothing can copy: the link in a box, selected, ready to copy by hand.
+// ---------- publish to Nostr (kind 30627, docs/nip-mindmap.md) ----------
+// Signed with the visitor's Nostr signer (xlogin's window.nostr: an extension or their key), sent to
+// PUBLISH_RELAYS after they confirm, then the mindstr.org link to it is copied. Republishing a map
+// you published keeps its address; publishing someone else's makes a fork that points back.
+function publishNostr() {
+  if (!window.nostr?.signEvent) return toast('Sign in with Nostr first, to sign what you publish.', { ms: 5000 })
+  const doc = serialize()
+  const kb = Math.ceil(JSON.stringify(doc).length / 1024)
+  if (JSON.stringify(doc).length > MAX_EVENT_BYTES - 4096) return toast(`This map is ${kb} KB, too big for one Nostr event (about 60 KB). Split it into smaller maps.`, { ms: 7000 })
+  const title = state.nodes[0].name
+  const where = PUBLISH_RELAYS.map(r => r.replace('wss://', '')).join(', ')
+  showBanner(`Publish “${title}” (${state.nodes.length} ideas, ${kb} KB) to Nostr, signed by you, on ${where}? Anyone can read it.`, [
+    ['Publish', () => (hideBanner(), doPublishNostr(doc))],
+    ['Cancel', hideBanner]
+  ])
+}
+async function doPublishNostr(doc) {
+  try {
+    toast('Publishing to Nostr…', { ms: 15000 })
+    const pubkey = await window.nostr.getPublicKey()
+    const mine = nostrSource && nostrSource.event.pubkey === pubkey
+    const d = mine ? nostrSource.event.tags.find(t => t[0] === 'd')[1] : topicSlug(doc.nodes[0]?.name) || 'mind-map'
+    const template = mapEventTemplate(doc, { d, pubkey, from: nostrSource?.event, url: mapUrl })
+    const event = await window.nostr.signEvent({ ...template, pubkey })
+    const results = await publishEvent(PUBLISH_RELAYS, event)
+    const accepted = results.filter(r => r.ok).map(r => r.relay)
+    if (!accepted.length) return toast(`No relay accepted it: ${results.map(r => r.message).filter(Boolean)[0] || 'no answer'}.`, { ms: 8000 })
+    const link = new URL('./', location.href).href + '?nostr=' + encodeNaddr({ kind: MAP_KIND, pubkey, d, relays: accepted.slice(0, 2) })
+    const copied = await copyText(link)
+    toast(`Published to ${accepted.length} of ${results.length} relays${copied ? ' · link copied' : ''}`, { ms: 6000 })
+    if (!copied) showLink(link)
+  } catch (err) {
+    toast('Not published: ' + (err?.message || 'the signer said no'), { ms: 6000 })
+  }
+}
+
 function showLink(url) {
   const box = document.createElement('input')
   box.readOnly = true
@@ -1908,6 +1945,7 @@ const actions = {
   sound: toggleSound,
   share: () => share(false),
   shareReplay: () => share(true),
+  publishNostr,
   replayPlay: () => (replay.timer ? pauseReplay() : playReplay()),
   replayRestart: () => (replayTo(1), playReplay()),
   replayEnd: () => replayTo(replay.order.length),
@@ -2780,7 +2818,7 @@ async function load() {
     state.canSave = false
     statusEl.textContent = 'Loading from Nostr…'
     try {
-      fromNostr = await loadMapEvent(nostrParam)
+      fromNostr = nostrSource = await loadMapEvent(nostrParam)
       data = fromNostr.data
       isNew = false
     } catch (err) {

@@ -69,3 +69,51 @@ test('without crypto.subtle (a pod on plain http), the map still opens', async (
   assert.deepEqual(page.errors, [])
   await page.context().close()
 })
+
+// Publishing (#56): a fake signer and four mocked relays; nothing leaves the test
+test('Publish to Nostr asks first, signs, sends to the relays, and copies a working link', async () => {
+  const page = await openPage(browser, server.url, { permissions: ['clipboard-read', 'clipboard-write'] })
+  const PUB = 'c'.repeat(64)
+  await page.addInitScript(pub => {
+    window.nostr = {
+      getPublicKey: async () => pub,
+      signEvent: async e => ({ ...e, pubkey: pub, id: 'f'.repeat(64), sig: 'e'.repeat(128) })
+    }
+  }, PUB)
+  const sent = []
+  for (const relay of ['wss://relay.ditto.pub/', 'wss://nos.lol/', 'wss://relay.primal.net/', 'wss://relay.damus.io/']) {
+    await page.routeWebSocket(relay, ws => ws.onMessage(raw => {
+      const [type, e] = JSON.parse(raw)
+      if (type !== 'EVENT') return
+      sent.push({ relay, e })
+      ws.send(JSON.stringify(['OK', e.id, true, '']))
+    }))
+  }
+  await load(page, `${server.url}?example=welcome`)
+  await page.click('#menuBtn')
+  await page.click('[data-action="publishNostr"]')
+  assert.match(await page.locator('#banner').textContent(), /Publish “Welcome to Mindstr” .* Anyone can read it/)
+  assert.equal(sent.length, 0, 'nothing sent before confirming')
+  await page.click('#banner >> text=Publish')
+  await page.waitForFunction(() => /Published to 4 of 4 relays/.test(document.querySelector('#toast').textContent), null, { timeout: 10000 })
+  assert.equal(sent.length, 4)
+  const e = sent[0].e
+  assert.equal(e.kind, 30627)
+  assert.deepEqual(e.tags.find(t => t[0] === 'd'), ['d', 'welcome-to-mindstr'])
+  assert.equal(JSON.parse(e.content).nodes[0].name, 'Welcome to Mindstr')
+  const link = await page.evaluate(() => navigator.clipboard.readText())
+  const { decodeNaddr } = await import('../../js/nostr-map.js')
+  const addr = decodeNaddr(new URL(link).searchParams.get('nostr'))
+  assert.deepEqual([addr.kind, addr.pubkey, addr.d], [30627, PUB, 'welcome-to-mindstr'])
+  assert.deepEqual(page.errors, [])
+  await page.context().close()
+})
+
+test('Publish to Nostr without a signer says to sign in, and sends nothing', async () => {
+  const page = await openPage(browser, server.url)
+  await load(page, `${server.url}?example=welcome`)
+  await page.click('#menuBtn')
+  await page.click('[data-action="publishNostr"]')
+  assert.match(await page.locator('#toast').textContent(), /Sign in with Nostr first/)
+  await page.context().close()
+})
