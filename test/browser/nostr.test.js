@@ -58,3 +58,13 @@ test('a tampered event is refused with a clear message', async () => {
   assert.match(await page.textContent('body'), /altered/)
   await page.context().close()
 })
+
+test('without crypto.subtle (a pod on plain http), the map still opens', async () => {
+  const page = await openPage(browser, server.url)
+  await page.addInitScript(() => Object.defineProperty(globalThis.crypto, 'subtle', { value: undefined }))
+  await mockRelay(page, [EVENT])
+  await load(page, `${server.url}?nostr=${NADDR}`)
+  assert.equal(await page.locator('#tree li').count(), 27)
+  assert.deepEqual(page.errors, [])
+  await page.context().close()
+})

@@ -2,7 +2,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { decodeNaddr, fetchLatest, idMatches, loadMapEvent, signatureValid } from '../../js/nostr-map.js'
+import { createHash } from 'node:crypto'
+import { decodeNaddr, fetchLatest, idMatches, loadMapEvent, sha256, signatureValid } from '../../js/nostr-map.js'
 
 // a real kind 30627 event (the climate-change map, signed with a throwaway test key) and its naddr
 const EVENT = JSON.parse(readFileSync(new URL('../fixtures/nostr-map-event.json', import.meta.url), 'utf8'))
@@ -64,4 +65,11 @@ test('loadMapEvent returns the map, and refuses a tampered or missing one', asyn
   await assert.rejects(loadMapEvent(NADDR, { ...opts, WebSocketImpl: relayWith([tampered]) }), /altered/)
   await assert.rejects(loadMapEvent(NADDR, { ...opts, WebSocketImpl: relayWith([]) }), /no relay had this map/)
   await assert.rejects(loadMapEvent(NADDR, { ...opts, loadVerifier: async () => ({ schnorr: { verify: () => false } }) }), /bad signature/)
+})
+
+test('the built-in sha256 matches the standard one, for pages without crypto.subtle', () => {
+  for (const text of ['', 'abc', 'a'.repeat(55), 'a'.repeat(56), 'a'.repeat(64), EVENT.content]) {
+    const bytes = new TextEncoder().encode(text)
+    assert.equal(Buffer.from(sha256(bytes)).toString('hex'), createHash('sha256').update(bytes).digest('hex'), `length ${bytes.length}`)
+  }
 })
