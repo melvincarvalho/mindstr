@@ -225,6 +225,27 @@
         font-size: 18px; font-weight: 700; box-shadow: var(--shadow);
       }
       #watch[hidden] { display: none; }
+      #front {
+        position: absolute; inset: 0; z-index: 6;
+        display: flex; align-items: center; justify-content: center; padding: 16px;
+        background: color-mix(in srgb, var(--bg) 97%, transparent);
+      }
+      #front[hidden] { display: none; }
+      #frontForm { width: min(620px, 100%); text-align: center; }
+      #front h1 { font-size: 30px; font-weight: 750; margin: 0 0 22px; color: var(--text); }
+      .front-row { position: relative; } /* Create sits inside the box, so the box itself is centred */
+      #frontQ {
+        width: 100%; height: 56px; padding: 0 128px 0 22px; font: inherit; font-size: 17px;
+        color: var(--text); background: var(--raised); border: 1px solid var(--border); border-radius: 28px;
+        box-shadow: var(--shadow); outline: none;
+      }
+      #frontQ:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+      .front-row .primary { position: absolute; right: 6px; top: 6px; height: 44px; padding: 0 24px; border-radius: 22px; font-size: 16px; font-weight: 700; }
+      .front-paths { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+      .front-paths button { height: 40px; padding: 0 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--raised); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+      .front-paths button:hover { border-color: var(--accent); }
+      .front-paths button[hidden] { display: none; }
+      .front-fine { margin-top: 16px; font-size: 13px; color: var(--muted); }
       #watch .icon { width: 22px; height: 22px; fill: currentColor; }
       .share-link { width: min(56ch, 60vw); font: inherit; padding: 4px 8px; margin-left: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg, transparent); color: inherit; }
       #replayCount { min-width: 4.5em; text-align: center; color: var(--muted); }
@@ -497,6 +518,21 @@
         <button data-action="zoomIn" title="Zoom in (+)" aria-label="Zoom in"><svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg></button>
         <button data-action="zoomOut" title="Zoom out (−)" aria-label="Zoom out"><svg class="icon" aria-hidden="true"><use href="#i-minus" /></svg></button>
         <button data-action="fit" title="Fit to screen (F)" aria-label="Fit to screen"><svg class="icon" aria-hidden="true"><use href="#i-fit" /></svg></button>
+      </div>
+      <div id="front" hidden>
+        <form id="frontForm" role="search">
+          <h1>What do you want to map?</h1>
+          <div class="front-row">
+            <input id="frontQ" type="search" placeholder="A topic, a question or a link" aria-label="What do you want to map?" autocomplete="off" />
+            <button class="primary" type="submit">Create</button>
+          </div>
+          <div class="front-paths">
+            <button type="button" id="frontContinue" hidden></button>
+            <button type="button" data-action="mine">My map</button>
+            <button type="button" id="frontBlank">Start blank</button>
+          </div>
+          <p class="front-fine">Create uses your own Claude key, which stays in this browser.</p>
+        </form>
       </div>
       <button id="watch" class="primary" data-action="watch" hidden><svg class="icon" aria-hidden="true"><use href="#i-play" /></svg>Watch it grow</button>
       <div id="replay" role="group" aria-label="Replay" hidden>

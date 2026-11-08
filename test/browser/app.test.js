@@ -43,7 +43,7 @@ describe('loading', () => {
 describe('editing', () => {
   test('add a child, rename it, undo and redo', async () => {
     const page = await openPage(browser, server.url)
-    await load(page, server.url)
+    await load(page, `${server.url}?draft=edit-test`) // a draft link skips the front door
     const start = (await downloadMap(page)).nodes.length
 
     await page.locator('#tree').focus()
