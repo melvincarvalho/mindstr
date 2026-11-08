@@ -36,7 +36,7 @@ test('Share link and Share replay copy links that open this map', async () => {
 
   await shareFromMenu(page, 'shareReplay')
   const replay = await page.evaluate(() => navigator.clipboard.readText())
-  assert.ok(replay.endsWith('&replay=1s&autoplay'), replay)
+  assert.ok(replay.endsWith('&replay=1s'), replay)
   assert.match(await page.locator('#toast').textContent(), /Replay link copied/)
   assert.deepEqual(page.errors, [])
   await page.context().close()
@@ -70,7 +70,7 @@ test('without the clipboard API, Share still copies the link', async () => {
   await shareFromMenu(page, 'shareReplay')
   const copied = await page.evaluate(() => window.copied)
   assert.equal(copied.length, 1)
-  assert.ok(copied[0].includes('?uri=examples/welcome.json&replay=1s&autoplay'), copied[0])
+  assert.ok(copied[0].includes('?uri=examples/welcome.json&replay=1s'), copied[0])
   assert.match(await page.locator('#toast').textContent(), /Replay link copied/)
   assert.deepEqual(page.errors, [])
   await page.context().close()

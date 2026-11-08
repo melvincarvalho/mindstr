@@ -25,8 +25,10 @@ test('?replay opens paused on the root, plays to the whole map, and can restart'
   assert.equal(first, `1 / ${total}`)
   assert.ok(total > 3)
   assert.equal(await page.locator('#tree li').count(), 1, 'only the root at first')
+  assert.equal(await page.locator('#watch').isVisible(), true, 'the big button shows')
 
-  await page.click('[data-action="replayPlay"]')
+  await page.click('#watch')
+  assert.equal(await page.locator('#watch').isHidden(), true, 'and goes once it plays')
   await page.waitForFunction(t => document.querySelector('#replayCount').textContent === `${t} / ${t}`, total, { timeout: total * 400 + 5000 })
   assert.equal(await page.locator('#tree li').count(), total, 'the whole map at the end')
   assert.equal(await page.getAttribute('[data-action="replayPlay"]', 'title'), 'Play again')
@@ -48,6 +50,7 @@ test('&autoplay starts the replay without a click', async () => {
     return Number(c.split('/')[0]) >= 3
   }, null, { timeout: 10000 })
   assert.equal(await page.getAttribute('[data-action="replayPlay"]', 'title'), 'Pause')
+  assert.equal(await page.locator('#watch').isHidden(), true, 'no big button with autoplay')
   assert.deepEqual(page.errors, [])
   await page.context().close()
 })

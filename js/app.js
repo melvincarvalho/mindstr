@@ -199,7 +199,7 @@ function uriParam(href) {
 // Readable: ?uri=http://… as people write it, escaping only what would break the query.
 function shareUrl(replayIt) {
   const uri = uriParam(mapUrl).replace(/[&#\s]/g, c => encodeURIComponent(c))
-  return new URL('./', location.href).href + '?uri=' + uri + (replayIt ? '&replay=1s&autoplay' : '')
+  return new URL('./', location.href).href + '?uri=' + uri + (replayIt ? '&replay=1s' : '')
 }
 
 // The clipboard API only exists on https and localhost. A pod on the LAN over plain http isn't
@@ -1894,6 +1894,7 @@ const actions = {
   replayPlay: () => (replay.timer ? pauseReplay() : playReplay()),
   replayRestart: () => (replayTo(1), playReplay()),
   replayEnd: () => replayTo(replay.order.length),
+  watch: () => playReplay(),
   zoomIn: () => zoomAt(width / 2, height / 2, 1.25),
   zoomOut: () => zoomAt(width / 2, height / 2, 0.8),
   find: openFind,
@@ -2117,7 +2118,9 @@ function startReplay() {
   $('#replay').hidden = false
   replayTo(1)
   fitView(false)
+  // one big button: its click starts the replay and is the gesture that allows sound
   if (autoplay) playReplay()
+  else $('#watch').hidden = false
 }
 
 function replayTo(n) {
@@ -2132,6 +2135,7 @@ function replayTo(n) {
 }
 
 function playReplay() {
+  $('#watch').hidden = true
   if (!replayActive()) replayTo(1)
   clearInterval(replay.timer)
   replay.timer = setInterval(() => replayTo(replay.n + 1), replay.ms)

@@ -218,6 +218,14 @@
         font-size: 13px; font-variant-numeric: tabular-nums;
       }
       #replay[hidden] { display: none; }
+      #watch {
+        position: absolute; left: 50%; top: calc(50% + 96px); transform: translateX(-50%); z-index: 5; /* below the root, which sits in the middle */
+        display: flex; align-items: center; gap: 10px;
+        height: 56px; padding: 0 28px; border-radius: 28px;
+        font-size: 18px; font-weight: 700; box-shadow: var(--shadow);
+      }
+      #watch[hidden] { display: none; }
+      #watch .icon { width: 22px; height: 22px; fill: currentColor; }
       .share-link { width: min(56ch, 60vw); font: inherit; padding: 4px 8px; margin-left: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg, transparent); color: inherit; }
       #replayCount { min-width: 4.5em; text-align: center; color: var(--muted); }
       #replay select { font: inherit; color: inherit; background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 4px 6px; }
@@ -490,6 +498,7 @@
         <button data-action="zoomOut" title="Zoom out (−)" aria-label="Zoom out"><svg class="icon" aria-hidden="true"><use href="#i-minus" /></svg></button>
         <button data-action="fit" title="Fit to screen (F)" aria-label="Fit to screen"><svg class="icon" aria-hidden="true"><use href="#i-fit" /></svg></button>
       </div>
+      <button id="watch" class="primary" data-action="watch" hidden><svg class="icon" aria-hidden="true"><use href="#i-play" /></svg>Watch it grow</button>
       <div id="replay" role="group" aria-label="Replay" hidden>
         <button data-action="replayRestart" title="Start again" aria-label="Start again"><svg class="icon" aria-hidden="true"><use href="#i-restart" /></svg></button>
         <button data-action="replayPlay" title="Play" aria-label="Play"><svg class="icon" aria-hidden="true"><use href="#i-play" /></svg></button>
