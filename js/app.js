@@ -558,6 +558,12 @@ function fitView(animate = true, initial = false) {
   setView(view, animate)
 }
 
+// Fit on request, and keep fitting as nodes arrive from elsewhere
+function fitAll() {
+  userMoved = false
+  fitView()
+}
+
 function ensureVisible(i, animate = true) {
   const n = state.nodes[i]
   if (!n) return
@@ -1740,7 +1746,7 @@ document.addEventListener('keydown', e => {
         return toggleCollapse(), true
       case 'f':
       case '0':
-        return fitView(), true
+        return fitAll(), true
       case '+':
       case '=':
         return zoomAt(width / 2, height / 2, 1.25), true
@@ -1814,7 +1820,7 @@ const actions = {
   delete: deleteSelected,
   undo,
   redo,
-  fit: () => fitView(),
+  fit: () => fitAll(),
   zoomIn: () => zoomAt(width / 2, height / 2, 1.25),
   zoomOut: () => zoomAt(width / 2, height / 2, 0.8),
   find: openFind,
@@ -2032,7 +2038,9 @@ function applyRemote(data, etag) {
   if (added.length) {
     state.selected = added[added.length - 1]
     flash(added.map(i => nodes[i]['@id']))
-    ensureVisible(state.selected)
+    // fit the whole map, as Make does, until the viewer pans or zooms; then just keep the new node in view
+    if (userMoved) ensureVisible(state.selected)
+    else fitView()
   } else {
     const keep = nodes.findIndex(n => n['@id'] === selId)
     state.selected = keep >= 0 ? keep : selected
