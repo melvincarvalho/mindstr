@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mindstr vocabulary</title>
+  <meta name="description" content="The terms of the mindstr map format: https://mindstr.org/ns#" />
+  <link rel="icon" href="/favicon.ico" />
+  <script type="application/ld+json">
+  {
+    "@context": { "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#", "rdfs": "http://www.w3.org/2000/01/rdf-schema#", "xsd": "http://www.w3.org/2001/XMLSchema#", "ms": "https://mindstr.org/ns#" },
+    "@id": "https://mindstr.org/ns#",
+    "rdfs:label": "Mindstr vocabulary",
+    "rdfs:comment": "Terms of the mindstr mind map format (SPEC.md), used as @vocab in map documents and in Nostr kind 30627 events.",
+    "@graph": [
+      { "@id": "ms:version", "@type": "rdf:Property", "rdfs:label": "version", "rdfs:comment": "Format version of the map document, e.g. \"0.2\"." },
+      { "@id": "ms:nodes", "@type": "rdf:Property", "rdfs:label": "nodes", "rdfs:comment": "The map's nodes, in the order they were added. The first is the root." },
+      { "@id": "ms:connections", "@type": "rdf:Property", "rdfs:label": "connections", "rdfs:comment": "Parent-to-child edges by array index, each with start and end." },
+      { "@id": "ms:start", "@type": "rdf:Property", "rdfs:label": "start", "rdfs:comment": "Index of the parent node in an edge." },
+      { "@id": "ms:end", "@type": "rdf:Property", "rdfs:label": "end", "rdfs:comment": "Index of the child node in an edge." },
+      { "@id": "ms:selectedNode", "@type": "rdf:Property", "rdfs:label": "selectedNode", "rdfs:comment": "Index of the selected node; view state." },
+      { "@id": "ms:name", "@type": "rdf:Property", "rdfs:label": "name", "rdfs:comment": "A node's text, one line." },
+      { "@id": "ms:parent", "@type": "rdf:Property", "rdfs:label": "parent", "rdfs:comment": "The node's parent, by @id. Absent on the root." },
+      { "@id": "ms:link", "@type": "rdf:Property", "rdfs:label": "link", "rdfs:comment": "An http(s) URL for the node, or a relative reference to another map or document." },
+      { "@id": "ms:image", "@type": "rdf:Property", "rdfs:label": "image", "rdfs:comment": "An http(s) image URL shown with the node." },
+      { "@id": "ms:x", "@type": "rdf:Property", "rdfs:label": "x", "rdfs:comment": "Horizontal centre of the node in map units." },
+      { "@id": "ms:y", "@type": "rdf:Property", "rdfs:label": "y", "rdfs:comment": "Vertical centre of the node in map units; grows downward." },
+      { "@id": "ms:bgColor", "@type": "rdf:Property", "rdfs:label": "bgColor", "rdfs:comment": "A CSS colour for the node's background." },
+      { "@id": "ms:size", "@type": "rdf:Property", "rdfs:label": "size", "rdfs:comment": "Scale of the node's text and box; 1 is normal." },
+      { "@id": "ms:collapsed", "@type": "rdf:Property", "rdfs:label": "collapsed", "rdfs:comment": "True when the node's branch is folded." }
+    ]
+  }
+  </script>
+  <style>
+    :root { --bg: #f6f7fb; --raised: #fff; --text: #1b1f27; --muted: #5f6675; --border: #e4e3ee; --accent: #6d4aff; color-scheme: light; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) { --bg: #11131b; --raised: #1a1d27; --text: #e8eaee; --muted: #9aa1b0; --border: #2c313b; --accent: #a28bff; color-scheme: dark; }
+    }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 system-ui, sans-serif; }
+    main { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
+    a { color: var(--accent); }
+    h1 { font-size: 28px; margin: 0 0 6px; }
+    .lede { color: var(--muted); margin: 0 0 28px; }
+    code { font-size: 0.92em; }
+    dl { margin: 0; }
+    dt { margin-top: 18px; font-weight: 700; scroll-margin-top: 16px; }
+    dt:target { color: var(--accent); }
+    dd { margin: 4px 0 0; color: var(--text); }
+    dd small { color: var(--muted); }
+    section { background: var(--raised); border: 1px solid var(--border); border-radius: 14px; padding: 6px 20px 20px; margin-top: 18px; }
+    h2 { font-size: 18px; margin: 16px 0 0; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Mindstr vocabulary</h1>
+    <p class="lede">
+      <code>https://mindstr.org/ns#</code>: the terms of the mindstr mind map format, used as <code>@vocab</code> in
+      map documents (<a href="https://github.com/melvincarvalho/mindstr/blob/gh-pages/SPEC.md">SPEC.md</a>) and in
+      Nostr <a href="https://github.com/melvincarvalho/mindstr/blob/gh-pages/docs/nip-mindmap.md">kind 30627</a> events.
+    </p>
+
+    <section>
+      <h2>The map</h2>
+      <dl>
+        <dt id="version"><code>version</code></dt>
+        <dd>Format version of the document, e.g. <code>"0.2"</code>. A missing version means <code>"0.1"</code>.</dd>
+        <dt id="nodes"><code>nodes</code></dt>
+        <dd>The map's nodes, in the order they were added. The first is the root, whose <code>@id</code> is <code>#this</code>.</dd>
+        <dt id="connections"><code>connections</code></dt>
+        <dd>Parent-to-child edges by array index, each <code>{ "start": i, "end": j }</code>. They agree with <a href="#parent"><code>parent</code></a>.</dd>
+        <dt id="start"><code>start</code></dt>
+        <dd>In an edge, the index of the parent node.</dd>
+        <dt id="end"><code>end</code></dt>
+        <dd>In an edge, the index of the child node.</dd>
+        <dt id="selectedNode"><code>selectedNode</code></dt>
+        <dd>Index of the selected node. View state; writers may set it to the newest node, or the root when the map is complete.</dd>
+      </dl>
+    </section>
+
+    <section>
+      <h2>A node</h2>
+      <dl>
+        <dt id="name"><code>name</code></dt>
+        <dd>The node's text, one line.</dd>
+        <dt id="parent"><code>parent</code></dt>
+        <dd>The node's parent, by <code>@id</code> (typed <code>@id</code>). Absent on the root. <small>Since 0.2.</small></dd>
+        <dt id="link"><code>link</code></dt>
+        <dd>An <code>http(s)</code> URL, or a reference relative to the map's own URL (a <code>.json</code>/<code>.jsonld</code> target is another map). Typed <code>@id</code>. Other schemes are not followed. In Nostr events, absolute only.</dd>
+        <dt id="image"><code>image</code></dt>
+        <dd>An <code>http(s)</code> image URL shown with the node's text. Typed <code>@id</code>.</dd>
+        <dt id="x"><code>x</code></dt>
+        <dd>Horizontal centre of the node in map units (about CSS pixels at 100%). Optional layout.</dd>
+        <dt id="y"><code>y</code></dt>
+        <dd>Vertical centre of the node in map units; grows downward. Optional layout.</dd>
+        <dt id="bgColor"><code>bgColor</code></dt>
+        <dd>A CSS colour for the node's background, ideally a soft pastel. A presentation hint.</dd>
+        <dt id="size"><code>size</code></dt>
+        <dd>A number scaling the node's text and box; <code>1</code> is normal. Renderers clamp it and may ignore it.</dd>
+        <dt id="collapsed"><code>collapsed</code></dt>
+        <dd><code>true</code> when the node's branch is folded.</dd>
+      </dl>
+    </section>
+  </main>
+</body>
+</html>
