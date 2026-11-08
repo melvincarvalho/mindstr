@@ -196,10 +196,48 @@ function uriParam(href) {
 
 // The link to share: this map in the app, or a replay of it that starts growing as it opens. On a
 // phone, the system share sheet; elsewhere, the clipboard.
+// Readable: ?uri=http://… as people write it, escaping only what would break the query.
 function shareUrl(replayIt) {
-  let url = appUrlFor(mapUrl)
-  if (replayIt) url += '&replay=1s&autoplay'
-  return url
+  const uri = uriParam(mapUrl).replace(/[&#\s]/g, c => encodeURIComponent(c))
+  return new URL('./', location.href).href + '?uri=' + uri + (replayIt ? '&replay=1s&autoplay' : '')
+}
+
+// The clipboard API only exists on https and localhost. A pod on the LAN over plain http isn't
+// either, so copy the old way from a hidden text box, which a click still allows.
+async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {}
+  }
+  const area = document.createElement('textarea')
+  area.value = text
+  area.readOnly = true
+  area.style.cssText = 'position:fixed;top:0;left:0;opacity:0'
+  document.body.append(area)
+  area.select()
+  let ok = false
+  try {
+    ok = document.execCommand('copy')
+  } catch {}
+  area.remove()
+  focusMap()
+  return ok
+}
+
+// When nothing can copy: the link in a box, selected, ready to copy by hand.
+function showLink(url) {
+  const box = document.createElement('input')
+  box.readOnly = true
+  box.value = url
+  box.className = 'share-link'
+  box.setAttribute('aria-label', 'Link to share')
+  const wrap = document.createElement('span')
+  wrap.append('Copy this link: ', box)
+  showBanner(wrap, [['Close', hideBanner]])
+  box.focus()
+  box.select()
 }
 async function share(replayIt = false) {
   if (!mapUrl) return toast('Save this map to a pod first, so it has a link to share.', { ms: 5000 })
@@ -213,12 +251,8 @@ async function share(replayIt = false) {
       if (err.name === 'AbortError') return
     }
   }
-  try {
-    await navigator.clipboard.writeText(url)
-    toast((replayIt ? 'Replay link copied' : 'Link copied') + note, { ms: note ? 6000 : 3200 })
-  } catch {
-    toast('Copy this link: ' + url, { ms: 12000 })
-  }
+  if (await copyText(url)) toast((replayIt ? 'Replay link copied' : 'Link copied') + note, { ms: note ? 6000 : 3200 })
+  else showLink(url)
 }
 
 function appUrlFor(href) {
