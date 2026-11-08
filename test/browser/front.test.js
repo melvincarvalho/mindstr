@@ -81,3 +81,15 @@ test('the example pills open a replay with the Watch it grow button', async () =
   assert.deepEqual(page.errors, [])
   await page.context().close()
 })
+
+test('?cache= alone still shows the front door, and Create passes it on', async () => {
+  const page = await openPage(browser, server.url)
+  await load(page, `${server.url}?cache=off`)
+  assert.equal(await page.locator('#front').isVisible(), true)
+  await page.fill('#frontQ', 'coffee')
+  await Promise.all([page.waitForURL(/make\//), page.press('#frontQ', 'Enter')])
+  const u = new URL(page.url())
+  assert.equal(u.searchParams.get('q'), 'coffee')
+  assert.equal(u.searchParams.get('cache'), 'off')
+  await page.context().close()
+})

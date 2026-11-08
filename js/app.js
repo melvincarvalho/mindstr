@@ -98,7 +98,8 @@ const replayParam = params.get('replay') // ?replay=2s: regrow the map from its 
 const autoplay = params.has('autoplay') // with &autoplay it starts at once, silent until the viewer clicks
 // The front door (#49): a bare visit to the site, with no map in the link, starts with a search box
 // instead of the editor. Any link that names a map, a draft or an example skips it, as does a pod.
-const frontDoor = !location.search && !hostPod
+// (?cache= alone still counts as a bare visit: it only says where to look for ready-made maps)
+const frontDoor = !hostPod && [...params.keys()].every(k => k === 'cache')
 // Ready-made maps (#45): ?cache= picks where to look before building with Claude (js/cache.js)
 const cacheParam = params.get('cache')
 const caches = cachesFrom(cacheParam)
