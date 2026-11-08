@@ -95,6 +95,9 @@ const mapParam =
 const titleParam = params.get('title')
 const replayParam = params.get('replay') // ?replay=2s: regrow the map from its root
 const autoplay = params.has('autoplay') // with &autoplay it starts at once, silent until the viewer clicks
+// The front door (#49): a bare visit to the site, with no map in the link, starts with a search box
+// instead of the editor. Any link that names a map, a draft or an example skips it, as does a pod.
+const frontDoor = !location.search && !hostPod
 let mapUrl = null
 let badUri = false
 try {
@@ -2569,6 +2572,39 @@ async function openMaps() {
   }
 }
 
+// ---------- the front door (#49) ----------
+// Create builds a map from a topic or link (in make/ for now); My map opens yours on your pod;
+// Continue returns to your last draft (already loaded underneath); Start blank is a new empty map.
+function showFrontDoor(hasDraft) {
+  const front = $('#front')
+  const resume = $('#frontContinue')
+  if (hasDraft) {
+    resume.textContent = `Continue “${state.nodes[0].name}”`
+    resume.hidden = false
+  }
+  front.hidden = false
+  $('#frontQ').focus()
+}
+function leaveFrontDoor() {
+  $('#front').hidden = true
+  history.replaceState(null, '', draftUrl(draftId))
+  focusMap()
+}
+$('#frontForm').addEventListener('submit', e => {
+  e.preventDefault()
+  const q = $('#frontQ').value.trim()
+  if (!q) return $('#frontQ').focus()
+  location.href = new URL('make/?q=' + encodeURIComponent(q), location.href).href
+})
+$('#frontContinue').addEventListener('click', leaveFrontDoor)
+$('#frontBlank').addEventListener('click', () => {
+  $('#front').hidden = true
+  newMap()
+})
+$('#frontQ').addEventListener('keydown', e => {
+  if (e.key === 'Escape') leaveFrontDoor()
+})
+
 function newMap() {
   closeMenu()
   if (!mapUrl && state.nodes.length === 1 && state.nodes[0].name === 'Central idea') return startEdit(0)
@@ -2736,7 +2772,7 @@ async function load() {
         restored = true
       } catch {}
     }
-    if (wanted !== draftId) history.replaceState(null, '', draftUrl(draftId) + (titleParam ? '&title=' + encodeURIComponent(titleParam) : ''))
+    if (wanted !== draftId && !frontDoor) history.replaceState(null, '', draftUrl(draftId) + (titleParam ? '&title=' + encodeURIComponent(titleParam) : ''))
   }
   // work stashed before a sign-in redirect comes back with the page
   let stash = null
@@ -2782,7 +2818,8 @@ async function load() {
     session.set('mindstr:toast', null)
     toast(msg)
   }
-  if (!mapUrl && !restored && !fromStash && !coarse.matches) startEdit(0)
+  if (frontDoor) showFrontDoor(restored)
+  else if (!mapUrl && !restored && !fromStash && !coarse.matches) startEdit(0)
   else if (!coarse.matches) focusMap()
   if (loginIntent()) ready().then(continueAfterLogin)
 }
