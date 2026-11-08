@@ -1,6 +1,6 @@
 // Ready-made maps (#45): before building a map with Claude, look for one already made. A cache is
-// any web folder with an index.json (whose `lookup` maps a slug to a file) and the map files, served
-// with CORS, like https://github.com/melvincarvalho/mindstr-maps on GitHub Pages.
+// any web folder with a lookup.json (or an index.json) whose `lookup` maps a slug to a file, and the
+// map files, served with CORS, like https://github.com/melvincarvalho/mindstr-maps on GitHub Pages.
 //
 //   no ?cache              → ours
 //   ?cache=URL[,URL…]      → those, checked in order
@@ -35,14 +35,31 @@ export async function findCached(topic, caches, { timeout = 2500, fetchFn = fetc
   const key = slug(topic)
   if (!key) return null
   for (const base of caches) {
-    try {
-      const res = await fetchFn(new URL('index.json', base).href, { signal: AbortSignal.timeout(timeout) })
-      if (!res.ok) continue
-      const file = (await res.json())?.lookup?.[key]
-      if (typeof file === 'string' && file) return { url: new URL(file, base).href, source: base }
-    } catch {}
+    const lookup = await lookupOf(base, timeout, fetchFn)
+    const file = lookup?.[key]
+    if (typeof file === 'string' && file) return { url: new URL(file, base).href, source: base }
   }
   return null
+}
+
+// A cache's lookup: the small lookup.json if it has one, else the full index.json
+async function lookupOf(base, timeout, fetchFn) {
+  for (const name of ['lookup.json', 'index.json']) {
+    try {
+      const res = await fetchFn(new URL(name, base).href, { signal: AbortSignal.timeout(timeout) })
+      if (res.ok) return (await res.json())?.lookup
+    } catch {
+      return null // down or slow: skip this cache rather than wait twice
+    }
+  }
+  return null
+}
+
+// A cache's directory page (mindstr-maps has one at its root), opening maps back in this app
+export function directoryUrl(base, appBase) {
+  const u = new URL(base)
+  if (appBase !== 'https://mindstr.org/') u.searchParams.set('app', appBase)
+  return u.href
 }
 
 // Where a cache lives, for people: "melvincarvalho.github.io/mindstr-maps"
