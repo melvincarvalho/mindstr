@@ -49,3 +49,43 @@ test('make/?q= builds a map from Claude\'s streamed outline', async () => {
   assert.deepEqual(page.errors, [])
   await page.context().close()
 })
+
+// Sounds (#47): pops as nodes appear and a chime when the build finishes. A fake AudioContext
+// counts the notes; typing Enter in the topic box is the gesture that allows sound.
+test('make pops as nodes appear and chimes when the build finishes', async () => {
+  const page = await openPage(browser, server.url)
+  await page.addInitScript(() => {
+    localStorage.setItem('mindstr.make.key', 'sk-test')
+    window.notes = []
+    const param = { setValueAtTime() {}, exponentialRampToValueAtTime() {} }
+    window.AudioContext = class {
+      state = 'running'
+      destination = {}
+      get currentTime() {
+        return performance.now() / 1000
+      }
+      resume() {
+        return Promise.resolve()
+      }
+      createGain() {
+        return { gain: param, connect: d => d }
+      }
+      createOscillator() {
+        const osc = { frequency: param, connect: d => d, start: () => window.notes.push(performance.now()), stop() {} }
+        return osc
+      }
+    }
+  })
+  await page.route('https://api.anthropic.com/**', route =>
+    route.fulfill({ status: 200, headers: { 'content-type': 'text/event-stream', 'access-control-allow-origin': '*' }, body: sse(OUTLINE) })
+  )
+  await page.goto(server.url + 'make/', { waitUntil: 'load' })
+  await page.fill('#q', 'coffee')
+  await page.press('#q', 'Enter')
+  await page.waitForFunction(() => /\d+ nodes ·/.test(document.querySelector('#status')?.textContent || ''))
+  await page.waitForTimeout(300)
+  const notes = await page.evaluate(() => window.notes.length)
+  assert.ok(notes >= 3, `at least one pop plus the two-note chime, got ${notes}`)
+  assert.deepEqual(page.errors, [])
+  await page.context().close()
+})
