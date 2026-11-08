@@ -6,6 +6,11 @@ import { parseOutline, toMarkdown } from '../js/outline.js'
 import { BRANCH_COLORS } from '../js/colors.js'
 import { boundsOf, DRAG_THRESHOLD, fitBox, panBy, pinchInfo, pinchTo, toWorld, wheel } from '../js/view.js'
 import { growMessage, grownKids, KEY_STORE, SETTINGS_STORE, stream as claudeStream, topicFor } from '../js/claude.js'
+import { chime, pop, unlock } from '../js/sound.js'
+
+// the Build click or Enter is the gesture that lets the page make sound (js/sound.js)
+window.addEventListener('pointerdown', unlock, { capture: true })
+window.addEventListener('keydown', unlock, { capture: true })
 
 const $ = s => document.querySelector(s)
 const SAVE_HELPER = 'http://localhost:5463/save'
@@ -176,6 +181,7 @@ async function build() {
     const nodes = count(tree)
     status(`${nodes} nodes · ${watch.took(nodes)} · ${spent(req)}`, 'done')
     $('#actions').hidden = false
+    chime()
   } catch (e) {
     if (e.name !== 'AbortError') status(e.message, 'err')
   } finally {
@@ -317,16 +323,24 @@ function setTree(t) {
   flat = { nodes, connections, parent, kids, depth, branchColor }
   const placed = radialLayout(0, i => kids[i], i => measure(nodes[i], depth[i]))
   const now = performance.now()
+  let newest = -1
   nodes.forEach((n, i) => {
     const p = placed.get(i)
     target.set(n.id, p)
     if (!current.has(n.id)) {
+      newest = i
       // start a new node at its parent, so it grows out of it
       const from = parent[i] !== null ? current.get(nodes[parent[i]].id) || p : p
       current.set(n.id, { x: from.x, y: from.y })
       appearing.set(n.id, now)
     }
   })
+  // a pop for new nodes, its note set by their main branch (js/sound.js merges a burst into one)
+  if (newest > 0) {
+    let top = newest
+    while (parent[top] !== 0 && parent[top] !== null) top = parent[top]
+    pop(kids[0].indexOf(top))
+  }
   fit()
   invalidate()
 }
