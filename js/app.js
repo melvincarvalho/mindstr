@@ -6,6 +6,7 @@ import { makeImages } from './images.js'
 import { blocked, chime, pop, setSound, soundOn, unlock } from './sound.js'
 import { grownTo, growthOrder, parseSpeed } from './replay.js'
 import { cacheName, cachesFrom, directoryUrl, findCached, openUrl } from './cache.js'
+import { loadMapEvent } from './nostr-map.js'
 import { badgeAt, colorsFor, drawMap, linkIconAt, makeMeasure, THEMES } from './render.js'
 import { fanLayout, radialLayout } from './layout.js'
 import { parseOutline, toMarkdown } from './outline.js'
@@ -105,6 +106,8 @@ const cacheParam = params.get('cache')
 const caches = cachesFrom(cacheParam)
 let mapUrl = null
 let badUri = false
+// ?nostr=naddr1…: a map published as a Nostr event (kind 30627); it opens read-only
+const nostrParam = params.get('nostr')
 try {
   if (mapParam) mapUrl = new URL(mapParam, location.href).href
 } catch {
@@ -2768,7 +2771,20 @@ async function load() {
     showBanner(`Can’t open “${mapParam}”: use an http(s) link to a .json or .jsonld map.`)
   }
   let updatesVia = null
-  if (mapUrl) {
+  let fromNostr = null
+  if (nostrParam) {
+    // a Nostr map: fetched from relays, checked, then opened like a file you can't overwrite
+    mapUrl = null
+    state.canSave = false
+    statusEl.textContent = 'Loading from Nostr…'
+    try {
+      fromNostr = await loadMapEvent(nostrParam)
+      data = fromNostr.data
+      isNew = false
+    } catch (err) {
+      showBanner(`Couldn’t open this Nostr map: ${err.message}.`)
+    }
+  } else if (mapUrl) {
     statusEl.textContent = 'Loading…'
     try {
       const get = () => authFetch(mapUrl, { cache: 'no-cache', headers: { Accept: ACCEPT } })
@@ -2831,6 +2847,11 @@ async function load() {
   if (state.canSave || remote.exists) startLive(updatesVia)
   if (remote.exists) startEvents()
   if (replayParam !== null && state.nodes.length > 1) startReplay()
+  if (fromNostr) {
+    const who = fromNostr.event.pubkey.slice(0, 8)
+    const checked = fromNostr.signature ? 'signed' : 'signature not checked'
+    toast(`From Nostr, by ${who}… (${checked}). Save makes your own copy.`, { ms: 6000 })
+  }
 
   if (focusId) {
     const i = state.nodes.findIndex(n => n['@id'] === focusId)
