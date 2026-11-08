@@ -2028,7 +2028,7 @@ function updateUi() {
   set('redo', redoStack.length > 0)
   const copy = !mapUrl || isExample
   set('save', !state.saving && (copy || state.canSave))
-  saveLabel.textContent = copy ? (isExample ? 'Save copy' : 'Save') : 'Save'
+  saveLabel.textContent = copy ? (isExample || nostrParam ? 'Save copy' : 'Save') : 'Save'
   document.body.classList.toggle('has-selection', has || width < 760 || coarse.matches)
   document.body.classList.toggle('node-selected', has)
 
@@ -2036,6 +2036,8 @@ function updateUi() {
     ? 'Saving…'
     : storageFailed
       ? 'Not saved'
+      : nostrParam && !mapUrl
+      ? state.dirty ? 'From Nostr · edited' : 'From Nostr'
       : !mapUrl
       ? 'Draft · in this browser'
       : isExample

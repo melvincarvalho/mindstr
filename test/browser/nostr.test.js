@@ -36,6 +36,7 @@ test('?nostr= opens the map from the relay, read-only, and says where it came fr
   assert.equal(await page.locator('#tree li').count(), 27)
   assert.match(await page.locator('#tree li').first().textContent(), /Climate change/)
   assert.match(await page.locator('#toast').textContent(), /From Nostr, by/)
+  assert.equal(await page.locator('#status').textContent(), 'From Nostr')
   assert.equal(await page.locator('#front').isHidden(), true)
   assert.deepEqual(page.errors, [])
   await page.context().close()
