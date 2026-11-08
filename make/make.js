@@ -6,6 +6,8 @@ import { parseOutline, toMarkdown } from '../js/outline.js'
 import { BRANCH_COLORS } from '../js/colors.js'
 import { boundsOf, DRAG_THRESHOLD, fitBox, panBy, pinchInfo, pinchTo, toWorld, wheel } from '../js/view.js'
 import { growMessage, grownKids, KEY_STORE, SETTINGS_STORE, stream as claudeStream, topicFor } from '../js/claude.js'
+import { buildMap, buildRequest, buildSystem, countNodes as count, newId } from '../js/build.js'
+import { cost as costAt, money, PRICES, stopwatch, tally } from '../js/usage.js'
 import { chime, pop, unlock } from '../js/sound.js'
 import { cachesFrom, findCached, openUrl } from '../js/cache.js'
 
@@ -19,10 +21,6 @@ window.addEventListener('keydown', unlock, { capture: true })
 
 const $ = s => document.querySelector(s)
 const SAVE_HELPER = 'http://localhost:5463/save'
-const ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789'
-const newId = () => '#' + Array.from({ length: 6 }, () => ALPHABET[(Math.random() * 32) | 0]).join('')
-const CAP = [0, 8, 30, 60, 110] // nodes in total, by depth
-
 // ---------- settings ----------
 const fields = ['depth', 'breadth', 'model', 'style', 'lang', 'links', 'think']
 const settings = Object.fromEntries(fields.map(f => [f, $('#' + f).value]))
@@ -55,9 +53,7 @@ $('#gear').addEventListener('click', () => {
 for (const chip of document.querySelectorAll('.chip')) chip.addEventListener('click', () => { $('#q').value = chip.textContent; build() })
 $('#form').addEventListener('submit', e => { e.preventDefault(); build() })
 
-// Prices in $ per million tokens, editable, saved with the other settings.
-const PRICES = { haiku: [0.1, 0.5], sonnet: [2, 10], opus: [4, 20] } // platform.claude.com pricing, 4 Nov 2026
-const family = model => (/haiku/.test(model) ? 'haiku' : /sonnet/.test(model) ? 'sonnet' : 'opus')
+// Prices in $ per million tokens (js/usage.js), editable, saved with the other settings.
 let prices = { ...PRICES }
 try { prices = { ...PRICES, ...JSON.parse(localStorage.getItem('mindstr.make.prices') || '{}') } } catch {}
 for (const f of Object.keys(PRICES)) {
@@ -71,65 +67,18 @@ for (const f of Object.keys(PRICES)) {
     })
   })
 }
-const cost = (req, model) => {
-  const [pin, pout] = prices[family(model)] || [0, 0]
-  return ((req.input || 0) * pin + (req.output || 0) * pout) / 1e6
-}
-const money = usd => (usd < 0.01 ? `${(usd * 100).toFixed(2)}¢` : `$${usd.toFixed(usd < 1 ? 3 : 2)}`)
+const cost = (req, model) => costAt(req, model, prices)
 
 // ---------- the tree ----------
 // tree: { id, name, link?, kids: [tree] }
 let tree = null
 let busy = false
 
-const STYLE = {
-  overview: 'A balanced overview: the main parts of the topic, then what matters most inside each.',
-  study: 'Study notes: definitions, key facts, examples, common mistakes, with concrete details a learner would need.',
-  plan: 'A plan of action: phases, concrete steps, what to decide, risks, what done looks like.',
-  questions: 'Questions worth asking about the topic, grouped by theme, each node one short question.'
-}
-
-function system() {
-  const d = Number(settings.depth)
-  const b = Number(settings.breadth)
-  return [
-    'You write mind maps as Markdown outlines and nothing else: no preamble, no closing remarks, no code fences.',
-    'Format: the first line is "# <title>" (the root, at most 5 words). Then nested bullets, "- " with two spaces of indent per level.',
-    `Shape: the root has ${Math.min(b, 7)} branches. Any node has at most ${b} children. Nest at most ${d} level${d > 1 ? 's' : ''} below the root. Keep the whole map under ${CAP[d]} nodes.`,
-    'Node text: at most 6 words, concrete and specific, title-free fragments, no trailing punctuation, no bold or emphasis.',
-    'Order: the most important first. Put real content in the map: names, numbers, terms, not headings like "Introduction".',
-    STYLE[settings.style] || STYLE.overview,
-    settings.links === 'yes' ? 'When you are sure a URL exists, write a node as [text](https://…). Never invent URLs.' : 'No links.',
-    `Language: ${settings.lang || 'English'}.`,
-    'If the request names a URL, fetch it with web_fetch first and map what that page actually says: the root is the page title, the branches its main sections or claims. Do not pad with general knowledge.'
-  ].join('\n')
-}
-
 // Claude's streamed text, as it arrives (js/claude.js), with this page's key and settings.
 async function* stream(messages, { signal, extra = {} } = {}) {
   const key = $('#key').value.trim()
   if (!key) throw new Error('Add your Claude API key under ⚙ first.')
-  yield* claudeStream({ key, model: settings.model, think: settings.think === 'yes', system: system(), messages, signal, extra })
-}
-
-// Keep the outline and drop any chatter around it ("I'll fetch the page first." and the like).
-function outlineOnly(text) {
-  let at = text.search(/(^|\n)#\s/)
-  if (at < 0) at = text.search(/#\s+\S/) // "I'll fetch the page first.# Title" on one line
-  if (at >= 0) text = text.slice(at)
-  return text.split('\n').filter(l => /^\s*(#{1,6}\s|[-*+]\s|\d+[.)]\s)/.test(l)).join('\n') + '\n'
-}
-
-// No heading came back: the bullets go under one root named after the request.
-const rooted = (roots, q) => (roots.length > 1 ? [{ name: q.replace(/^https?:\/\/(www\.)?/, '').slice(0, 60), kids: roots }] : roots)
-
-// Give every node a stable id by its path, so a re-parse of the growing outline keeps ids.
-function adopt(roots, ids, path = '') {
-  roots.forEach((n, i) => {
-    const p = path + '/' + i
-    n.id = ids.get(p) || (ids.set(p, path ? newId() : '#this'), ids.get(p))
-    adopt(n.kids, ids, p)
-  })
+  yield* claudeStream({ key, model: settings.model, think: settings.think === 'yes', system: buildSystem(settings), messages, signal, extra })
 }
 
 let abort = null
@@ -168,34 +117,18 @@ async function build() {
   tree = null
   resetView()
   // A URL in the request: the API fetches the page (web_fetch server tool) and the map summarises it.
-  const urls = q.match(/https?:\/\/[^\s<>"')\]]+/g) || []
+  const { urls } = buildRequest(q)
   const who = settings.model.replace('claude-', '').replace(/-/g, ' ')
   status(urls.length ? `Fetching ${urls.length === 1 ? 'the page' : urls.length + ' pages'}, then asking ${who}…` : `Asking ${who}…`)
-  const content = urls.length
-    ? `Mind map of the page${urls.length > 1 ? 's' : ''} at ${urls.join(' and ')}${q.replace(/https?:\/\/[^\s<>"')\]]+/g, '').trim() ? ` (${q.replace(/https?:\/\/[^\s<>"')\]]+/g, '').trim()})` : ''}. Fetch first, then map what it says.`
-    : `Mind map of: ${q}`
-  const extra = urls.length ? { tools: [{ type: 'web_fetch_20250910', name: 'web_fetch', max_uses: Math.min(urls.length, 3) }] } : {}
-  const ids = new Map()
-  let text = ''
-  const req = {}
+  let req = {}
   const watch = stopwatch()
   try {
-    for await (const chunk of stream([{ role: 'user', content }], { signal: abort.signal, extra })) {
-      if (chunk.usage) { tally(chunk.usage, req); continue }
-      text += chunk.text
-      const complete = outlineOnly(text.slice(0, text.lastIndexOf('\n') + 1))
-      const roots = rooted(parseOutline(complete), q)
-      if (!roots.length) continue
-      adopt(roots, ids)
-      setTree(roots[0])
+    for await (const step of buildMap(q, { key: $('#key').value.trim(), settings, signal: abort.signal })) {
+      req = step.usage
+      setTree(step.tree)
       watch.firstNode()
-      status(`Building… ${count(tree)} nodes`)
+      if (!step.done) status(`Building… ${count(tree)} nodes`)
     }
-    const roots = rooted(parseOutline(outlineOnly(text)), q)
-    if (!roots.length) throw new Error('Claude sent no outline. Try again.')
-    adopt(roots, ids)
-    setTree(roots[0])
-    watch.firstNode()
     const nodes = count(tree)
     status(`${nodes} nodes · ${watch.took(nodes)} · ${spent(req)}`, 'done')
     $('#actions').hidden = false
@@ -251,34 +184,8 @@ async function grow(i) {
   }
 }
 
-const count = n => 1 + n.kids.reduce((s, k) => s + count(k), 0)
-
-// How long a request took: the total, the wait for the first node, and the average gap after it.
-const seconds = ms => `${(ms / 1000).toFixed(1)}s`
-function stopwatch() {
-  const start = performance.now()
-  let first = null
-  return {
-    firstNode() { first ??= performance.now() },
-    took(nodes) {
-      const end = performance.now()
-      if (first === null) return seconds(end - start)
-      const each = nodes > 1 ? (end - first) / (nodes - 1) : null
-      const gap = each === null ? '' : `, ${each < 1000 ? `${Math.round(each)}ms` : seconds(each)} each`
-      return `${seconds(end - start)} (first node ${seconds(first - start)}${gap})`
-    }
-  }
-}
-
-// Tokens: per request and for the whole page session (input tokens come with message_start,
-// output tokens arrive as a running figure in message_delta).
+// Tokens for the whole page session (a request's tokens: tally in js/usage.js)
 const used = { input: 0, output: 0, calls: 0, usd: 0 }
-function tally(usage, req) {
-  if (usage.input_tokens !== undefined) {
-    req.input = (usage.input_tokens || 0) + (usage.cache_read_input_tokens || 0) + (usage.cache_creation_input_tokens || 0)
-  }
-  if (usage.output_tokens !== undefined) req.output = usage.output_tokens
-}
 function spent(req) {
   const usd = cost(req, settings.model)
   used.input += req.input || 0
