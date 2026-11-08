@@ -44,13 +44,15 @@ test('front door: a cached topic opens as a replay, with where it came from', as
   await page.context().close()
 })
 
-test('front door: a topic not in the cache goes to make/ to be built', async () => {
+test('front door: a topic not in the cache is built here with Claude (no key yet: it asks for one)', async () => {
   const page = await openPage(browser, server.url)
-  await mockCache(page)
+  const seen = await mockCache(page)
   await load(page, server.url)
   await page.fill('#frontQ', 'knitting')
-  await Promise.all([page.waitForURL(/make\//), page.press('#frontQ', 'Enter')])
-  assert.equal(new URL(page.url()).searchParams.get('q'), 'knitting')
+  await page.press('#frontQ', 'Enter')
+  await page.waitForSelector('#frontKeyRow:not([hidden])')
+  assert.ok(seen.length > 0, 'the cache was asked first')
+  assert.equal(new URL(page.url()).search, '', 'still on the front door')
   await page.context().close()
 })
 

@@ -25,12 +25,68 @@ test('a bare visit shows the search box, focused, with My map and Start blank', 
   await page.context().close()
 })
 
-test('Create sends the topic to make/', async () => {
+// Create builds in the app (#49), with the Claude API mocked
+const OUTLINE = '# Coffee\n\n- Beans\n  - Arabica\n  - Robusta\n- Brewing\n  - Espresso\n  - Filter\n'
+const sse = text =>
+  [
+    { type: 'message_start', message: { usage: { input_tokens: 50, output_tokens: 1 } } },
+    ...text.match(/[\s\S]{1,12}/g).map(t => ({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: t } })),
+    { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 40 } },
+    { type: 'message_stop' }
+  ]
+    .map(e => `event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`)
+    .join('')
+const mockClaude = async page => {
+  const requests = []
+  await page.route('https://api.anthropic.com/**', route => {
+    requests.push(route.request())
+    return route.fulfill({ status: 200, headers: { 'content-type': 'text/event-stream', 'access-control-allow-origin': '*' }, body: sse(OUTLINE) })
+  })
+  return requests
+}
+const island = page => page.evaluate(() => JSON.parse(document.querySelector('#initialData').textContent))
+
+test('Create without a key asks for one, then builds the map here, as an editable draft', async () => {
   const page = await openPage(browser, server.url)
-  await load(page, server.url)
-  await page.fill('#frontQ', 'coffee beans')
-  await Promise.all([page.waitForURL(/make\//), page.press('#frontQ', 'Enter')])
-  assert.equal(new URL(page.url()).searchParams.get('q'), 'coffee beans')
+  const requests = await mockClaude(page)
+  await load(page, `${server.url}?cache=off`)
+  await page.fill('#frontQ', 'coffee')
+  await page.press('#frontQ', 'Enter')
+  assert.equal(await page.locator('#frontKeyRow').isVisible(), true, 'asks for a key')
+  assert.equal(requests.length, 0)
+  await page.fill('#frontKey', 'sk-test')
+  await Promise.all([page.waitForURL(/build=coffee/), page.press('#frontKey', 'Enter')])
+  await page.waitForFunction(() => /7 ideas/.test(document.querySelector('#toast')?.textContent || ''), null, { timeout: 10000 })
+  const map = await island(page)
+  assert.deepEqual(map.nodes.map(n => n.name), ['Coffee', 'Beans', 'Arabica', 'Robusta', 'Brewing', 'Espresso', 'Filter'])
+  assert.equal(map.connections.length, 6)
+  assert.equal(requests.length, 1)
+  assert.equal(requests[0].headers()['x-api-key'], 'sk-test')
+  assert.equal(JSON.parse(requests[0].postData()).messages[0].content, 'Mind map of: coffee')
+  const u = new URL(page.url())
+  assert.equal(u.searchParams.get('build'), null, 'the build is done: a reload opens the draft')
+  assert.ok(u.searchParams.get('draft'))
+  assert.equal(await page.evaluate(() => localStorage.getItem('mindstr.make.key')), 'sk-test', 'the key is kept for next time')
+  assert.equal(await page.locator('#menuBtn').isVisible(), true, 'the whole app: menu, share, publish, save')
+  await page.reload()
+  await page.waitForTimeout(500)
+  assert.equal((await island(page)).nodes.length, 7, 'the draft was saved')
+  assert.equal(requests.length, 1, 'and not built again')
+  assert.deepEqual(page.errors, [])
+  await page.context().close()
+})
+
+test('with a saved key, Create goes straight to building', async () => {
+  const page = await openPage(browser, server.url)
+  await page.addInitScript(() => localStorage.setItem('mindstr.make.key', 'sk-test'))
+  const requests = await mockClaude(page)
+  await load(page, `${server.url}?cache=off`)
+  await page.fill('#frontQ', 'coffee')
+  await Promise.all([page.waitForURL(/build=coffee/), page.press('#frontQ', 'Enter')])
+  await page.waitForFunction(() => /7 ideas/.test(document.querySelector('#toast')?.textContent || ''), null, { timeout: 10000 })
+  assert.equal(requests.length, 1)
+  assert.equal(await page.locator('#frontKeyRow').isHidden(), true)
+  assert.deepEqual(page.errors, [])
   await page.context().close()
 })
 
@@ -82,15 +138,10 @@ test('the example pills open a replay with the Watch it grow button', async () =
   await page.context().close()
 })
 
-test('?cache= alone still shows the front door, and Create passes it on', async () => {
+test('?cache= alone still shows the front door', async () => {
   const page = await openPage(browser, server.url)
   await load(page, `${server.url}?cache=off`)
   assert.equal(await page.locator('#front').isVisible(), true)
-  await page.fill('#frontQ', 'coffee')
-  await Promise.all([page.waitForURL(/make\//), page.press('#frontQ', 'Enter')])
-  const u = new URL(page.url())
-  assert.equal(u.searchParams.get('q'), 'coffee')
-  assert.equal(u.searchParams.get('cache'), 'off')
   await page.context().close()
 })
 

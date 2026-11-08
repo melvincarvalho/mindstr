@@ -16,6 +16,8 @@ export const STYLE = {
   questions: 'Questions worth asking about the topic, grouped by theme, each node one short question.'
 }
 
+const on = v => v === true || v === 'yes' // Make's form gives 'yes', storedSettings() gives true
+
 // The system prompt for a whole map, from the settings { depth, breadth, style, links, lang }
 export function buildSystem(settings) {
   const d = Number(settings.depth)
@@ -27,7 +29,7 @@ export function buildSystem(settings) {
     'Node text: at most 6 words, concrete and specific, title-free fragments, no trailing punctuation, no bold or emphasis.',
     'Order: the most important first. Put real content in the map: names, numbers, terms, not headings like "Introduction".',
     STYLE[settings.style] || STYLE.overview,
-    settings.links === 'yes' ? 'When you are sure a URL exists, write a node as [text](https://…). Never invent URLs.' : 'No links.',
+    on(settings.links) ? 'When you are sure a URL exists, write a node as [text](https://…). Never invent URLs.' : 'No links.',
     `Language: ${settings.lang || 'English'}.`,
     'If the request names a URL, fetch it with web_fetch first and map what that page actually says: the root is the page title, the branches its main sections or claims. Do not pad with general knowledge.'
   ].join('\n')
@@ -76,7 +78,7 @@ export async function* buildMap(q, { key, settings, signal, stream = claudeStrea
   const ids = new Map()
   const usage = {}
   let text = ''
-  const chunks = stream({ key, model: settings.model, think: settings.think === 'yes', system: buildSystem(settings), messages: [{ role: 'user', content }], signal, extra })
+  const chunks = stream({ key, model: settings.model, think: on(settings.think), system: buildSystem(settings), messages: [{ role: 'user', content }], signal, extra })
   for await (const chunk of chunks) {
     if (chunk.usage) { tally(chunk.usage, usage); continue }
     text += chunk.text

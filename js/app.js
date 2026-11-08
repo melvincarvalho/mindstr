@@ -10,7 +10,9 @@ import { encodeNaddr, loadMapEvent, mapEventTemplate, MAP_KIND, MAX_EVENT_BYTES,
 import { badgeAt, colorsFor, drawMap, linkIconAt, makeMeasure, THEMES } from './render.js'
 import { fanLayout, radialLayout } from './layout.js'
 import { parseOutline, toMarkdown } from './outline.js'
-import { grownKids, growMessage, growSystem, storedKey, storedSettings, stream as claudeStream, topicFor } from './claude.js'
+import { grownKids, growMessage, growSystem, KEY_STORE, storedKey, storedSettings, stream as claudeStream, topicFor } from './claude.js'
+import { buildMap, countNodes } from './build.js'
+import { cost, money, stopwatch } from './usage.js'
 import { boundsOf, DRAG_THRESHOLD, fitBox, MIN_SCALE, pinchInfo as pinchOf, pinchTo, stepView, toScreen as screenOf, toWorld as worldOf, wheel as wheelView, zoomAt as zoomView } from './view.js'
 
 const DOUBLE_TAP_MS = 350
@@ -95,6 +97,7 @@ const mapParam =
   (/^[\w-]+$/.test(exampleParam || '') ? `examples/${exampleParam}.json` : null) ||
   (hostPod ? hostPod + MAP_PATH : null) // installed in a pod: the owner's map
 const titleParam = params.get('title')
+const buildParam = params.get('build') // ?draft=…&build=<topic or link>: build this map here with Claude (#49)
 const replayParam = params.get('replay') // ?replay=2s: regrow the map from its root
 const autoplay = params.has('autoplay') // with &autoplay it starts at once, silent until the viewer clicks
 // The front door (#49): a bare visit to the site, with no map in the link, starts with a search box
@@ -1221,6 +1224,8 @@ const makeUrl = q => {
   if (q) u.searchParams.set('q', q)
   return u.href
 }
+// a fresh draft that builds `q` with Claude as it opens
+const buildUrl = q => draftUrl(newDraftId()) + '&build=' + encodeURIComponent(q)
 
 let growing = null
 async function grow(i) {
@@ -1273,7 +1278,87 @@ async function grow(i) {
 
 function openAsNewMap(i) {
   if (!state.nodes[i]) return
-  window.open(makeUrl(topicFor(pathTo(i))), '_blank', 'noopener')
+  window.open(buildUrl(topicFor(pathTo(i))), '_blank', 'noopener')
+}
+
+// ---------- build a whole map with Claude (js/build.js, #49) ----------
+// The map grows on screen as Claude's outline streams in: nodes keep their ids from one step to
+// the next, so the ones already there glide to their new places and new ones fade in. It is an
+// ordinary draft throughout, so it can be edited, shared, published and saved when it's done.
+let building = null
+async function buildHere(q) {
+  const key = storedKey()
+  if (!key) {
+    toast('To build maps with Claude, add your Claude API key on the front page first.', { ms: 8000 })
+    return finishBuild()
+  }
+  const s = storedSettings()
+  building = new AbortController()
+  const who = s.model.replace('claude-', '').replace(/-/g, ' ')
+  toast(/https?:\/\//.test(q) ? `Reading the page, then asking ${who}…` : `Asking ${who}…`, { ms: 120000, action: ['Stop', () => building?.abort()] })
+  announce(`Building a map of ${q}`)
+  const watch = stopwatch()
+  let usage = {}
+  let tree = null
+  try {
+    for await (const step of buildMap(q, { key, settings: s, signal: building.signal })) {
+      if (!building) break
+      tree = step.tree
+      usage = step.usage
+      showTree(tree)
+      watch.firstNode()
+      if (!step.done) toast(`Building… ${countNodes(tree)} ideas`, { ms: 120000, action: ['Stop', () => building?.abort()] })
+    }
+    const n = countNodes(tree)
+    const tokens = (usage.input || 0) + (usage.output || 0)
+    toast(`${n} ideas · ${watch.took(n)} · ${tokens} tokens ≈ ${money(cost(usage, s.model))}`, { ms: 8000 })
+    chime()
+  } catch (e) {
+    if (e.name === 'AbortError') say(tree ? 'Stopped: the map so far is kept' : 'Stopped building')
+    else toast(`Couldn’t build the map: ${e.message}`, { ms: 9000 })
+  } finally {
+    finishBuild()
+  }
+}
+function finishBuild() {
+  building = null
+  history.replaceState(null, '', draftUrl(draftId)) // a reload opens the draft, not another build
+}
+// Replace the map with `tree` ({ id, name, link?, kids }), laid out radially, animating the change
+function showTree(tree) {
+  const before = positions()
+  const colours = new Map(state.nodes.map(n => [n['@id'], n.bgColor]))
+  const nodes = []
+  const connections = []
+  const add = (t, parent) => {
+    nodes.push({ '@id': t.id, name: t.name, x: 0, y: 0, ...(t.link ? { link: t.link } : {}) })
+    const i = nodes.length - 1
+    if (parent !== null) connections.push({ start: parent, end: i })
+    for (const k of t.kids) add(k, i)
+  }
+  add(tree, null)
+  const kidsOf = i => connections.filter(c => c.start === i).map(c => c.end)
+  const depthOf = i => (i === 0 ? 0 : 1 + depthOf(connections.find(c => c.end === i).start))
+  for (const [i, p] of radialLayout(0, kidsOf, i => measure(nodes[i], depthOf(i)))) Object.assign(nodes[i], p)
+  state.nodes = nodes
+  state.connections = connections
+  state.selected = null
+  analyze()
+  for (const k of info.kids[0]) {
+    state.nodes[k].bgColor = colours.get(state.nodes[k]['@id']) || freshColor()
+    analyze()
+  }
+  // new nodes start where their parent was, so the map unfolds outward
+  for (const [i, n] of state.nodes.entries()) {
+    if (before.has(n['@id']) || i === 0) continue
+    const p = before.get(state.nodes[info.parent[i]]['@id'])
+    if (p) before.set(n['@id'], p)
+    appear(n['@id'])
+  }
+  animateFrom(before)
+  if (state.nodes.length > before.size) pop()
+  changed()
+  if (!userMoved) fitView()
 }
 
 // the idea menu: right-click a node (a long-press on touch screens fires the same event)
@@ -2665,10 +2750,17 @@ $('#frontForm').addEventListener('submit', async e => {
     return
   }
   button.disabled = false
-  const make = new URL('make/', location.href)
-  make.searchParams.set('q', q)
-  if (cacheParam !== null) make.searchParams.set('cache', cacheParam)
-  location.href = make.href
+  // not ready-made: build it here with Claude, with the visitor's own key
+  const typed = $('#frontKey').value.trim()
+  if (typed) {
+    try { localStorage.setItem(KEY_STORE, typed) } catch {}
+  }
+  if (!storedKey()) {
+    $('#frontKeyRow').hidden = false
+    $('#frontKey').focus()
+    return
+  }
+  location.href = buildUrl(q)
 })
 $('#frontContinue').addEventListener('click', leaveFrontDoor)
 $('#frontBlank').addEventListener('click', () => {
@@ -2915,13 +3007,12 @@ async function load() {
     session.set('mindstr:cacheHit', null)
     try {
       const { source, topic } = JSON.parse(cacheHit)
-      const fresh = new URL('make/', location.href)
-      fresh.searchParams.set('q', topic)
-      fresh.searchParams.set('cache', 'off')
-      toast(`Ready-made map from ${cacheName(source)}`, { action: ['Build fresh', () => (location.href = fresh.href)], ms: 8000 })
+      toast(`Ready-made map from ${cacheName(source)}`, { action: ['Build fresh', () => (location.href = buildUrl(topic))], ms: 8000 })
     } catch {}
   }
-  if (frontDoor) showFrontDoor(restored)
+  if (buildParam && !mapUrl && !restored) buildHere(buildParam)
+  else if (buildParam) finishBuild() // that draft is already built: don't build it twice
+  else if (frontDoor) showFrontDoor(restored)
   else if (!mapUrl && !restored && !fromStash && !coarse.matches) startEdit(0)
   else if (!coarse.matches) focusMap()
   if (loginIntent()) ready().then(continueAfterLogin)

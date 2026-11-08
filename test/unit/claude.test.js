@@ -15,16 +15,16 @@ const fakeStorage = data => ({ getItem: k => (k in data ? data[k] : null) })
 
 test('storedKey and storedSettings: defaults without storage', () => {
   assert.equal(storedKey(), '')
-  assert.deepEqual(storedSettings(), { model: DEFAULT_MODEL, breadth: DEFAULT_BREADTH, think: false, lang: 'English', links: false })
+  assert.deepEqual(storedSettings(), { model: DEFAULT_MODEL, breadth: DEFAULT_BREADTH, think: false, lang: 'English', links: false, depth: 2, style: 'overview' })
 })
 
 test('storedKey and storedSettings: read what make/ saved', () => {
   globalThis.localStorage = fakeStorage({
     [KEY_STORE]: '  sk-test  ',
-    [SETTINGS_STORE]: JSON.stringify({ model: 'claude-opus-5-5', breadth: '7', think: 'yes', lang: 'French', links: 'yes', style: 'plan' })
+    [SETTINGS_STORE]: JSON.stringify({ model: 'claude-opus-5-5', breadth: '7', think: 'yes', lang: 'French', links: 'yes', style: 'plan', depth: '3' })
   })
   assert.equal(storedKey(), 'sk-test')
-  assert.deepEqual(storedSettings(), { model: 'claude-opus-5-5', breadth: 7, think: true, lang: 'French', links: true })
+  assert.deepEqual(storedSettings(), { model: 'claude-opus-5-5', breadth: 7, think: true, lang: 'French', links: true, depth: 3, style: 'plan' })
 })
 
 test('storedSettings: bad JSON falls back to defaults', () => {

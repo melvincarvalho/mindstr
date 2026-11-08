@@ -246,6 +246,9 @@
       .front-paths button:hover { border-color: var(--accent); }
       .front-paths button[hidden] { display: none; }
       .front-fine { margin-top: 16px; font-size: 13px; color: var(--muted); }
+      .front-key { margin: 14px 0 4px; text-align: left; font-size: 14px; color: var(--muted); }
+      .front-key .front-row { margin-top: 6px; align-items: center; }
+      .front-key a { white-space: nowrap; color: var(--accent); }
       .front-browse { margin: 16px 0 0; }
       .front-browse a { color: var(--accent); font-weight: 650; text-decoration: none; }
       .front-browse a:hover { text-decoration: underline; }
@@ -538,6 +541,13 @@
           <div class="front-row">
             <input id="frontQ" type="search" placeholder="A topic, a question or a link" aria-label="What do you want to map?" autocomplete="off" />
             <button class="primary" type="submit">Create</button>
+          </div>
+          <div class="front-key" id="frontKeyRow" hidden>
+            <label for="frontKey">To build new maps, paste your Claude API key. It stays in this browser.</label>
+            <div class="front-row">
+              <input id="frontKey" type="password" placeholder="sk-ant-…" autocomplete="off" spellcheck="false" />
+              <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">Get a key</a>
+            </div>
           </div>
           <div class="front-examples" aria-label="Watch an example grow">
             <span>Or watch one grow:</span>
