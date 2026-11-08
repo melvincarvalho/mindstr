@@ -40,6 +40,18 @@ test('?replay opens paused on the root, plays to the whole map, and can restart'
   await page.context().close()
 })
 
+test('&autoplay starts the replay without a click', async () => {
+  const page = await openPage(browser, server.url)
+  await page.goto(`${server.url}?example=welcome&replay=100ms&autoplay`, { waitUntil: 'load' })
+  await page.waitForFunction(() => {
+    const c = document.querySelector('#replayCount')?.textContent || ''
+    return Number(c.split('/')[0]) >= 3
+  }, null, { timeout: 10000 })
+  assert.equal(await page.getAttribute('[data-action="replayPlay"]', 'title'), 'Pause')
+  assert.deepEqual(page.errors, [])
+  await page.context().close()
+})
+
 test('without ?replay there is no replay bar', async () => {
   const page = await openPage(browser, server.url)
   await load(page, `${server.url}?example=welcome`)

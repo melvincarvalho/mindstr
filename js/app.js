@@ -94,6 +94,7 @@ const mapParam =
   (hostPod ? hostPod + MAP_PATH : null) // installed in a pod: the owner's map
 const titleParam = params.get('title')
 const replayParam = params.get('replay') // ?replay=2s: regrow the map from its root
+const autoplay = params.has('autoplay') // with &autoplay it starts at once, silent until the viewer clicks
 let mapUrl = null
 let badUri = false
 try {
@@ -2053,6 +2054,7 @@ function startReplay() {
   $('#replay').hidden = false
   replayTo(1)
   fitView(false)
+  if (autoplay) playReplay()
 }
 
 function replayTo(n) {
