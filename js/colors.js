@@ -90,7 +90,7 @@ function makeTones(color, dark) {
         fill: color,
         fillHi: hsl(h, s * 0.85, Math.min(98, l0 + 3)),
         fillLo: hsl(h, s === 0 ? 0 : Math.max(s * 0.8, 40), Math.max(30, l0 - 3)),
-        border: hsla(h, s * 0.6, 48, 0.58),
+        border: hsla(h, s * 0.6, 48, 0.4),
         edge: hsl(h, s * 0.65, 44),
         glow: hsla(h, s * 0.8, 52, 0.16),
         tint: hsl(h, s, 97)

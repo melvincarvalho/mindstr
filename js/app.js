@@ -726,6 +726,22 @@ function appearT(i) {
 
 const find = { matches: [], index: -1, set: null }
 
+// Branch focus: hovering a top-level node fades the other branches back over FOCUS_MS.
+const FOCUS_MS = 200
+const focus = { branch: null, k: 0, last: 0 }
+function stepFocus(now) {
+  const h = state.hover
+  const want = h !== null && info.depth[h] === 1 && !gesture && !state.editing && !find.set ? h : null
+  if (want !== null) focus.branch = want
+  const goal = want === null ? 0 : 1
+  const dt = Math.min(now - focus.last, 50)
+  focus.last = now
+  focus.k = reducedMotion.matches ? goal : goal > focus.k ? Math.min(1, focus.k + dt / FOCUS_MS) : Math.max(0, focus.k - dt / FOCUS_MS)
+  if (focus.k === 0) focus.branch = null
+  return focus.k !== goal
+}
+const focusScene = () => (focus.branch !== null && focus.k > 0 ? { branch: focus.branch, k: focus.k * focus.k * (3 - 2 * focus.k) } : null)
+
 function scene(over = {}) {
   const now = performance.now()
   return {
@@ -753,6 +769,7 @@ function scene(over = {}) {
     reduced: reducedMotion.matches,
     grid: true,
     picture: pictureOf,
+    focus: focusScene(),
     ...over
   }
 }
@@ -781,13 +798,14 @@ function draw() {
     positionEditor()
   }
   const moving = isMoving(now)
+  const focusing = stepFocus(now)
   drawMap(ctx, scene({ moving }))
   if (moving) {
     clearTimeout(settle)
     settle = setTimeout(invalidate, SETTLE_MS)
   }
   placeTreeItems()
-  if (viewAnim || anims.size || appearing.size || flashing.until > now) invalidate()
+  if (viewAnim || anims.size || appearing.size || flashing.until > now || focusing) invalidate()
 }
 
 let userMoved = false
@@ -1483,7 +1501,7 @@ function exportPng() {
   out.height = Math.round(h * scale)
   drawMap(
     out.getContext('2d'),
-    scene({ view: { x: 24 - minX, y: 24 - minY, scale: 1 }, width: w, height: h, dpr: scale, grid: false, picture: exportable, selected: null, hover: null, drop: null, dragging: null, flash: null, matches: null, editing: null, pos: i => state.nodes[i] })
+    scene({ view: { x: 24 - minX, y: 24 - minY, scale: 1 }, width: w, height: h, dpr: scale, grid: false, picture: exportable, selected: null, hover: null, drop: null, dragging: null, flash: null, matches: null, editing: null, focus: null, pos: i => state.nodes[i] })
   )
   out.toBlob(b => download(b, slug() + '.png'), 'image/png')
   toast(leftOut ? `Image downloaded, without ${leftOut} node ${leftOut === 1 ? 'image' : 'images'} from sites that don't allow it` : 'Image downloaded')
@@ -1610,8 +1628,9 @@ function positionEditor() {
   editor.style.borderRadius = Math.min(m.r * k, 22) + 'px'
   const sc = scene()
   const c = colorsFor(i, sc)
-  editor.style.background = c.fill
-  editor.style.color = readableText(c.fill)
+  const fill = c.surface ? c.fill : sc.theme.leaf // a text-only node is edited on a card
+  editor.style.background = fill
+  editor.style.color = readableText(fill)
 }
 
 function commitEdit() {

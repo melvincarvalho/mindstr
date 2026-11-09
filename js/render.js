@@ -4,9 +4,10 @@ import { BRANCH_COLORS, readableText, tones } from './colors.js'
 const STACK = 'system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif'
 // Node styles by depth: root, top-level branch, everything deeper.
 export const STYLES = [
-  { font: `800 20px Manrope, ${STACK}`, padX: 24, h: 50, r: 25 },
-  { font: `700 15px Manrope, ${STACK}`, padX: 17, h: 38, r: 14 },
-  { font: `600 14px Manrope, ${STACK}`, padX: 14, h: 32, r: 11 }
+  { font: `700 22px Manrope, ${STACK}`, padX: 26, h: 54, r: 27 },
+  { font: `700 16px Manrope, ${STACK}`, padX: 18, h: 40, r: 14 },
+  // deeper nodes are drawn as plain text; the box is still there for hits, hover and selection
+  { font: `500 15px Manrope, ${STACK}`, padX: 12, h: 32, r: 10 }
 ]
 const LINK_W = 20 // room for the ↗ icon
 // The space a node's image gets, above its text. Fixed, so a node doesn't jump when its image loads.
@@ -19,42 +20,36 @@ const ROOT_LO = '#5438df'
 
 export const THEMES = {
   light: {
-    bg: '#f6f7fb',
-    grid: 'rgba(63,55,105,0.055)',
+    bg: '#fafafc',
+    grid: 'rgba(63,55,105,0.04)',
+    ink: '#36314a',
     leaf: '#ffffff',
-    leafHi: '#ffffff',
-    leafLo: '#f2f3f9',
-    shadow: 'rgba(43,32,85,0.12)',
+    shadow: 'rgba(43,32,85,0.10)',
+    leafHover: 'rgba(109,74,255,0.07)',
     accent: '#6d4aff',
     accentRgb: '109,74,255',
     accentSoft: 'rgba(109,74,255,0.22)',
     badgeBg: '#ffffff',
     muted: '#687080',
-    aura: 'rgba(124,93,250,0.13)',
-    auraMid: 'rgba(124,93,250,0.045)',
-    auraClear: 'rgba(124,93,250,0)',
-    wash: 'rgba(80,170,255,0.09)',
-    washClear: 'rgba(80,170,255,0)',
-    nodeHighlight: 'rgba(255,255,255,0.72)'
+    aura: 'rgba(124,93,250,0.07)',
+    auraMid: 'rgba(124,93,250,0.02)',
+    auraClear: 'rgba(124,93,250,0)'
   },
   dark: {
     bg: '#11131b',
-    grid: 'rgba(255,255,255,0.045)',
+    grid: 'rgba(255,255,255,0.035)',
+    ink: '#dcd9e8',
     leaf: '#20242e',
-    leafHi: '#2a2f3b',
-    leafLo: '#1b1f28',
     shadow: 'rgba(0,0,0,0.32)',
+    leafHover: 'rgba(162,139,255,0.10)',
     accent: '#a28bff',
     accentRgb: '162,139,255',
     accentSoft: 'rgba(162,139,255,0.30)',
     badgeBg: '#171a23',
     muted: '#9aa2b1',
-    aura: 'rgba(124,93,250,0.19)',
-    auraMid: 'rgba(124,93,250,0.05)',
-    auraClear: 'rgba(124,93,250,0)',
-    wash: 'rgba(34,211,238,0.075)',
-    washClear: 'rgba(34,211,238,0)',
-    nodeHighlight: 'rgba(255,255,255,0.08)'
+    aura: 'rgba(124,93,250,0.13)',
+    auraMid: 'rgba(124,93,250,0.035)',
+    auraClear: 'rgba(124,93,250,0)'
   }
 }
 
@@ -174,12 +169,16 @@ export function colorsFor(i, s) {
   const d = s.info.depth[i]
   const branch = s.info.branchColor[i] || BRANCH_COLORS[0]
   const bt = tones(branch, s.dark)
-  if (d === 0) return { fill: ROOT_FILL, fillHi: ROOT_HI, fillLo: ROOT_LO, border: null, lw: 0, edge: s.theme.accent, glow: s.theme.accentSoft }
-  if (d === 1 || n.bgColor) {
+  if (d === 0) return { fill: ROOT_FILL, fillHi: ROOT_HI, fillLo: ROOT_LO, border: null, lw: 0, edge: s.theme.accent, glow: s.theme.accentSoft, surface: true }
+  if (d === 1) {
     const t = tones(n.bgColor || branch, s.dark)
-    return { fill: t.fill, fillHi: t.fillHi, fillLo: t.fillLo, border: t.border, lw: 1.25, edge: bt.edge, glow: t.glow }
+    return { fill: t.fill, fillHi: t.fillHi, fillLo: t.fillLo, border: t.border, lw: 1, edge: bt.edge, glow: t.glow, surface: true }
   }
-  return { fill: s.theme.leaf, fillHi: s.theme.leafHi, fillLo: s.theme.leafLo, border: bt.border, lw: 1, edge: bt.edge, glow: bt.glow }
+  // Deeper nodes are text on the canvas, marked by a dot in their branch's colour. A node with
+  // a picture keeps a card to hold it. (A deeper node's own bgColor is kept in the file; the
+  // branch colour wins on screen so each branch reads as one colour.)
+  if (s.size(i).pic) return { fill: s.theme.leaf, border: bt.border, lw: 1, edge: bt.edge, glow: bt.glow, surface: true }
+  return { fill: s.theme.bg, text: s.theme.ink, border: null, lw: 0, edge: bt.edge, glow: bt.glow, surface: false }
 }
 
 function box(ctx, x, y, w, h, r) {
@@ -214,10 +213,9 @@ function fillGradient(ctx, hi, lo, h) {
   return g
 }
 
-// The backdrop: the theme colour, a wash in the top-right corner, and a soft glow around the
-// root that follows it. The first two only change with size and theme, so they're drawn once
-// into a layer; the glow is a small pre-drawn image stretched into place (a smooth gradient
-// scales up without visible loss). Two full-canvas gradients per frame become two copies.
+// The backdrop: the theme colour and a faint glow around the root that follows it. The colour
+// only changes with size and theme, so it's drawn once into a layer; the glow is a small
+// pre-drawn image stretched into place (a smooth gradient scales up without visible loss).
 let layer = null
 const auras = new Map()
 const MAX_LAYER = 16e6 // device pixels; anything bigger (a large PNG export) is drawn directly
@@ -228,7 +226,7 @@ function drawBackdrop(ctx, s) {
   if (!W || !H) return // nothing to draw on yet (a 0×0 canvas before the first resize)
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   if (W * H <= MAX_LAYER) {
-    const key = `${W}x${H}|${theme.bg}|${theme.wash}|${theme.washClear}`
+    const key = `${W}x${H}|${theme.bg}`
     if (layer?.key !== key) {
       const c = layer?.canvas ?? document.createElement('canvas')
       c.width = W
@@ -249,11 +247,6 @@ function drawBackdrop(ctx, s) {
 function paintLayer(c, W, H, theme) {
   c.fillStyle = theme.bg
   c.fillRect(0, 0, W, H)
-  const wash = c.createRadialGradient(W * 0.9, H * 0.08, 0, W * 0.9, H * 0.08, Math.max(W, H) * 0.7)
-  wash.addColorStop(0, theme.wash)
-  wash.addColorStop(1, theme.washClear)
-  c.fillStyle = wash
-  c.fillRect(0, 0, W, H)
 }
 function auraImage(theme) {
   const key = theme.aura + theme.auraMid + theme.auraClear
@@ -272,6 +265,51 @@ function auraImage(theme) {
     auras.set(key, img)
   }
   return img
+}
+
+// Where an edge meets a node, and the direction it leaves in, for an edge heading along (dx, dy).
+// The root's branches leave in every direction, so they start on its outline; every other node
+// is met at the middle of its left or right side, or of its top or bottom when the two nodes
+// overlap side to side (`side` false).
+function anchor(m, p, dx, dy, root, side) {
+  if (root) {
+    const e = exit(m, dx, dy)
+    return { x: p.x + dx * e, y: p.y + dy * e, tx: dx, ty: dy }
+  }
+  if (side) {
+    const sx = dx < 0 ? -1 : 1
+    return { x: p.x + (sx * m.w) / 2, y: p.y, tx: sx, ty: 0 }
+  }
+  // stacked nodes: leave straight up or down, bending toward the other end
+  const sy = dy < 0 ? -1 : 1
+  const [tx, ty] = unit(dx, dy + sy * 0.8)
+  return { x: p.x, y: p.y + (sy * m.h) / 2, tx, ty }
+}
+
+// Fill a cubic Bézier as a ribbon whose width runs from w0 to w1, (Its ends are flat; they sit against a node or under a leaf's dot.)
+const SEGS = 18
+function ribbon(ctx, [x0, y0, x1, y1, x2, y2, x3, y3], w0, w1) {
+  const left = []
+  const right = []
+  for (let n = 0; n <= SEGS; n++) {
+    const t = n / SEGS
+    const u = 1 - t
+    const x = u * u * u * x0 + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t * x3
+    const y = u * u * u * y0 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * y3
+    const [nx, ny] = unit(
+      -(3 * u * u * (y1 - y0) + 6 * u * t * (y2 - y1) + 3 * t * t * (y3 - y2)),
+      3 * u * u * (x1 - x0) + 6 * u * t * (x2 - x1) + 3 * t * t * (x3 - x2)
+    )
+    const h = (w0 + (w1 - w0) * t) / 2
+    left.push(x + nx * h, y + ny * h)
+    right.push(x - nx * h, y - ny * h)
+  }
+  ctx.beginPath()
+  ctx.moveTo(left[0], left[1])
+  for (let n = 2; n < left.length; n += 2) ctx.lineTo(left[n], left[n + 1])
+  for (let n = right.length - 2; n >= 0; n -= 2) ctx.lineTo(right[n], right[n + 1])
+  ctx.closePath()
+  ctx.fill()
 }
 
 export function drawMap(ctx, s) {
@@ -311,43 +349,58 @@ export function drawMap(ctx, s) {
     return c
   }
 
-  // edges
+  // Branch focus: hovering a top-level branch fades the others back. top[i] is the
+  // top-level node above i (or i itself); the root and its own edges never fade.
+  let fade = null
+  if (s.focus) {
+    const top = []
+    for (let i = 0; i < nodes.length; i++) {
+      let j = i
+      while (info.depth[j] > 1) j = info.parent[j]
+      top[i] = j
+    }
+    const dim = 1 - 0.62 * s.focus.k
+    fade = i => (info.depth[i] === 0 || top[i] === s.focus.branch ? 1 : dim)
+  }
+
+  // edges: tapered curves, thick at the parent and fine at the child, leaving and meeting
+  // each node at the middle of the side that faces the other end
   for (const { start, end } of s.connections) {
     if (!info.visible[start] || !info.visible[end]) continue
     const a = s.pos(start)
     const b = s.pos(end)
+    const [dx, dy] = unit(b.x - a.x, b.y - a.y)
     const ma = s.size(start)
     const mb = s.size(end)
-    const [dx, dy] = unit(b.x - a.x, b.y - a.y)
-    const [fx, fy] = info.parent[start] === null ? [dx, dy] : outward(start, s)
-    const ea = exit(ma, dx, dy)
-    const eb = exit(mb, dx, dy)
-    const p0 = [a.x + dx * ea, a.y + dy * ea]
-    const p3 = [b.x - dx * eb, b.y - dy * eb]
-    const dist = Math.hypot(p3[0] - p0[0], p3[1] - p0[1])
+    const side = Math.abs(b.x - a.x) - (ma.w + mb.w) / 2 > 14
+    const from = anchor(ma, a, dx, dy, info.parent[start] === null, side)
+    const to = anchor(mb, b, -dx, -dy, false, side)
+    const dist = Math.hypot(to.x - from.x, to.y - from.y)
     if (dist < 2) continue
-    const [cx, cy] = unit(fx + dx, fy + dy)
-    ctx.beginPath()
-    ctx.moveTo(p0[0], p0[1])
-    ctx.bezierCurveTo(p0[0] + cx * dist * 0.45, p0[1] + cy * dist * 0.45, p3[0] - dx * dist * 0.35, p3[1] - dy * dist * 0.35, p3[0], p3[1])
+    const k = dist * (side ? 0.5 : 0.4)
+    const curve = [from.x, from.y, from.x + from.tx * k, from.y + from.ty * k, to.x + to.tx * k, to.y + to.ty * k, to.x, to.y]
     const depth = info.depth[end]
-    const source = col(start)
     const target = col(end)
-    const lineWidth = depth <= 1 ? 3.25 : depth === 2 ? 1.9 : 1.5
-    if (!moving) {
-      ctx.lineWidth = lineWidth + (depth <= 1 ? 9 : 5)
-      ctx.strokeStyle = target.glow
-      ctx.stroke()
-    }
+    const [w0, w1] = depth <= 1 ? [5.5, 2.6] : depth === 2 ? [2.4, 1.5] : [1.7, 1.2]
     let edge = target.edge
-    if (!moving && source.edge !== target.edge) {
-      edge = ctx.createLinearGradient(p0[0], p0[1], p3[0], p3[1])
-      edge.addColorStop(0, source.edge)
-      edge.addColorStop(1, target.edge)
+    if (!moving && depth <= 1) {
+      edge = ctx.createLinearGradient(from.x, from.y, to.x, to.y)
+      edge.addColorStop(0, col(start).edge)
+      edge.addColorStop(0.55, target.edge)
     }
-    ctx.lineWidth = lineWidth
-    ctx.strokeStyle = edge
-    ctx.stroke()
+    ctx.save()
+    ctx.globalAlpha = (depth <= 1 ? 0.9 : 0.72) * (fade ? fade(end) : 1)
+    ctx.fillStyle = edge
+    ribbon(ctx, curve, w0, w1)
+    if (!target.surface) {
+      // the leaf's marker: a dot where the curve arrives
+      ctx.globalAlpha = fade ? fade(end) : 1
+      ctx.fillStyle = target.edge
+      ctx.beginPath()
+      ctx.arc(to.x, to.y, 3, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.restore()
   }
 
   // nodes: everything else first, then the branch being dragged on top
@@ -371,18 +424,26 @@ export function drawMap(ctx, s) {
       ctx.globalAlpha = Math.min(1, g * 2)
     }
     if (dimming && !s.matches.has(i) && s.selected !== i) ctx.globalAlpha = 0.35
+    else if (fade) ctx.globalAlpha *= fade(i)
+    const selected = s.selected === i && !lifted
+    const hovered = s.hover === i && !lifted
+    // a text-only node gets a card while it's selected, edited or dragged
+    const card = c.surface || selected || editing || lifted
     if (!editing) {
-      if (s.selected === i && !lifted && info.depth[i] === 0) {
+      if (selected && info.depth[i] === 0) {
         // the root is already violet: separate it with a background gap, then the ring
         ring(ctx, p, m, 2.5, 3, theme.bg)
         ring(ctx, p, m, 5, 2.5, theme.accent)
-      } else if (s.selected === i && !lifted) {
-        ring(ctx, p, m, 6, 5, theme.accentSoft)
-        ring(ctx, p, m, 3, 2, theme.accent)
+      } else if (selected) {
+        ring(ctx, p, m, 3.5, 1.75, theme.accent)
       } else if (s.matches?.has(i)) {
         ring(ctx, p, m, 3, 1.5, `rgba(${theme.accentRgb},0.5)`)
-      } else if (s.hover === i && !lifted) {
-        ring(ctx, p, m, 3, 2, theme.accentSoft)
+      } else if (hovered && c.surface) {
+        ring(ctx, p, m, 3, 1.5, theme.accentSoft)
+      } else if (hovered) {
+        box(ctx, x, y, m.w, m.h, m.r)
+        ctx.fillStyle = theme.leafHover
+        ctx.fill()
       }
     }
     if (s.flash && s.flash.ids.has(n['@id'])) {
@@ -390,59 +451,71 @@ export function drawMap(ctx, s) {
       ring(ctx, p, m, s.reduced ? 8 : 8 + 12 * (1 - t), 3, `rgba(${theme.accentRgb},${0.65 * t})`)
     }
 
-    ctx.save()
-    if (lifted) {
-      ctx.globalAlpha *= s.drop !== null && s.drop !== undefined ? 0.5 : 0.92
-      ctx.shadowColor = 'rgba(20,20,50,0.28)'
-      ctx.shadowBlur = 24
-      ctx.shadowOffsetY = 8
-    } else if (!moving) {
-      const isRoot = info.depth[i] === 0
-      ctx.shadowColor = isRoot ? theme.accentSoft : s.dark ? theme.shadow : c.glow
-      ctx.shadowBlur = isRoot ? 30 : 14
-      ctx.shadowOffsetY = isRoot ? 9 : 4
-    }
-    // the fill gradient runs from the box's top to its bottom: drawn at the origin, one
-    // gradient per colour pair and height serves every node
-    ctx.translate(x, y)
-    box(ctx, 0, 0, m.w, m.h, m.r)
-    ctx.fillStyle = c.fillHi && c.fillLo ? fillGradient(ctx, c.fillHi, c.fillLo, m.h) : c.fill
-    ctx.fill()
-    ctx.restore()
-    if (c.border) {
-      box(ctx, x + 0.5, y + 0.5, m.w - 1, m.h - 1, m.r)
-      ctx.lineWidth = c.lw
-      ctx.strokeStyle = c.border
-      ctx.stroke()
-    }
-    if (!moving) {
-      // a hairline inner highlight; too fine to miss while the view moves
-      box(ctx, x + 1.25, y + 1.25, m.w - 2.5, m.h - 2.5, Math.max(0, m.r - 1.25))
-      ctx.lineWidth = 0.75
-      ctx.strokeStyle = theme.nodeHighlight
-      ctx.stroke()
+    if (card) {
+      ctx.save()
+      // shadows only for the root, the selection and what's being dragged
+      if (lifted) {
+        ctx.globalAlpha *= s.drop !== null && s.drop !== undefined ? 0.5 : 0.92
+        ctx.shadowColor = 'rgba(20,20,50,0.28)'
+        ctx.shadowBlur = 24
+        ctx.shadowOffsetY = 8
+      } else if (!moving && info.depth[i] === 0) {
+        ctx.shadowColor = theme.accentSoft
+        ctx.shadowBlur = 30
+        ctx.shadowOffsetY = 9
+      } else if (!moving && (selected || editing)) {
+        ctx.shadowColor = theme.shadow
+        ctx.shadowBlur = 16
+        ctx.shadowOffsetY = 5
+      }
+      // the fill gradient runs from the box's top to its bottom: drawn at the origin, one
+      // gradient per colour pair and height serves every node
+      ctx.translate(x, y)
+      box(ctx, 0, 0, m.w, m.h, m.r)
+      ctx.fillStyle = c.surface ? (c.fillHi && c.fillLo ? fillGradient(ctx, c.fillHi, c.fillLo, m.h) : c.fill) : theme.leaf
+      ctx.fill()
+      ctx.restore()
+      if (c.border) {
+        box(ctx, x + 0.5, y + 0.5, m.w - 1, m.h - 1, m.r)
+        ctx.lineWidth = c.lw
+        ctx.strokeStyle = c.border
+        ctx.stroke()
+      }
     }
 
     if (!editing) {
-      const text = readableText(c.fill)
+      const text = c.text && !card ? c.text : readableText(card && !c.surface ? theme.leaf : c.fill)
       if (m.pic) drawPicture(ctx, m, s.picture?.(n) ?? null, p.x, y + m.pic.pad, text)
       ctx.font = m.font
       ctx.textAlign = 'left'
       ctx.textBaseline = 'middle'
+      if (!card && !hovered) {
+        // text on the canvas sits on a patch of background, so a passing edge doesn't cut it
+        const ph = m.h * 0.66
+        box(ctx, x + m.tx - 3, p.y + m.ty - ph / 2 + 0.5, m.tw + 6, ph, 6)
+        ctx.fillStyle = theme.bg
+        ctx.globalAlpha *= 0.9
+        ctx.fill()
+        ctx.globalAlpha /= 0.9
+      }
       ctx.fillStyle = text
       ctx.fillText(n.name, x + m.tx, p.y + m.ty + 1)
       const li = linkIconAt(i, s)
       if (li) {
+        // quiet until the node is hovered or selected
+        const lit = hovered || selected
+        if (lit) {
+          ctx.save()
+          ctx.fillStyle = text
+          ctx.globalAlpha *= 0.1
+          ctx.beginPath()
+          ctx.arc(li.x, li.y, 7.5, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.restore()
+        }
         ctx.save()
-        ctx.fillStyle = text
-        ctx.globalAlpha *= 0.1
-        ctx.beginPath()
-        ctx.arc(li.x, li.y, 7.5, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.restore()
-        ctx.save()
-        ctx.strokeStyle = s.dark && c.fill === theme.leaf ? theme.accent : text
-        ctx.globalAlpha *= 0.85
+        ctx.strokeStyle = lit || !c.surface ? theme.accent : text
+        ctx.globalAlpha *= lit ? 0.9 : 0.4
         ctx.lineWidth = 1.6
         ctx.beginPath()
         ctx.moveTo(li.x - 4, li.y + 4)
