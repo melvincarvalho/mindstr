@@ -90,14 +90,19 @@ export const countNodes = n => 1 + n.kids.reduce((s, k) => s + countNodes(k), 0)
 // Build a map for `q`. Yields { tree, usage } each time the outline gains a complete line, then
 // once more with done: true. tree: { id, name, link?, kids: [tree] }; usage: { input, output }.
 export async function* buildMap(q, { key, settings, signal, stream = claudeStream }) {
-  const { content, extra } = buildRequest(q)
+  const { content, extra, urls } = buildRequest(q)
+  let fetched = !urls.length // with a link, nothing is drawn until the page has been fetched
   const ids = new Map()
   const usage = {}
   let text = ''
   const chunks = stream({ key, model: settings.model, think: on(settings.think), system: buildSystem(settings), messages: [{ role: 'user', content }], signal, extra })
   for await (const chunk of chunks) {
     if (chunk.usage) { tally(chunk.usage, usage); continue }
+    // the outline is what comes after the page was fetched: drop "Fetching page" and the like (#65)
+    if (chunk.toolResult) { text = ''; fetched = true; continue }
+    if (typeof chunk.text !== 'string') continue
     text += chunk.text
+    if (!fetched) continue
     const roots = rooted(parseOutline(outlineOnly(text.slice(0, text.lastIndexOf('\n') + 1))), q)
     if (!roots.length) continue
     adopt(roots, ids)

@@ -85,3 +85,24 @@ test('waitingLabel: what the centre node says while a build waits (#63)', () => 
   assert.equal(waitingLabel('x'.repeat(200)), 'Building ' + 'x'.repeat(32) + '…')
   assert.equal(waitingLabel('https://example.com/' + 'y'.repeat(200)).length, 53)
 })
+
+test('buildMap drops what the model wrote before the page was fetched (#65)', async () => {
+  const stream = async function * () {
+    yield { text: '# Fetching page\n' }
+    yield { toolResult: true }
+    for (const text of ['# weightless: abliteration\n- Core idea\n', '- Results\n']) yield { text }
+  }
+  const names = []
+  for await (const step of buildMap('https://example.com/x', { key: 'k', settings, stream })) names.push(step.tree.name)
+  assert.equal(names.at(-1), 'weightless: abliteration')
+  assert.ok(!names.some(n => /Fetching/.test(n)), 'the chatter never shows, even while streaming')
+})
+
+test('buildMap with a link still builds if the model never fetched (#65)', async () => {
+  const stream = async function * () { yield { text: '# Title\n- a\n- b\n' } }
+  const steps = []
+  for await (const step of buildMap('https://example.com/x', { key: 'k', settings, stream })) steps.push(step)
+  assert.equal(steps.length, 1)
+  assert.equal(steps[0].done, true)
+  assert.equal(steps[0].tree.kids.length, 2)
+})

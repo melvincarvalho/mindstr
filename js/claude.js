@@ -46,7 +46,8 @@ export function thinkingFor(model, on) {
   return { thinking: { type: 'adaptive' }, output_config: { effort: 'low' } }
 }
 
-// Claude's streamed reply: yields { text } as it arrives and { usage } when reported.
+// Claude's streamed reply: yields { text } as it arrives, { usage } when reported, and
+// { toolResult: true } when a server tool such as web_fetch has answered.
 export async function* stream({ key, model, think = false, system, messages, signal, extra = {}, maxTokens = 4096 }) {
   if (!key) throw new Error('No Claude API key.')
   const res = await fetch(API, {
@@ -93,6 +94,8 @@ export async function* stream({ key, model, think = false, system, messages, sig
         continue
       }
       if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') yield { text: ev.delta.text }
+      // a server tool (web_fetch) has answered: whatever was written before it was not the reply
+      else if (ev.type === 'content_block_start' && /_tool_result$/.test(ev.content_block?.type || '')) yield { toolResult: true }
       else if (ev.type === 'message_start' && ev.message?.usage) yield { usage: ev.message.usage }
       else if (ev.type === 'message_delta' && ev.usage) yield { usage: ev.usage }
       else if (ev.type === 'error') throw new Error(ev.error?.message || 'stream error')
