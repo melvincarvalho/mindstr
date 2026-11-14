@@ -164,6 +164,7 @@ async function grow(i) {
     const pending = []
     for await (const chunk of stream(messages)) {
       if (chunk.usage) { tally(chunk.usage, req); continue }
+      if (typeof chunk.text !== 'string') continue
       text += chunk.text
       const complete = text.slice(0, text.lastIndexOf('\n') + 1)
       const kids = grownKids(complete)
