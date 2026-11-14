@@ -176,7 +176,8 @@
         box-shadow: var(--shadow);
       }
       @media (prefers-color-scheme: dark) { #toast { background: var(--raised); color: var(--text); border: 1px solid var(--border); } }
-      #toast button { height: var(--target); color: inherit; font-weight: 650; border: 1px solid currentColor; white-space: nowrap; }
+      #toast button { height: var(--target); padding: 0 12px; flex: none; color: inherit; font-weight: 650; border: 1px solid currentColor; white-space: nowrap; }
+      #toast button + button { margin-left: -4px; border-color: transparent; }
 
       /* ---------- stage ---------- */
       #stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }

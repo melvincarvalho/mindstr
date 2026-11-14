@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { adopt, buildMap, buildRequest, buildSystem, countNodes, outlineOnly, rooted } from '../../js/build.js'
+import { adopt, buildMap, buildRequest, buildSystem, countNodes, outlineOnly, rooted, waitingLabel } from '../../js/build.js'
 import { cost, money, stopwatch, tally } from '../../js/usage.js'
 
 const settings = { depth: '2', breadth: '4', style: 'plan', links: 'no', lang: 'French', model: 'claude-haiku-4-5', think: 'no' }
@@ -76,4 +76,12 @@ test('usage: tally, cost, money, stopwatch', () => {
   t = 1000; w.firstNode()
   t = 3000
   assert.equal(w.took(5), '3.0s (first node 1.0s, 500ms each)')
+})
+
+test('waitingLabel: what the centre node says while a build waits (#63)', () => {
+  assert.equal(waitingLabel('coffee'), 'Building coffee…')
+  assert.equal(waitingLabel('https://www.example.com/'), 'Reading example.com…')
+  assert.equal(waitingLabel('https://github.com/luke-jr/bips/blob/bip-blake2b-pow/bip-blake2b-pow.mediawiki'), 'Reading github.com/…/bip-blake2b-pow.mediawiki…')
+  assert.equal(waitingLabel('x'.repeat(200)), 'Building ' + 'x'.repeat(32) + '…')
+  assert.equal(waitingLabel('https://example.com/' + 'y'.repeat(200)).length, 53)
 })

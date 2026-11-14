@@ -69,6 +69,22 @@ export function adopt(roots, ids, path = '') {
   })
 }
 
+// What the centre node says while a build waits for its first idea: "Reading host/file…" for a
+// link, "Building <topic>…" otherwise. Short enough for one node.
+export function waitingLabel(q) {
+  const url = (q.match(URLS) || [])[0]
+  if (!url) return `Building ${q.length > 32 ? q.slice(0, 32).trimEnd() : q}…`
+  let host = url
+  let last = ''
+  try {
+    const u = new URL(url)
+    host = u.hostname.replace(/^www\./, '')
+    last = decodeURIComponent(u.pathname.split('/').filter(Boolean).pop() || '')
+  } catch {}
+  const where = last ? `${host}/…/${last}` : host
+  return `Reading ${where.length > 44 ? where.slice(0, 44) : where}…`
+}
+
 export const countNodes = n => 1 + n.kids.reduce((s, k) => s + countNodes(k), 0)
 
 // Build a map for `q`. Yields { tree, usage } each time the outline gains a complete line, then

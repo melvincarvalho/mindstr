@@ -90,6 +90,50 @@ test('with a saved key, Create goes straight to building', async () => {
   await page.context().close()
 })
 
+// #63: the wait says what is happening, a failure stays on screen, ?build= alone builds
+test('while a build waits the centre says what is being read; a failure stays until dismissed', async () => {
+  const page = await openPage(browser, server.url)
+  await page.addInitScript(() => localStorage.setItem('mindstr.make.key', 'sk-test'))
+  let release
+  const held = new Promise(r => (release = r))
+  await page.route('https://api.anthropic.com/**', async route => {
+    await held
+    return route.fulfill({ status: 400, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' }, body: JSON.stringify({ error: { message: 'credit balance too low' } }) })
+  })
+  await load(page, `${server.url}?cache=off&draft=wait-test&build=${encodeURIComponent('https://example.com/docs/guide.html')}`)
+  await page.waitForFunction(() => /^Reading example\.com/.test(document.title), null, { timeout: 5000 })
+  assert.equal((await island(page)).nodes[0].name, 'Central idea', 'the label is never saved')
+  assert.equal(await page.locator('#hint').isHidden(), true, 'no editing hint while building')
+  release()
+  await page.waitForFunction(() => /credit balance too low/.test(document.querySelector('#toast')?.textContent || ''), null, { timeout: 5000 })
+  assert.match(await page.title(), /^Central idea/)
+  await page.waitForTimeout(9500)
+  assert.equal(await page.locator('#toast').isVisible(), true, 'the reason stays')
+  assert.deepEqual(await page.locator('#toast button').allTextContents(), ['Retry', 'Dismiss'])
+  await page.click('#toast button:text("Dismiss")')
+  assert.equal(await page.locator('#toast').isHidden(), true)
+  assert.deepEqual(page.errors, [])
+  await page.context().close()
+})
+
+test('?build= with no draft starts a fresh draft and builds, even when a draft exists', async () => {
+  const page = await openPage(browser, server.url)
+  await page.addInitScript(() => localStorage.setItem('mindstr.make.key', 'sk-test'))
+  const requests = await mockClaude(page)
+  await load(page, `${server.url}?draft=older`)
+  await page.locator('#tree').focus()
+  await page.keyboard.press('Tab')
+  await page.keyboard.type('Older idea')
+  await page.keyboard.press('Enter')
+  await page.waitForTimeout(300)
+  await load(page, `${server.url}?cache=off&build=coffee`)
+  await page.waitForFunction(() => /7 ideas/.test(document.querySelector('#toast')?.textContent || ''), null, { timeout: 10000 })
+  assert.equal(requests.length, 1)
+  assert.notEqual(new URL(page.url()).searchParams.get('draft'), 'older')
+  assert.deepEqual(page.errors, [])
+  await page.context().close()
+})
+
 test('Start blank opens the editor on an empty map', async () => {
   const page = await openPage(browser, server.url)
   await load(page, server.url)
