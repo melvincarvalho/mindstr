@@ -11,7 +11,7 @@ import { badgeAt, colorsFor, drawMap, linkIconAt, makeMeasure, THEMES } from './
 import { fanLayout, radialLayout } from './layout.js'
 import { parseOutline, toMarkdown } from './outline.js'
 import { grownKids, growMessage, growSystem, KEY_STORE, storedKey, storedSettings, stream as claudeStream, topicFor } from './claude.js'
-import { buildMap, countNodes } from './build.js'
+import { buildMap, countNodes, waitingLabel } from './build.js'
 import { cost, money, stopwatch } from './usage.js'
 import { boundsOf, DRAG_THRESHOLD, fitBox, MIN_SCALE, pinchInfo as pinchOf, pinchTo, stepView, toScreen as screenOf, toWorld as worldOf, wheel as wheelView, zoomAt as zoomView } from './view.js'
 
@@ -1304,7 +1304,9 @@ function openAsNewMap(i) {
 // the next, so the ones already there glide to their new places and new ones fade in. It is an
 // ordinary draft throughout, so it can be edited, shared, published and saved when it's done.
 let building = null
+let buildFailed = false // its reason is on screen: the editing hint waits underneath
 async function buildHere(q) {
+  buildFailed = false
   const key = storedKey()
   if (!key) {
     toast('To build maps with Claude, add your Claude API key on the front page first.', { ms: 8000 })
@@ -1315,6 +1317,7 @@ async function buildHere(q) {
   const who = s.model.replace('claude-', '').replace(/-/g, ' ')
   toast(/https?:\/\//.test(q) ? `Reading the page, then asking ${who}…` : `Asking ${who}…`, { ms: 120000, action: ['Stop', () => building?.abort()] })
   announce(`Building a map of ${q}`)
+  waiting(waitingLabel(q))
   const watch = stopwatch()
   let usage = {}
   let tree = null
@@ -1323,6 +1326,7 @@ async function buildHere(q) {
       if (!building) break
       tree = step.tree
       usage = step.usage
+      waiting(null)
       showTree(tree)
       watch.firstNode()
       if (!step.done) toast(`Building… ${countNodes(tree)} ideas`, { ms: 120000, action: ['Stop', () => building?.abort()] })
@@ -1333,14 +1337,45 @@ async function buildHere(q) {
     chime()
   } catch (e) {
     if (e.name === 'AbortError') say(tree ? 'Stopped: the map so far is kept' : 'Stopped building')
-    else toast(`Couldn’t build the map: ${e.message}`, { ms: 9000 })
+    else {
+      // the reason stays until dismissed, and is in the console afterwards (#63)
+      console.warn('Mindstr: the map was not built:', e.message)
+      toast(`Couldn’t build the map: ${e.message}`, { ms: Infinity, action: [['Retry', () => buildHere(q)], ['Dismiss', () => ((buildFailed = false), updateUi())]] })
+      buildFailed = true
+    }
   } finally {
     finishBuild()
   }
 }
 function finishBuild() {
   building = null
+  waiting(null)
   history.replaceState(null, '', draftUrl(draftId)) // a reload opens the draft, not another build
+  updateUi() // the editing hint comes back
+}
+// While a build waits for its first idea, the lone centre node says what is being read and
+// pulses, so the page doesn't look like an empty map (#63). The label is never saved: it goes
+// back to "Central idea" if no map arrives.
+let waitingPulse = null
+let waitingName = null // the label on the centre node, while it is there
+function waiting(label) {
+  clearInterval(waitingPulse)
+  waitingPulse = null
+  const root = state.nodes[0]
+  if (!root) return
+  if (label) {
+    if (state.nodes.length !== 1 || root.name !== 'Central idea') return
+    root.name = waitingName = label
+    if (!reducedMotion.matches) {
+      flash([root['@id']], 1500)
+      waitingPulse = setInterval(() => flash([state.nodes[0]?.['@id']], 1500), 1500)
+    }
+  } else if (waitingName) {
+    if (state.nodes.length === 1 && root.name === waitingName) root.name = 'Central idea'
+    waitingName = null
+  } else return
+  updateUi()
+  invalidate()
 }
 // Replace the map with `tree` ({ id, name, link?, kids }), laid out radially, animating the change
 function showTree(tree) {
@@ -2193,7 +2228,7 @@ function updateUi() {
             : 'Saved'
   if (remote.live) statusEl.textContent += ' · live'
   statusEl.dataset.state = state.dirty && (state.canSave || isExample) ? 'dirty' : ''
-  hint.hidden = Boolean(mapUrl) || store.get('mindstr:hint') === 'off' || state.nodes.length > 2
+  hint.hidden = Boolean(building) || buildFailed || Boolean(mapUrl) || store.get('mindstr:hint') === 'off' || state.nodes.length > 2
   document.title = (state.nodes[0]?.name || 'Untitled') + ' – Mindstr'
   renderTree()
 }
@@ -2205,18 +2240,19 @@ function toast(msg, { ms = 3200, action } = {}) {
   const text = document.createElement('span')
   text.textContent = msg
   toastEl.replaceChildren(text)
-  if (action) {
+  // one action as [label, fn], or several as [[label, fn], …]
+  for (const [label, run] of action ? (Array.isArray(action[0]) ? action : [action]) : []) {
     const b = document.createElement('button')
-    b.textContent = action[0]
+    b.textContent = label
     b.addEventListener('click', () => {
       toastEl.hidden = true
-      action[1]()
+      run()
     })
     toastEl.append(b)
   }
   toastEl.hidden = false
   clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => (toastEl.hidden = true), ms)
+  if (Number.isFinite(ms)) toastTimer = setTimeout(() => (toastEl.hidden = true), ms) // ms: Infinity stays until dismissed
 }
 
 function say(msg) {
@@ -2962,7 +2998,7 @@ async function load() {
     }
   } else {
     const wanted = params.get('draft')
-    draftId = wanted || (!titleParam && drafts()[0]?.id) || newDraftId()
+    draftId = wanted || (!titleParam && !buildParam && drafts()[0]?.id) || newDraftId() // ?build= alone: a fresh draft (#63)
     const saved = store.get(draftKey(draftId))
     if (saved) {
       try {
